@@ -1,0 +1,80 @@
+# Dependencies
+node_modules/
+/.pnp
+.pnp.js
+
+# Testing
+/coverage
+
+# Production builds
+/build
+/dist
+.vite/
+
+# Environment variables (CRITICAL - DO NOT COMMIT)
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+.env*.local
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# OS files
+Thumbs.db
+.DS_Store
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+
+# Package manager
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# MongoDB
+*.mongodb
+
+# Uploads (if using local storage)
+uploads/
+public/uploads/
+
+# Misc
+.npm
+.eslintcache
+.node_repl_history
+*.tgz
+.yarn-integrity
+
+# PM2
+.pm2/
+
+# IDE
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+.loadpath
