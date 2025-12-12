@@ -24,6 +24,7 @@ const FloatingNavbar = () => {
 
     const navLinks = [
         { name: 'Templates', path: '/templates' },
+        { name: 'Docs', path: '/docs' },
         { name: 'Features', path: '/features' },
         { name: 'Testimonials', path: '/testimonials' },
         { name: 'FAQ', path: '/faq' }

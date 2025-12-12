@@ -1,0 +1,1 @@
+import{e}from"./index-B_v40I8Q.js";const r={getAll:(t="")=>e.get(`/products?keyword=${t}`),getById:t=>e.get(`/products/${t}`),create:t=>e.post("/products",t),update:(t,p)=>e.put(`/products/${t}`,p),delete:t=>e.delete(`/products/${t}`)};export{r as p};

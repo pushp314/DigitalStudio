@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Analytics from '../../pages/GodMode/Analytics';
 import SiteConfigForm from '../../components/admin/SiteConfigForm';
-import ProductList from '../../components/admin/ProductList'; // We'll reuse/adapt this
-import UserList from '../../components/admin/UserList'; // New component we might need
+import ProductList from '../../components/admin/ProductList';
+import UserList from '../../components/admin/UserList';
+import DocsManager from '../../components/admin/DocsManager';
 
 const GodModeDashboard = () => {
     const [activeTab, setActiveTab] = useState('dashboard');
@@ -87,7 +88,7 @@ const GodModeDashboard = () => {
                     {activeTab === 'dashboard' && <Analytics />}
                     {activeTab === 'config' && <SiteConfigForm />}
                     {activeTab === 'products' && <ProductList />}
-                    {activeTab === 'docs' && <div className="p-8 bg-zinc-900 rounded-2xl border border-zinc-800 text-center text-zinc-500">Doc Management Module Coming Soon...</div>}
+                    {activeTab === 'docs' && <DocsManager />}
                     {activeTab === 'users' && <UserList />}
                 </div>
             </main>

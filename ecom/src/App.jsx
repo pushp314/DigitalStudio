@@ -33,6 +33,8 @@ const Wishlist = lazy(() => import("./pages/Wishlist"));
 const Profile = lazy(() => import("./pages/Profile"));
 const GodModeLogin = lazy(() => import('./pages/GodMode/Login'));
 const GodModeDashboard = lazy(() => import('./pages/Admin/GodModeDashboard'));
+const Docs = lazy(() => import('./pages/Docs'));
+const DocViewer = lazy(() => import('./pages/DocViewer'));
 
 // Loading Spinner Component
 const LoadingFallback = () => (
@@ -60,6 +62,8 @@ function App() {
                       <Route path="/testimonials" element={<Testimonials />} />
                       <Route path="/faq" element={<FAQ />} />
                       <Route path="/contact" element={<Contact />} />
+                      <Route path="/docs" element={<Docs />} />
+                      <Route path="/docs/:id" element={<DocViewer />} />
                       <Route path="/cart" element={<Cart />} />
                       <Route path="/checkout" element={<Checkout />} />
                       <Route path="/login" element={<Login />} />
