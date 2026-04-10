@@ -4,11 +4,11 @@ node_modules/
 .pnp.js
 
 # Testing
-/coverage
+coverage/
 
 # Production builds
-/build
-/dist
+build/
+dist/
 .vite/
 
 # Environment variables (CRITICAL - DO NOT COMMIT)
@@ -49,9 +49,11 @@ Thumbs.db
 .cache/
 
 # Package manager
-package-lock.json
-yarn.lock
-pnpm-lock.yaml
+# Lock files should typically be tracked for reproducible builds
+# If you prefer not to track them, you can uncomment these lines:
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml
 
 # MongoDB
 *.mongodb

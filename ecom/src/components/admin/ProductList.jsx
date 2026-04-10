@@ -15,10 +15,11 @@ const ProductList = () => {
     const fetchProducts = async () => {
         try {
             const { data } = await api.get('/products');
-            setProducts(data);
+            setProducts(Array.isArray(data) ? data : []);
         } catch (error) {
             addToast('Error fetching products', 'error');
             console.error(error);
+            setProducts([]);
         } finally {
             setLoading(false);
         }
@@ -48,20 +49,20 @@ const ProductList = () => {
         }
     }
 
-    if (loading) return <div className="text-white">Loading products...</div>;
+    if (loading) return <div className="text-gray-500">Loading products...</div>;
 
     return (
-        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-8">
+        <div className="bg-white border border-gray-200 rounded-2xl p-8 shadow-sm">
             <div className="flex justify-between items-center mb-6">
-                <h3 className="text-xl font-bold text-white">Product Inventory</h3>
-                <button onClick={createProductHandler} className="bg-[#0055FF] hover:bg-blue-600 text-white px-4 py-2 rounded-lg font-bold text-sm transition-colors">
+                <h3 className="text-xl font-bold text-black">Product Inventory</h3>
+                <button onClick={createProductHandler} className="bg-[#0055FF] hover:bg-blue-600 text-white px-4 py-2 rounded-lg font-bold text-sm transition-colors shadow-lg shadow-blue-500/30">
                     + Create New
                 </button>
             </div>
 
             <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm text-zinc-400">
-                    <thead className="text-xs uppercase bg-zinc-800/50 text-zinc-300">
+                <table className="w-full text-left text-sm text-gray-500">
+                    <thead className="text-xs uppercase bg-gray-50 text-gray-500">
                         <tr>
                             <th className="px-4 py-3 rounded-l-lg">ID</th>
                             <th className="px-4 py-3">Product Name</th>
@@ -70,29 +71,37 @@ const ProductList = () => {
                             <th className="px-4 py-3 rounded-r-lg text-right">Actions</th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-zinc-800">
-                        {products.map((product) => (
-                            <tr key={product._id} className="hover:bg-zinc-800/30 transition-colors">
-                                <td className="px-4 py-3 font-mono text-xs text-zinc-500">{product._id.substring(0, 6)}...</td>
-                                <td className="px-4 py-3 font-medium text-white">{product.title}</td>
-                                <td className="px-4 py-3 text-green-400">${product.price}</td>
-                                <td className="px-4 py-3 text-xs uppercase">{product.category}</td>
-                                <td className="px-4 py-3 text-right space-x-2">
-                                    <Link
-                                        to={`/admin/product/${product._id}/edit`}
-                                        className="text-white hover:text-[#0055FF] transition-colors"
-                                    >
-                                        Edit
-                                    </Link>
-                                    <button
-                                        onClick={() => deleteHandler(product._id)}
-                                        className="text-red-500 hover:text-red-400 transition-colors"
-                                    >
-                                        Delete
-                                    </button>
+                    <tbody className="divide-y divide-gray-100">
+                        {Array.isArray(products) && products.length > 0 ? (
+                            products.map((product) => (
+                                <tr key={product._id} className="hover:bg-gray-50 transition-colors">
+                                    <td className="px-4 py-3 font-mono text-xs text-gray-400">{product._id.substring(0, 6)}...</td>
+                                    <td className="px-4 py-3 font-medium text-black">{product.title}</td>
+                                    <td className="px-4 py-3 text-green-600 font-bold">${product.price}</td>
+                                    <td className="px-4 py-3 text-xs uppercase">{product.category}</td>
+                                    <td className="px-4 py-3 text-right space-x-2">
+                                        <Link
+                                            to={`/admin/product/${product._id}/edit`}
+                                            className="text-gray-600 hover:text-[#0055FF] transition-colors"
+                                        >
+                                            Edit
+                                        </Link>
+                                        <button
+                                            onClick={() => deleteHandler(product._id)}
+                                            className="text-red-500 hover:text-red-600 transition-colors"
+                                        >
+                                            Delete
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))
+                        ) : (
+                            <tr>
+                                <td colSpan="5" className="px-4 py-8 text-center text-gray-500">
+                                    No products found.
                                 </td>
                             </tr>
-                        ))}
+                        )}
                     </tbody>
                 </table>
             </div>

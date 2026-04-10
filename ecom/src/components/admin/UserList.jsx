@@ -17,11 +17,11 @@ const UserList = () => {
     ]);
 
     return (
-        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-8">
-            <h3 className="text-xl font-bold text-white mb-6">User Database</h3>
+        <div className="bg-white border border-gray-200 rounded-2xl p-8 shadow-sm">
+            <h3 className="text-xl font-bold text-black mb-6">User Database</h3>
             <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm text-zinc-400">
-                    <thead className="text-xs uppercase bg-zinc-800/50 text-zinc-300">
+                <table className="w-full text-left text-sm text-gray-500">
+                    <thead className="text-xs uppercase bg-gray-50 text-gray-500">
                         <tr>
                             <th className="px-4 py-3 rounded-l-lg">User</th>
                             <th className="px-4 py-3">Email</th>
@@ -30,22 +30,22 @@ const UserList = () => {
                             <th className="px-4 py-3 rounded-r-lg text-right">Status</th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-zinc-800">
+                    <tbody className="divide-y divide-gray-100">
                         {users.map((user) => (
-                            <tr key={user._id} className="hover:bg-zinc-800/30 transition-colors">
-                                <td className="px-4 py-3 font-medium text-white">{user.name}</td>
+                            <tr key={user._id} className="hover:bg-gray-50 transition-colors">
+                                <td className="px-4 py-3 font-medium text-black">{user.name}</td>
                                 <td className="px-4 py-3">{user.email}</td>
                                 <td className="px-4 py-3">
-                                    <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${user.role === 'admin' ? 'bg-purple-500/20 text-purple-400' : 'bg-zinc-700/50 text-zinc-400'}`}>
+                                    <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${user.role === 'admin' ? 'bg-purple-100 text-purple-600' : 'bg-gray-100 text-gray-500'}`}>
                                         {user.role}
                                     </span>
                                 </td>
                                 <td className="px-4 py-3">
-                                    <span className={`px-2 py-1 rounded text-xs font-bold ${user.plan === 'Enterprise' ? 'bg-yellow-500/20 text-yellow-500' : user.plan === 'Pro' ? 'bg-blue-500/20 text-blue-400' : 'bg-zinc-700/50 text-zinc-400'}`}>
+                                    <span className={`px-2 py-1 rounded text-xs font-bold ${user.plan === 'Enterprise' ? 'bg-yellow-100 text-yellow-600' : user.plan === 'Pro' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-500'}`}>
                                         {user.plan}
                                     </span>
                                 </td>
-                                <td className="px-4 py-3 text-right text-green-400 text-xs font-bold uppercase">
+                                <td className="px-4 py-3 text-right text-green-600 text-xs font-bold uppercase">
                                     Active
                                 </td>
                             </tr>
@@ -53,7 +53,7 @@ const UserList = () => {
                     </tbody>
                 </table>
             </div>
-            <p className="text-zinc-600 text-xs mt-4 italic text-center">Displaying cached user data.</p>
+            <p className="text-gray-400 text-xs mt-4 italic text-center">Displaying cached user data.</p>
         </div>
     );
 };
