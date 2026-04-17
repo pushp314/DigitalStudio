@@ -119,7 +119,7 @@ const Checkout = () => {
                     <div className="lg:col-span-8 flex flex-col gap-8">
                         <div className="bg-white p-8 rounded-3xl shadow-sm">
                             <h2 className="text-2xl font-bold mb-6 flex items-center gap-3">
-                                <span className="w-8 h-8 bg-blue-100 text-[#0055FF] rounded-full flex items-center justify-center text-sm">1</span>
+                                <span className="w-8 h-8 bg-blue-100 text-primary rounded-full flex items-center justify-center text-sm" aria-hidden="true">1</span>
                                 Review Purchase
                             </h2>
                             <div className="space-y-4">
@@ -131,7 +131,7 @@ const Checkout = () => {
                                             <p className="text-sm text-gray-500">{item.category}</p>
                                         </div>
                                         <div className="text-right">
-                                            <p className="font-bold text-[#0055FF]">{item.formattedPrice}</p>
+                                            <p className="font-bold text-primary">{item.formattedPrice}</p>
                                             <p className="text-xs text-gray-400">Qty 1</p>
                                         </div>
                                     </div>
@@ -154,7 +154,7 @@ const Checkout = () => {
                                         <img src={item.image} alt={item.title} className="w-16 h-16 object-cover rounded-lg bg-gray-100" />
                                         <div>
                                             <p className="font-bold text-sm line-clamp-1">{item.title}</p>
-                                            <p className="text-[#0055FF] font-bold text-sm">{item.formattedPrice}</p>
+                                            <p className="text-primary font-bold text-sm">{item.formattedPrice}</p>
                                         </div>
                                     </div>
                                 ))}
@@ -168,7 +168,7 @@ const Checkout = () => {
                             </div>
                             <div className="flex justify-between items-center mb-8">
                                 <span className="text-xl font-bold">Total</span>
-                                <span className="text-2xl font-black text-[#0055FF]">{formatCurrency(total)}</span>
+                                <span className="text-2xl font-black text-primary">{formatCurrency(total)}</span>
                             </div>
 
                             <button

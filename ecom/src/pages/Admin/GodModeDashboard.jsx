@@ -38,7 +38,7 @@ const GodModeDashboard = () => {
             <aside className={`w-64 bg-white border-r border-gray-200 flex flex-col fixed h-full z-20 transition-transform duration-300 lg:translate-x-0 ${mobileSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
                 <div className="p-6 border-b border-gray-200">
                     <h1 className="text-xl font-black tracking-tighter text-black">
-                        GOD MODE <span className="text-[#0055FF] text-xs align-top">v2.0</span>
+                        GOD MODE <span className="text-primary text-xs align-top">v2.0</span>
                     </h1>
                     <p className="text-gray-500 text-xs mt-1">System Administration</p>
                 </div>
@@ -52,7 +52,7 @@ const GodModeDashboard = () => {
                                 setMobileSidebarOpen(false);
                             }}
                             className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${activeTab === tab.id
-                                ? 'bg-[#0055FF] text-white shadow-lg shadow-blue-500/30'
+                                ? 'bg-primary text-white shadow-lg shadow-blue-500/30'
                                 : 'text-gray-500 hover:bg-gray-50 hover:text-black'
                                 }`}
                         >

@@ -9,7 +9,7 @@
   }
 
   ::selection {
-    @apply bg-[#0055FF] text-white;
+    @apply bg-primary text-white;
   }
 }
 

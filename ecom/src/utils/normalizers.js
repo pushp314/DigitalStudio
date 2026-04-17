@@ -168,3 +168,15 @@ export const normalizeSalesSummary = (entry = {}) => ({
     revenue: Number(entry.revenue ?? 0),
     formattedRevenue: formatCurrency(entry.revenue ?? 0),
 });
+
+export const normalizeReview = (review = {}) => ({
+    ...review,
+    id: normalizeId(review.id ?? review._id),
+    productId: normalizeId(review.productId ?? review.product_id),
+    userId: normalizeId(review.userId ?? review.user_id),
+    rating: Number(review.rating ?? 0),
+    comment: toString(review.comment ?? review.text),
+    createdAt: review.createdAt ?? review.created_at ?? null,
+    updatedAt: review.updatedAt ?? review.updated_at ?? null,
+    user: review.user ? normalizeUser(review.user) : null,
+});

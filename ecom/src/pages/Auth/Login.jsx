@@ -46,7 +46,7 @@ const Login = () => {
                         <label className="block text-sm font-bold text-gray-700 mb-2">Email Address</label>
                         <input
                             type="email"
-                            className="w-full px-5 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#0055FF]/20 focus:border-[#0055FF] transition-all"
+                            className="w-full px-5 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             required
@@ -56,7 +56,7 @@ const Login = () => {
                         <label className="block text-sm font-bold text-gray-700 mb-2">Password</label>
                         <input
                             type="password"
-                            className="w-full px-5 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#0055FF]/20 focus:border-[#0055FF] transition-all"
+                            className="w-full px-5 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             required
@@ -65,7 +65,7 @@ const Login = () => {
 
                     <button
                         type="submit"
-                        className="mt-4 w-full bg-[#0055FF] hover:bg-blue-600 text-white font-bold py-4 rounded-xl transition-all shadow-[0_10px_20px_-5px_rgba(0,85,255,0.3)] hover:shadow-lg hover:-translate-y-1"
+                        className="mt-4 w-full bg-primary hover:bg-blue-600 text-white font-bold py-4 rounded-xl transition-all shadow-[0_10px_20px_-5px_rgba(0,85,255,0.3)] hover:shadow-lg hover:-translate-y-1"
                     >
                         Sign In
                     </button>
@@ -98,7 +98,7 @@ const Login = () => {
                 </div>
 
                 <p className="mt-8 text-center text-sm text-gray-500">
-                    Don't have an account? <Link to="/register" className="text-[#0055FF] font-bold hover:underline">Create one</Link>
+                    Don't have an account? <Link to="/register" className="text-primary font-bold hover:underline">Create one</Link>
                 </p>
             </div>
         </div>

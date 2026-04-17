@@ -106,6 +106,7 @@ const TemplateGrid = ({ items, limit }) => {
                 {/* Wishlist Button */}
                 <button
                   onClick={(e) => handleWishlistClick(e, template)}
+                  aria-label={isInWishlist(template.id) ? "Remove from wishlist" : "Add to wishlist"}
                   className="absolute top-4 right-4 bg-white/80 hover:bg-white backdrop-blur-sm p-2 rounded-full shadow-sm z-10 transition-colors"
                 >
                   <svg className={`w-5 h-5 ${isInWishlist(template.id) ? 'text-red-500 fill-current' : 'text-gray-600'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">

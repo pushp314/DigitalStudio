@@ -12,7 +12,7 @@ const Wishlist = () => {
             <div className="min-h-[60vh] flex flex-col items-center justify-center p-6 bg-[#F5F5F7]">
                 <h2 className="text-3xl font-bold mb-4 text-black">Your wishlist is empty</h2>
                 <p className="text-gray-500 mb-8">Save items you love to revisit later.</p>
-                <Link to="/templates" className="bg-[#0055FF] text-white px-8 py-3 rounded-full font-bold hover:opacity-90 transition-opacity">
+                <Link to="/templates" className="bg-primary text-white px-8 py-3 rounded-full font-bold hover:opacity-90 transition-opacity">
                     Explore Templates
                 </Link>
             </div>
@@ -42,7 +42,7 @@ const Wishlist = () => {
                                     <img src={item.image} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                                 </div>
                                 <h3 className="text-xl font-bold text-black mb-1">{item.title}</h3>
-                                <p className="text-[#0055FF] font-bold text-lg mb-4">{item.formattedPrice}</p>
+                                <p className="text-primary font-bold text-lg mb-4">{item.formattedPrice}</p>
                             </Link>
 
                             <button

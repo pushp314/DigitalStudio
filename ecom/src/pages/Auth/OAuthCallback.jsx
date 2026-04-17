@@ -46,14 +46,14 @@ const OAuthCallback = () => {
                         <p className="text-gray-500 mb-6">{error}</p>
                         <button
                             onClick={() => navigate('/login', { replace: true })}
-                            className="bg-[#0055FF] text-white px-6 py-3 rounded-full font-bold hover:bg-blue-600 transition-colors"
+                            className="bg-primary text-white px-6 py-3 rounded-full font-bold hover:bg-blue-600 transition-colors"
                         >
                             Back to Login
                         </button>
                     </>
                 ) : (
                     <>
-                        <div className="w-10 h-10 border-4 border-gray-200 border-t-[#0055FF] rounded-full animate-spin mx-auto mb-6"></div>
+                        <div className="w-10 h-10 border-4 border-gray-200 border-t-primary rounded-full animate-spin mx-auto mb-6"></div>
                         <h1 className="text-2xl font-black text-black mb-3">Signing you in</h1>
                         <p className="text-gray-500">Finalizing your OAuth session and loading your account.</p>
                     </>

@@ -12,7 +12,7 @@ const BuildSitesHeader = ({
         {/* Left: Heading */}
         <h2 className="max-w-4xl text-5xl md:text-6xl lg:text-[4.5rem] font-black text-black tracking-tight leading-[0.95]">
           {title} <br className="hidden md:block" />
-          <span className="text-[#0055FF]">{highlight}</span>
+          <span className="text-primary">{highlight}</span>
         </h2>
 
         {/* Right: Description */}

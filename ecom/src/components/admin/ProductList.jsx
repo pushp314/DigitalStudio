@@ -50,7 +50,7 @@ const ProductList = () => {
         <div className="bg-white border border-gray-200 rounded-2xl p-8 shadow-sm">
             <div className="flex justify-between items-center mb-6">
                 <h3 className="text-xl font-bold text-black">Product Inventory</h3>
-                <button onClick={createProductHandler} className="bg-[#0055FF] hover:bg-blue-600 text-white px-4 py-2 rounded-lg font-bold text-sm transition-colors shadow-lg shadow-blue-500/30">
+                <button onClick={createProductHandler} className="bg-primary hover:bg-blue-600 text-white px-4 py-2 rounded-lg font-bold text-sm transition-colors shadow-lg shadow-blue-500/30">
                     + Create New
                 </button>
             </div>
@@ -77,7 +77,7 @@ const ProductList = () => {
                                     <td className="px-4 py-3 text-right space-x-2">
                                         <Link
                                             to={`/admin/product/${product.id}/edit`}
-                                            className="text-gray-600 hover:text-[#0055FF] transition-colors"
+                                            className="text-gray-600 hover:text-primary transition-colors"
                                         >
                                             Edit
                                         </Link>

@@ -1,21 +1,11 @@
-import { createContext, useState, useEffect } from 'react';
+import { createContext } from 'react';
 import { normalizeProduct } from '../utils/normalizers';
+import { useLocalStorageState } from '../hooks/useLocalStorageState';
 
 const WishlistContext = createContext();
 
 export const WishlistProvider = ({ children }) => {
-    const [wishlistItems, setWishlistItems] = useState([]);
-
-    useEffect(() => {
-        const storedWishlist = localStorage.getItem('wishlistItems');
-        if (storedWishlist) {
-            setWishlistItems(JSON.parse(storedWishlist).map(normalizeProduct));
-        }
-    }, []);
-
-    useEffect(() => {
-        localStorage.setItem('wishlistItems', JSON.stringify(wishlistItems));
-    }, [wishlistItems]);
+    const [wishlistItems, setWishlistItems] = useLocalStorageState('wishlistItems', []);
 
     const addToWishlist = (product) => {
         const normalizedProduct = normalizeProduct(product);

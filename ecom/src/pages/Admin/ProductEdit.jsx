@@ -24,7 +24,7 @@ const emptyForm = {
     previewImages: '',
 };
 
-const inputClassName = 'w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 outline-none transition-all focus:border-[#0055FF] focus:ring-2 focus:ring-[#0055FF]/10';
+const inputClassName = 'w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/10';
 const labelClassName = 'block text-sm font-bold text-gray-700 mb-2';
 
 const ProductEdit = () => {
@@ -263,7 +263,7 @@ const ProductEdit = () => {
                         </div>
                     </div>
 
-                    <button type="submit" className="w-full bg-[#0055FF] text-white font-bold py-4 rounded-xl hover:bg-blue-600 transition-colors shadow-lg shadow-blue-500/30">
+                    <button type="submit" className="w-full bg-primary text-white font-bold py-4 rounded-xl hover:bg-blue-600 transition-colors shadow-lg shadow-blue-500/30">
                         {isCreateMode ? 'Create Product' : 'Update Product'}
                     </button>
                 </form>
@@ -281,7 +281,7 @@ const Field = ({ label, children }) => (
 
 const Checkbox = ({ name, checked, onChange, label }) => (
     <label className="flex items-center gap-3 cursor-pointer">
-        <input type="checkbox" name={name} checked={checked} onChange={onChange} className="w-4 h-4 rounded text-[#0055FF]" />
+        <input type="checkbox" name={name} checked={checked} onChange={onChange} className="w-4 h-4 rounded text-primary" />
         <span className="text-sm font-medium text-gray-700">{label}</span>
     </label>
 );

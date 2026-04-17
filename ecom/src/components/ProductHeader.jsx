@@ -109,10 +109,10 @@ const ProductHeader = ({ product }) => {
               {/* Buy Now Button */}
               <button
                 onClick={handleBuyNow}
-                className="flex items-center gap-2 bg-[#0055FF] hover:bg-blue-600 text-white px-8 py-4 rounded-full font-bold text-lg transition-all shadow-lg shadow-blue-500/20 active:scale-95"
+                className="flex items-center gap-2 bg-primary hover:bg-blue-600 text-white px-8 py-4 rounded-full font-bold text-lg transition-all shadow-lg shadow-blue-500/20 active:scale-95"
               >
                 <div className="w-5 h-5 rounded-full bg-white flex items-center justify-center">
-                  <svg className="w-3 h-3 text-[#0055FF]" viewBox="0 0 24 24" fill="currentColor">
+                  <svg className="w-3 h-3 text-primary" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M7 21h10v-9h-10v9zm2-7h6v5h-6v-5zm-5-4l10-10 10 10h-20z" transform="scale(0.8) translate(3,3)" />
                     {/* Simplified lightning icon path */}
                     <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
@@ -185,7 +185,7 @@ const ProductHeader = ({ product }) => {
                 <span className="text-lg font-bold text-gray-600">4.9/5</span>
                 <div className="flex gap-0.5">
                   {[...Array(5)].map((_, i) => (
-                    <svg key={i} className="w-4 h-4 text-[#0055FF]" viewBox="0 0 24 24" fill="currentColor">
+                    <svg key={i} className="w-4 h-4 text-primary" viewBox="0 0 24 24" fill="currentColor">
                       <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
                     </svg>
                   ))}

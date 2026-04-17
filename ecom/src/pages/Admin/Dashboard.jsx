@@ -52,7 +52,7 @@ const Dashboard = () => {
     if (loading) {
         return (
             <div className="min-h-screen bg-[#F5F5F7] flex items-center justify-center">
-                <div className="w-8 h-8 border-4 border-gray-200 border-t-[#0055FF] rounded-full animate-spin"></div>
+                <div className="w-8 h-8 border-4 border-gray-200 border-t-primary rounded-full animate-spin"></div>
             </div>
         );
     }
@@ -68,7 +68,7 @@ const Dashboard = () => {
                     </div>
                     <button
                         onClick={createHandler}
-                        className="bg-[#0055FF] text-white px-6 py-3 rounded-full font-bold hover:bg-blue-600 transition-all shadow-lg shadow-blue-500/30 flex items-center gap-2 justify-center"
+                        className="bg-primary text-white px-6 py-3 rounded-full font-bold hover:bg-blue-600 transition-all shadow-lg shadow-blue-500/30 flex items-center gap-2 justify-center"
                     >
                         <span className="text-xl">+</span> Create Product
                     </button>

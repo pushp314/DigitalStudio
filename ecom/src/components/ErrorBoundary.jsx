@@ -48,7 +48,7 @@ class ErrorBoundary extends React.Component {
                         <div className="flex gap-3">
                             <button
                                 onClick={() => window.location.reload()}
-                                className="flex-1 bg-[#0055FF] text-white px-6 py-3 rounded-full font-bold hover:bg-blue-600 transition-colors shadow-lg shadow-blue-500/30"
+                                className="flex-1 bg-primary text-white px-6 py-3 rounded-full font-bold hover:bg-blue-600 transition-colors shadow-lg shadow-blue-500/30"
                             >
                                 Refresh Page
                             </button>

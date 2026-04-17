@@ -1,5 +1,6 @@
 import React, { Suspense, lazy } from "react";
 import { Routes, Route } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 // Components
 import Navbar from "./components/layout/Navbar";
@@ -11,6 +12,17 @@ import { CartProvider } from "./context/CartContext";
 import { WishlistProvider } from "./context/WishlistContext";
 import { ToastProvider } from "./context/ToastContext";
 import { ConfigProvider } from './context/ConfigContext';
+import ErrorBoundary from './components/ErrorBoundary';
+import { FEATURES } from './config/features';
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      retry: 1,
+    },
+  },
+});
 
 // Lazy Load Pages
 const Home = lazy(() => import("./pages/Home"));
@@ -42,8 +54,10 @@ function App() {
         <CartProvider>
           <WishlistProvider>
             <ToastProvider>
-              <Suspense fallback={<div className="h-screen w-full flex items-center justify-center bg-[#F5F5F7] text-black font-bold">Loading FlowGrid...</div>}>
-                <div className="flex flex-col min-h-screen bg-[#F5F5F7]">
+              <QueryClientProvider client={queryClient}>
+                <Suspense fallback={<div className="h-screen w-full flex items-center justify-center bg-[#F5F5F7] text-black font-bold">Loading FlowGrid...</div>}>
+                  <ErrorBoundary>
+                    <div className="flex flex-col min-h-screen bg-[#F5F5F7]">
                   <Navbar />
                   <div className="flex-grow">
                     <Routes>
@@ -54,10 +68,21 @@ function App() {
                       <Route path="/testimonials" element={<Testimonials />} />
                       <Route path="/faq" element={<FAQ />} />
                       <Route path="/contact" element={<Contact />} />
-                      <Route path="/docs" element={<Docs />} />
-                      <Route path="/docs/:id" element={<DocViewer />} />
-                      <Route path="/cart" element={<Cart />} />
-                      <Route path="/checkout" element={<Checkout />} />
+                      
+                      {FEATURES.docs && (
+                        <>
+                          <Route path="/docs" element={<Docs />} />
+                          <Route path="/docs/:id" element={<DocViewer />} />
+                        </>
+                      )}
+
+                      {FEATURES.payments && (
+                        <>
+                          <Route path="/cart" element={<Cart />} />
+                          <Route path="/checkout" element={<Checkout />} />
+                        </>
+                      )}
+
                       <Route path="/login" element={<Login />} />
                       <Route path="/register" element={<Register />} />
                       <Route path="/auth/callback" element={<OAuthCallback />} />
@@ -75,10 +100,12 @@ function App() {
 
                       <Route path="*" element={<NotFound />} />
                     </Routes>
+                    </div>
+                    <Footer />
                   </div>
-                  <Footer />
-                </div>
-              </Suspense>
+                  </ErrorBoundary>
+                </Suspense>
+              </QueryClientProvider>
             </ToastProvider>
           </WishlistProvider>
         </CartProvider>

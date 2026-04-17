@@ -31,7 +31,7 @@ const Docs = () => {
     if (loading) {
         return (
             <div className="min-h-screen bg-[#F5F5F7] flex items-center justify-center">
-                <div className="w-8 h-8 border-4 border-gray-200 border-t-[#0055FF] rounded-full animate-spin"></div>
+                <div className="w-8 h-8 border-4 border-gray-200 border-t-primary rounded-full animate-spin"></div>
             </div>
         );
     }
@@ -52,7 +52,7 @@ const Docs = () => {
                             key={category}
                             onClick={() => setFilter(category)}
                             className={`px-6 py-2 rounded-full font-bold text-sm transition-all ${filter === category
-                                ? 'bg-[#0055FF] text-white shadow-lg shadow-blue-500/30'
+                                ? 'bg-primary text-white shadow-lg shadow-blue-500/30'
                                 : 'bg-white text-black hover:bg-gray-50 border border-gray-200'
                                 }`}
                         >
@@ -79,7 +79,7 @@ const Docs = () => {
                                 )}
                             </div>
 
-                            <h3 className="text-xl font-black text-black mb-2 group-hover:text-[#0055FF] transition-colors">
+                            <h3 className="text-xl font-black text-black mb-2 group-hover:text-primary transition-colors">
                                 {doc.title}
                             </h3>
                             <p className="text-gray-600 text-sm mb-4 line-clamp-3">
@@ -100,7 +100,7 @@ const Docs = () => {
                                 <div className="text-2xl font-black text-black">{doc.formattedPrice}</div>
                                 <Link
                                     to={`/docs/${doc.id}`}
-                                    className="bg-[#0055FF] text-white px-4 py-2 rounded-full text-sm font-bold hover:bg-blue-600 transition-colors"
+                                    className="bg-primary text-white px-4 py-2 rounded-full text-sm font-bold hover:bg-blue-600 transition-colors"
                                 >
                                     {doc.isPremium ? 'Read Preview' : 'Read'}
                                 </Link>
@@ -109,14 +109,14 @@ const Docs = () => {
                     ))}
                 </div>
 
-                <div className="bg-gradient-to-r from-[#0055FF] to-blue-600 rounded-2xl p-8 md:p-12 text-center text-white">
+                <div className="bg-gradient-to-r from-primary to-blue-600 rounded-2xl p-8 md:p-12 text-center text-white">
                     <h2 className="text-3xl md:text-4xl font-black mb-4">Need More Premium Access?</h2>
                     <p className="text-lg mb-6 opacity-90">
                         Protected docs now respect backend access flags and preview content. Upgrade or assign eligible plans before exposing full content.
                     </p>
                     <Link
                         to="/profile"
-                        className="inline-block bg-white text-[#0055FF] px-8 py-3 rounded-full font-bold hover:bg-gray-100 transition-colors"
+                        className="inline-block bg-white text-primary px-8 py-3 rounded-full font-bold hover:bg-gray-100 transition-colors"
                     >
                         View Account
                     </Link>

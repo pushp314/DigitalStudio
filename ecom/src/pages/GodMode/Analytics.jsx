@@ -64,7 +64,7 @@ const Analytics = () => {
                                 </div>
                                 <div className="h-2 w-full bg-zinc-800 rounded-full overflow-hidden">
                                     <div
-                                        className="h-full bg-gradient-to-r from-[#0055FF] to-cyan-400 rounded-full"
+                                        className="h-full bg-gradient-to-r from-primary to-cyan-400 rounded-full"
                                         style={{ width: `${Math.min(100, entry.revenue > 0 ? (entry.revenue / Math.max(...sales.map((item) => item.revenue), 1)) * 100 : 0)}%` }}
                                     ></div>
                                 </div>

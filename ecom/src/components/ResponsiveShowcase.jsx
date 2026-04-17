@@ -51,7 +51,7 @@ const ResponsiveShowcase = () => {
                   </div>
                 </div>
                 <div className="w-1/3 text-[8px] text-gray-500 leading-relaxed">
-                  <span className="text-[#0055FF] font-bold block mb-1">INTRO</span>
+                  <span className="text-primary font-bold block mb-1">INTRO</span>
                   Photography has been my calling since I first picked up a camera. Based in Philadelphia, I specialize in capturing authentic moments.
                 </div>
               </div>
@@ -61,7 +61,7 @@ const ResponsiveShowcase = () => {
 
           {/* Label Card */}
           <div className="bg-white rounded-2xl p-4 flex items-center gap-4 shadow-sm group-hover:shadow-md transition-shadow">
-            <div className="w-10 h-10 rounded-full bg-[#0055FF] flex items-center justify-center text-white shadow-lg shadow-blue-500/20">
+            <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white shadow-lg shadow-blue-500/20">
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M20 3H4c-1.1 0-2 .9-2 2v11c0 1.1.9 2 2 2h3l-1 1v2h12v-2l-1-1h3c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 13H4V5h16v11z" /></svg>
             </div>
             <span className="text-lg font-bold text-black">Desktop</span>
@@ -110,7 +110,7 @@ const ResponsiveShowcase = () => {
 
           {/* Label Card */}
           <div className="bg-white rounded-2xl p-4 flex items-center gap-4 shadow-sm group-hover:shadow-md transition-shadow">
-            <div className="w-10 h-10 rounded-full bg-[#0055FF] flex items-center justify-center text-white shadow-lg shadow-blue-500/20">
+            <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white shadow-lg shadow-blue-500/20">
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M18 0H6C4.34 0 3 1.34 3 3v18c0 1.66 1.34 3 3 3h12c1.66 0 3-1.34 3-3V3c0-1.66-1.34-3-3-3zm-6 22c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm7-6H5V4h14v12z" /></svg>
             </div>
             <span className="text-lg font-bold text-black">Tablet</span>
@@ -158,7 +158,7 @@ const ResponsiveShowcase = () => {
 
           {/* Label Card */}
           <div className="bg-white rounded-2xl p-4 flex items-center gap-4 shadow-sm group-hover:shadow-md transition-shadow">
-            <div className="w-10 h-10 rounded-full bg-[#0055FF] flex items-center justify-center text-white shadow-lg shadow-blue-500/20">
+            <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white shadow-lg shadow-blue-500/20">
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z" /></svg>
             </div>
             <span className="text-lg font-bold text-black">Mobile</span>

@@ -39,6 +39,7 @@ const api = {
             if (!res.ok) {
                 if (res.status === 401) {
                     localStorage.removeItem('token');
+                    window.location.href = '/login?session_expired=true';
                 }
                 throw new Error(data?.error ?? data?.message ?? (typeof data === 'string' ? data : 'API Error'));
             }

@@ -66,7 +66,7 @@ const BrowseTemplatesCTA = () => {
         <div className="w-full lg:w-1/2 flex flex-col items-start gap-8 relative z-10">
 
           {/* Icon */}
-          <div className="w-16 h-16 rounded-full bg-[#0055FF] flex items-center justify-center text-white shadow-lg shadow-blue-500/30">
+          <div className="w-16 h-16 rounded-full bg-primary flex items-center justify-center text-white shadow-lg shadow-blue-500/30">
             <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
             </svg>
@@ -83,7 +83,7 @@ const BrowseTemplatesCTA = () => {
           </div>
 
           {/* CTA Button */}
-          <Link to="/templates" className="flex items-center gap-2 bg-[#0055FF] hover:bg-blue-600 text-white px-8 py-4 rounded-full font-semibold text-lg transition-all shadow-xl shadow-blue-500/20">
+          <Link to="/templates" className="flex items-center gap-2 bg-primary hover:bg-blue-600 text-white px-8 py-4 rounded-full font-semibold text-lg transition-all shadow-xl shadow-blue-500/20">
             <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
               <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
             </svg>

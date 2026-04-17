@@ -10,7 +10,7 @@ const FeaturesGrid = () => {
 
           {/* Left: Huge Title */}
           <h2 className="max-w-4xl text-5xl md:text-7xl font-black text-black tracking-tight leading-[0.95]">
-            Fully <span className="text-[#0055FF]">responsive</span> and customizable
+            Fully <span className="text-primary">responsive</span> and customizable
           </h2>
 
           {/* Right: Description Text */}
@@ -28,7 +28,7 @@ const FeaturesGrid = () => {
             {/* Content */}
             <div className="relative z-10 flex flex-col items-start gap-6">
               {/* Icon */}
-              <div className="w-14 h-14 rounded-full bg-[#0055FF] flex items-center justify-center text-white">
+              <div className="w-14 h-14 rounded-full bg-primary flex items-center justify-center text-white">
                 <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" /></svg>
               </div>
 
@@ -43,7 +43,7 @@ const FeaturesGrid = () => {
               </div>
 
               {/* Button */}
-              <button className="mt-4 flex items-center gap-2 bg-[#0055FF] hover:bg-blue-600 text-white px-6 py-3 rounded-full font-semibold transition-colors">
+              <button className="mt-4 flex items-center gap-2 bg-primary hover:bg-blue-600 text-white px-6 py-3 rounded-full font-semibold transition-colors">
                 <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" /></svg>
                 Browse Templates
               </button>
@@ -63,7 +63,7 @@ const FeaturesGrid = () => {
             {/* Content */}
             <div className="relative z-10 flex flex-col items-start gap-6 mt-4">
               {/* Icon */}
-              <div className="w-14 h-14 rounded-full bg-[#0055FF] flex items-center justify-center text-white">
+              <div className="w-14 h-14 rounded-full bg-primary flex items-center justify-center text-white">
                 <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" /></svg>
               </div>
 
@@ -81,7 +81,7 @@ const FeaturesGrid = () => {
 
 
           {/* CARD 3: Blue Card (Checklist) */}
-          <div className="bg-[#0055FF] rounded-[2.5rem] p-8 md:p-10 flex flex-col justify-between relative overflow-hidden h-[500px] group hover:shadow-xl transition-all duration-300 shadow-lg shadow-blue-500/20">
+          <div className="bg-primary rounded-[2.5rem] p-8 md:p-10 flex flex-col justify-between relative overflow-hidden h-[500px] group hover:shadow-xl transition-all duration-300 shadow-lg shadow-blue-500/20">
 
             {/* Subtle Gradient Overlay */}
             <div className="absolute top-0 right-0 w-80 h-80 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
@@ -89,7 +89,7 @@ const FeaturesGrid = () => {
             {/* Top Section */}
             <div className="relative z-10 flex flex-col items-start gap-6">
               {/* Icon (White) */}
-              <div className="w-14 h-14 rounded-full bg-white flex items-center justify-center text-[#0055FF]">
+              <div className="w-14 h-14 rounded-full bg-white flex items-center justify-center text-primary">
                 {/* Framer 'F' Logo */}
                 <svg viewBox="0 0 24 24" className="w-7 h-7 fill-current">
                   <path d="M4 0h16v8h-8zM4 8h8l8 8h-16zM4 16h8v8z" />
@@ -113,7 +113,7 @@ const FeaturesGrid = () => {
               {/* Item 1: Checked */}
               <div className="flex items-center gap-3">
                 <div className="w-6 h-6 rounded-full bg-white flex items-center justify-center">
-                  <svg className="w-4 h-4 text-[#0055FF]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+                  <svg className="w-4 h-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                   </svg>
                 </div>

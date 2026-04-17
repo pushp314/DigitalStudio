@@ -37,7 +37,7 @@ const FloatingNavbar = () => {
 
             {/* Announcement Bar */}
             {config?.showAnnouncement && config?.announcementMessage && (
-                <div className="fixed top-0 left-0 right-0 z-50 bg-[#0055FF] text-white text-xs font-bold text-center py-2 px-4 shadow-md tracking-wide">
+                <div className="fixed top-0 left-0 right-0 z-50 bg-primary text-white text-xs font-bold text-center py-2 px-4 shadow-md tracking-wide">
                     {config.announcementMessage}
                 </div>
             )}
@@ -48,7 +48,7 @@ const FloatingNavbar = () => {
 
                     <nav className="bg-black rounded-full p-2 pl-6 pr-2 flex items-center gap-6 shadow-2xl w-full md:w-auto justify-between">
                         <Link to="/" className="flex items-center gap-2">
-                            <div className="relative flex items-center justify-center w-8 h-8 bg-[#0055FF] rounded-full overflow-hidden shrink-0">
+                            <div className="relative flex items-center justify-center w-8 h-8 bg-primary rounded-full overflow-hidden shrink-0">
                                 <svg viewBox="0 0 24 24" className="w-5 h-5 text-white fill-current">
                                     <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8 0-4.41 3.59-8 8-8s8 3.59 8 8-3.59 8-8 8z" fill="none" />
                                     <rect x="2" y="11" width="20" height="2" fill="white" />
@@ -126,7 +126,7 @@ const FloatingNavbar = () => {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
                             </svg>
                             {cartItems.length > 0 && (
-                                <span className="absolute -top-1 -right-1 w-5 h-5 bg-[#0055FF] text-white text-xs font-bold rounded-full flex items-center justify-center">
+                                <span className="absolute -top-1 -right-1 w-5 h-5 bg-primary text-white text-xs font-bold rounded-full flex items-center justify-center">
                                     {cartItems.length}
                                 </span>
                             )}
@@ -135,7 +135,7 @@ const FloatingNavbar = () => {
                         {/* User Profile / Login */}
                         {user ? (
                             <div className="relative group">
-                                <button className="w-10 h-10 bg-gradient-to-br from-[#0055FF] to-blue-600 rounded-full flex items-center justify-center text-white font-bold shadow-lg shadow-blue-500/30">
+                                <button className="w-10 h-10 bg-gradient-to-br from-primary to-blue-600 rounded-full flex items-center justify-center text-white font-bold shadow-lg shadow-blue-500/30">
                                     {user.name.charAt(0).toUpperCase()}
                                 </button>
                                 <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-2xl shadow-xl border border-gray-100 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 overflow-hidden">
@@ -160,7 +160,7 @@ const FloatingNavbar = () => {
                         ) : (
                             <button
                                 onClick={() => setIsLoginModalOpen(true)}
-                                className="bg-[#0055FF] text-white px-4 py-2 rounded-full font-bold text-sm shadow-lg shadow-blue-500/30 hover:bg-blue-600 transition-colors"
+                                className="bg-primary text-white px-4 py-2 rounded-full font-bold text-sm shadow-lg shadow-blue-500/30 hover:bg-blue-600 transition-colors"
                             >
                                 Login
                             </button>

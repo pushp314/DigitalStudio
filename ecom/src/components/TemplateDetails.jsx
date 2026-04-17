@@ -29,7 +29,7 @@ const TemplateDetails = ({
               {/* Action Buttons */}
               <div className="flex flex-wrap gap-4 mt-4">
                 {liveDemo && (
-                  <a href={liveDemo} target="_blank" rel="noopener noreferrer" className="bg-[#0055FF] text-white px-8 py-3 rounded-full font-bold hover:bg-blue-600 transition-colors">
+                  <a href={liveDemo} target="_blank" rel="noopener noreferrer" className="bg-primary text-white px-8 py-3 rounded-full font-bold hover:bg-blue-600 transition-colors">
                     Live Preview
                   </a>
                 )}

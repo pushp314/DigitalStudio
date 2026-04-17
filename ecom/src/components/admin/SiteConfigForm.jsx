@@ -67,7 +67,7 @@ const SiteConfigForm = () => {
                                 name="heroTitle"
                                 value={formData.heroTitle}
                                 onChange={handleChange}
-                                className="w-full bg-black border border-zinc-700 text-white px-4 py-3 rounded-lg focus:ring-2 focus:ring-[#0055FF] outline-none"
+                                className="w-full bg-black border border-zinc-700 text-white px-4 py-3 rounded-lg focus:ring-2 focus:ring-primary outline-none"
                             />
                         </div>
 
@@ -78,7 +78,7 @@ const SiteConfigForm = () => {
                                 name="heroSubtitle"
                                 value={formData.heroSubtitle}
                                 onChange={handleChange}
-                                className="w-full bg-black border border-zinc-700 text-white px-4 py-3 rounded-lg focus:ring-2 focus:ring-[#0055FF] outline-none"
+                                className="w-full bg-black border border-zinc-700 text-white px-4 py-3 rounded-lg focus:ring-2 focus:ring-primary outline-none"
                             />
                         </div>
                     </div>
@@ -94,7 +94,7 @@ const SiteConfigForm = () => {
                                 name="showAnnouncement"
                                 checked={formData.showAnnouncement}
                                 onChange={handleChange}
-                                className="w-5 h-5 rounded bg-zinc-800 border-zinc-700 text-[#0055FF] focus:ring-[#0055FF]"
+                                className="w-5 h-5 rounded bg-zinc-800 border-zinc-700 text-primary focus:ring-primary"
                             />
                             <label htmlFor="showAnnouncement" className="text-sm font-medium text-zinc-300">Show Announcement Bar</label>
                         </div>
@@ -106,7 +106,7 @@ const SiteConfigForm = () => {
                                 name="announcementMessage"
                                 value={formData.announcementMessage}
                                 onChange={handleChange}
-                                className="w-full bg-black border border-zinc-700 text-white px-4 py-3 rounded-lg focus:ring-2 focus:ring-[#0055FF] outline-none"
+                                className="w-full bg-black border border-zinc-700 text-white px-4 py-3 rounded-lg focus:ring-2 focus:ring-primary outline-none"
                             />
                         </div>
                     </div>
@@ -121,7 +121,7 @@ const SiteConfigForm = () => {
                                 name="supportEmail"
                                 value={formData.supportEmail}
                                 onChange={handleChange}
-                                className="w-full bg-black border border-zinc-700 text-white px-4 py-3 rounded-lg focus:ring-2 focus:ring-[#0055FF] outline-none"
+                                className="w-full bg-black border border-zinc-700 text-white px-4 py-3 rounded-lg focus:ring-2 focus:ring-primary outline-none"
                             />
                         </div>
                     </div>
@@ -130,7 +130,7 @@ const SiteConfigForm = () => {
                         <button
                             type="submit"
                             disabled={loading}
-                            className="bg-[#0055FF] hover:bg-blue-600 text-white font-bold py-3 px-8 rounded-full transition-all shadow-[0_0_20px_rgba(0,85,255,0.4)] hover:shadow-[0_0_30px_rgba(0,85,255,0.6)] disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="bg-primary hover:bg-blue-600 text-white font-bold py-3 px-8 rounded-full transition-all shadow-[0_0_20px_rgba(0,85,255,0.4)] hover:shadow-[0_0_30px_rgba(0,85,255,0.6)] disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {loading ? 'Saving...' : 'Save Changes'}
                         </button>

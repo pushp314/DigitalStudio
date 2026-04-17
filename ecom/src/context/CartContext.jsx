@@ -1,21 +1,11 @@
-import { createContext, useState, useEffect } from 'react';
+import { createContext } from 'react';
 import { normalizeProduct } from '../utils/normalizers';
+import { useLocalStorageState } from '../hooks/useLocalStorageState';
 
 const CartContext = createContext();
 
 export const CartProvider = ({ children }) => {
-    const [cartItems, setCartItems] = useState([]);
-
-    useEffect(() => {
-        const fromStorage = localStorage.getItem('cartItems');
-        if (fromStorage) {
-            setCartItems(JSON.parse(fromStorage).map(normalizeProduct));
-        }
-    }, []);
-
-    useEffect(() => {
-        localStorage.setItem('cartItems', JSON.stringify(cartItems));
-    }, [cartItems]);
+    const [cartItems, setCartItems] = useLocalStorageState('cartItems', []);
 
     const addToCart = (product) => {
         const normalizedProduct = normalizeProduct(product);

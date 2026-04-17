@@ -103,7 +103,7 @@ const DocsManager = () => {
                             setIsCreating(true);
                         }
                     }}
-                    className="bg-[#0055FF] text-white px-4 py-2 rounded-lg font-bold hover:bg-blue-600 transition-colors shadow-lg shadow-blue-500/30"
+                    className="bg-primary text-white px-4 py-2 rounded-lg font-bold hover:bg-blue-600 transition-colors shadow-lg shadow-blue-500/30"
                 >
                     {isCreating ? 'Cancel' : '+ New Doc'}
                 </button>
@@ -114,33 +114,33 @@ const DocsManager = () => {
                     <h3 className="text-lg font-bold text-black">{editingId ? 'Edit Doc' : 'Create New Doc'}</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <Field label="Title">
-                            <input value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 text-black focus:outline-none focus:border-[#0055FF]" />
+                            <input value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 text-black focus:outline-none focus:border-primary" />
                         </Field>
                         <Field label="Category">
-                            <input value={formData.category} onChange={(e) => setFormData({ ...formData, category: e.target.value })} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 text-black focus:outline-none focus:border-[#0055FF]" />
+                            <input value={formData.category} onChange={(e) => setFormData({ ...formData, category: e.target.value })} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 text-black focus:outline-none focus:border-primary" />
                         </Field>
                         <Field label="Price (USD)">
-                            <input type="number" value={formData.price} onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) })} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 text-black focus:outline-none focus:border-[#0055FF]" />
+                            <input type="number" value={formData.price} onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) })} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 text-black focus:outline-none focus:border-primary" />
                         </Field>
                         <Field label="Icon">
-                            <input value={formData.icon} onChange={(e) => setFormData({ ...formData, icon: e.target.value })} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 text-black focus:outline-none focus:border-[#0055FF]" />
+                            <input value={formData.icon} onChange={(e) => setFormData({ ...formData, icon: e.target.value })} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 text-black focus:outline-none focus:border-primary" />
                         </Field>
                     </div>
 
                     <Field label="Description">
-                        <textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} rows={3} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 text-black focus:outline-none focus:border-[#0055FF]" />
+                        <textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} rows={3} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 text-black focus:outline-none focus:border-primary" />
                     </Field>
 
                     <Field label="Preview Content">
-                        <textarea value={formData.previewContent} onChange={(e) => setFormData({ ...formData, previewContent: e.target.value })} rows={4} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 text-black focus:outline-none focus:border-[#0055FF]" />
+                        <textarea value={formData.previewContent} onChange={(e) => setFormData({ ...formData, previewContent: e.target.value })} rows={4} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 text-black focus:outline-none focus:border-primary" />
                     </Field>
 
                     <Field label="Full Content">
-                        <textarea value={formData.content} onChange={(e) => setFormData({ ...formData, content: e.target.value })} rows={8} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 text-black focus:outline-none focus:border-[#0055FF]" />
+                        <textarea value={formData.content} onChange={(e) => setFormData({ ...formData, content: e.target.value })} rows={8} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 text-black focus:outline-none focus:border-primary" />
                     </Field>
 
                     <label className="flex items-center gap-2 text-black">
-                        <input type="checkbox" checked={formData.isPremium} onChange={(e) => setFormData({ ...formData, isPremium: e.target.checked })} className="w-4 h-4 text-[#0055FF]" />
+                        <input type="checkbox" checked={formData.isPremium} onChange={(e) => setFormData({ ...formData, isPremium: e.target.checked })} className="w-4 h-4 text-primary" />
                         <span className="text-sm font-bold">Premium Content</span>
                     </label>
 
@@ -179,7 +179,7 @@ const DocsManager = () => {
                                     </td>
                                     <td className="px-6 py-4">
                                         <div className="flex gap-2">
-                                            <button onClick={() => startEdit(doc)} className="bg-[#0055FF] text-white px-3 py-1 rounded-lg text-xs font-bold hover:bg-blue-600 shadow-sm">
+                                            <button onClick={() => startEdit(doc)} className="bg-primary text-white px-3 py-1 rounded-lg text-xs font-bold hover:bg-blue-600 shadow-sm">
                                                 Edit
                                             </button>
                                             <button onClick={() => handleDelete(doc.id)} className="bg-red-500 text-white px-3 py-1 rounded-lg text-xs font-bold hover:bg-red-600 shadow-sm">

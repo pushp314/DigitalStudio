@@ -2,6 +2,7 @@ import React, { useState, useContext } from 'react';
 import AuthContext from '../../context/AuthContext';
 import OAuthButton from '../ui/OAuthButton';
 import { getOAuthLoginUrl } from '../../services/api';
+import FocusLock from 'react-focus-lock';
 const LoginModal = ({ isOpen, onClose }) => {
     const [isLogin, setIsLogin] = useState(true);
     const [email, setEmail] = useState('');
@@ -34,20 +35,21 @@ const LoginModal = ({ isOpen, onClose }) => {
             setError(res.error || "Authentication failed");
         }
     };
-
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-            <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-8 w-full max-w-md shadow-2xl relative">
-                <button
-                    onClick={onClose}
-                    className="absolute top-4 right-4 text-white/50 hover:text-white transition-colors"
-                >
-                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                </button>
+        <FocusLock returnFocus>
+            <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+                <div role="dialog" aria-modal="true" aria-labelledby="modal-title" className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-8 w-full max-w-md shadow-2xl relative">
+                    <button
+                        onClick={onClose}
+                        aria-label="Close modal"
+                        className="absolute top-4 right-4 text-white/50 hover:text-white transition-colors"
+                    >
+                        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
 
-                <h2 className="text-3xl font-black text-white mb-2 text-center">
+                    <h2 id="modal-title" className="text-3xl font-black text-white mb-2 text-center">
                     {isLogin ? 'Welcome Back' : 'Join Us'}
                 </h2>
                 <p className="text-white/60 text-center mb-8">
@@ -63,40 +65,46 @@ const LoginModal = ({ isOpen, onClose }) => {
                 <form onSubmit={handleSubmit} className="space-y-4">
                     {!isLogin && (
                         <div>
+                            <label htmlFor="name-input" className="sr-only">Full Name</label>
                             <input
+                                id="name-input"
                                 type="text"
                                 placeholder="Full Name"
                                 value={name}
                                 onChange={(e) => setName(e.target.value)}
-                                className="w-full bg-black/20 text-white placeholder-white/40 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-white/40 transition-colors"
+                                className="w-full bg-black/20 text-white placeholder-white/60 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-white/60 transition-colors"
                                 required
                             />
                         </div>
                     )}
                     <div>
+                        <label htmlFor="email-input" className="sr-only">Email Address</label>
                         <input
+                            id="email-input"
                             type="email"
                             placeholder="Email Address"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
-                            className="w-full bg-black/20 text-white placeholder-white/40 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-white/40 transition-colors"
+                            className="w-full bg-black/20 text-white placeholder-white/60 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-white/60 transition-colors"
                             required
                         />
                     </div>
                     <div>
+                        <label htmlFor="password-input" className="sr-only">Password</label>
                         <input
+                            id="password-input"
                             type="password"
                             placeholder="Password"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
-                            className="w-full bg-black/20 text-white placeholder-white/40 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-white/40 transition-colors"
+                            className="w-full bg-black/20 text-white placeholder-white/60 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-white/60 transition-colors"
                             required
                         />
                     </div>
 
                     <button
                         type="submit"
-                        className="w-full bg-[#0055FF] hover:bg-blue-600 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-blue-600/20 transition-all transform hover:scale-[1.02]"
+                        className="w-full bg-primary hover:bg-blue-600 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-blue-600/20 transition-all transform hover:scale-[1.02]"
                     >
                         {isLogin ? 'Sign In' : 'Create Account'}
                     </button>
@@ -140,7 +148,8 @@ const LoginModal = ({ isOpen, onClose }) => {
                     </p>
                 </div>
             </div>
-        </div>
+            </div>
+        </FocusLock>
     );
 };
 

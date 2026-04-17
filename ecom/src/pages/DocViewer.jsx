@@ -1,5 +1,6 @@
-import React, { useContext, useEffect, useState } from 'react';
+import React, { useContext } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import AuthContext from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import docService from '../services/docService';
@@ -11,21 +12,12 @@ const DocViewer = () => {
     const { user } = useContext(AuthContext);
     const { info } = useToast();
     const navigate = useNavigate();
-    const [doc, setDoc] = useState(null);
-    const [loading, setLoading] = useState(true);
+    const { data: rawDoc, isLoading: loading } = useQuery({
+        queryKey: ['doc', id],
+        queryFn: () => docService.getById(id),
+    });
 
-    useEffect(() => {
-        const fetchDoc = async () => {
-            try {
-                const data = await docService.getById(id);
-                setDoc(normalizeDoc(data));
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchDoc();
-    }, [id]);
+    const doc = rawDoc ? normalizeDoc(rawDoc) : null;
 
     const handleProtectedAccess = () => {
         if (!user) {
@@ -45,7 +37,7 @@ const DocViewer = () => {
     if (loading) {
         return (
             <div className="min-h-screen bg-[#F5F5F7] flex items-center justify-center">
-                <div className="w-8 h-8 border-4 border-gray-200 border-t-[#0055FF] rounded-full animate-spin"></div>
+                <div className="w-8 h-8 border-4 border-gray-200 border-t-primary rounded-full animate-spin"></div>
             </div>
         );
     }
@@ -66,7 +58,7 @@ const DocViewer = () => {
         <div className="min-h-screen bg-[#F5F5F7] py-24 md:py-32 font-sans">
             <div className="max-w-[1200px] mx-auto px-4 md:px-6 lg:px-8">
                 <div className="mb-8">
-                    <Link to="/docs" className="text-[#0055FF] font-bold hover:underline mb-4 inline-block">
+                    <Link to="/docs" className="text-primary font-bold hover:underline mb-4 inline-block">
                         ← Back to Docs
                     </Link>
                     <h1 className="text-4xl md:text-5xl font-black text-black mb-4">{doc.title}</h1>
@@ -95,7 +87,7 @@ const DocViewer = () => {
                                 <ul className="space-y-2">
                                     {doc.tableOfContents.map((item) => (
                                         <li key={item.id}>
-                                            <a href={`#section-${item.id}`} className="text-sm text-gray-600 hover:text-[#0055FF] transition-colors">
+                                            <a href={`#section-${item.id}`} className="text-sm text-gray-600 hover:text-primary transition-colors">
                                                 {item.title}
                                             </a>
                                         </li>
@@ -112,14 +104,14 @@ const DocViewer = () => {
                             </div>
 
                             {showLockCta && (
-                                <div className="mt-12 p-8 bg-gradient-to-r from-[#0055FF] to-blue-600 rounded-2xl text-white text-center">
+                                <div className="mt-12 p-8 bg-gradient-to-r from-primary to-blue-600 rounded-2xl text-white text-center">
                                     <h3 className="text-2xl font-black mb-4">Locked Premium Content</h3>
                                     <p className="text-lg mb-6 opacity-90">
                                         This page is showing preview content only. Full access is granted by the backend when the account has the correct entitlement or plan.
                                     </p>
                                     <button
                                         onClick={handleProtectedAccess}
-                                        className="bg-white text-[#0055FF] px-8 py-3 rounded-full font-bold hover:bg-gray-100 transition-colors"
+                                        className="bg-white text-primary px-8 py-3 rounded-full font-bold hover:bg-gray-100 transition-colors"
                                     >
                                         {user ? 'Check Access' : 'Login to Continue'}
                                     </button>

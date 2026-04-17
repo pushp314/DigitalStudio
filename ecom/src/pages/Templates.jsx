@@ -1,5 +1,6 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import productService from '../services/productService';
 import BuildSitesHeader from '../components/BuildSitesHeader';
 import TemplateGrid from '../components/TemplateGrid';
@@ -11,9 +12,6 @@ import { normalizeProduct } from '../utils/normalizers';
 const Templates = () => {
     const [searchParams, setSearchParams] = useSearchParams();
     const keyword = searchParams.get('search') || '';
-    const [templates, setTemplates] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
     const [isAIModalOpen, setIsAIModalOpen] = useState(false);
 
     // Filter states
@@ -21,23 +19,13 @@ const Templates = () => {
     const [selectedProductType, setSelectedProductType] = useState('all');
     const [sortBy, setSortBy] = useState('newest');
 
-    const fetchTemplates = useCallback(async () => {
-        setLoading(true);
-        setError(null);
-        try {
-            const data = await productService.getAll(keyword);
-            setTemplates(Array.isArray(data) ? data.map(normalizeProduct) : []);
-        } catch (err) {
-            console.error("Failed to fetch templates", err);
-            setError(err.message);
-        } finally {
-            setLoading(false);
-        }
-    }, [keyword]);
+    const { data: rawTemplates, isLoading: loading, error: queryError, refetch } = useQuery({
+        queryKey: ['templates', keyword],
+        queryFn: () => productService.getAll(keyword),
+    });
 
-    useEffect(() => {
-        fetchTemplates();
-    }, [fetchTemplates]);
+    const error = queryError?.message;
+    const templates = Array.isArray(rawTemplates) ? rawTemplates.map(normalizeProduct) : [];
 
     // Client-side filtering
     const filteredTemplates = templates.filter(template => {
@@ -123,7 +111,7 @@ const Templates = () => {
 
                         {/* Right: Sort & Count */}
                         <div className="flex items-center gap-4">
-                            <span className="text-sm text-gray-500">
+                            <span className="text-sm text-gray-500" aria-live="polite">
                                 {sortedTemplates.length} {sortedTemplates.length === 1 ? 'product' : 'products'}
                             </span>
                             <select
@@ -141,7 +129,7 @@ const Templates = () => {
                             {FEATURES.ai && (
                                 <button
                                     onClick={() => setIsAIModalOpen(true)}
-                                    className="hidden md:flex items-center gap-2 bg-[#0055FF] text-white px-4 py-2 rounded-lg font-bold text-sm shadow-md hover:bg-blue-600 hover:shadow-lg transition-all"
+                                    className="hidden md:flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg font-bold text-sm shadow-md hover:bg-blue-600 hover:shadow-lg transition-all"
                                 >
                                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
                                     Ask AI
@@ -164,8 +152,8 @@ const Templates = () => {
                         <h3 className="text-2xl font-bold text-gray-900 mb-2">Something went wrong</h3>
                         <p className="text-gray-500 mb-6">{error}</p>
                         <button
-                            onClick={fetchTemplates}
-                            className="bg-[#0055FF] text-white px-6 py-3 rounded-full font-bold hover:bg-blue-600 transition-colors"
+                            onClick={() => refetch()}
+                            className="bg-primary text-white px-6 py-3 rounded-full font-bold hover:bg-blue-600 transition-colors"
                         >
                             Try Again
                         </button>
@@ -185,7 +173,7 @@ const Templates = () => {
                                 setSelectedProductType('all');
                                 setSearchParams({});
                             }}
-                            className="bg-[#0055FF] text-white px-6 py-3 rounded-full font-bold hover:bg-blue-600 transition-colors"
+                            className="bg-primary text-white px-6 py-3 rounded-full font-bold hover:bg-blue-600 transition-colors"
                         >
                             Clear Filters
                         </button>

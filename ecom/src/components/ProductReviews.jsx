@@ -75,7 +75,7 @@ const ProductReviews = ({ productId }) => {
                                                 {review.createdAt ? new Date(review.createdAt).toLocaleDateString() : 'Recently'}
                                             </p>
                                         </div>
-                                        <div className="text-[#0055FF] font-bold">{'★'.repeat(review.rating)}</div>
+                                        <div className="text-primary font-bold">{'★'.repeat(review.rating)}</div>
                                     </div>
                                     {review.comment && (
                                         <p className="text-gray-600 leading-relaxed mt-4">{review.comment}</p>
@@ -101,7 +101,7 @@ const ProductReviews = ({ productId }) => {
                                 <select
                                     value={rating}
                                     onChange={(event) => setRating(Number(event.target.value))}
-                                    className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 outline-none focus:border-[#0055FF] focus:ring-2 focus:ring-[#0055FF]/10"
+                                    className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10"
                                 >
                                     {[5, 4, 3, 2, 1].map((value) => (
                                         <option key={value} value={value}>
@@ -117,7 +117,7 @@ const ProductReviews = ({ productId }) => {
                                     value={comment}
                                     onChange={(event) => setComment(event.target.value)}
                                     rows={5}
-                                    className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 outline-none focus:border-[#0055FF] focus:ring-2 focus:ring-[#0055FF]/10"
+                                    className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10"
                                     placeholder="What worked well? Any setup notes for other buyers?"
                                 />
                             </div>
@@ -125,7 +125,7 @@ const ProductReviews = ({ productId }) => {
                             <button
                                 type="submit"
                                 disabled={submitting}
-                                className="w-full bg-[#0055FF] text-white py-3 rounded-xl font-bold hover:bg-blue-600 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                                className="w-full bg-primary text-white py-3 rounded-xl font-bold hover:bg-blue-600 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                             >
                                 {submitting ? 'Submitting...' : 'Submit Review'}
                             </button>

@@ -25,7 +25,7 @@ const HeroSection = () => {
                         {/* The 3D Framer Icon (Left) */}
                         <div className="hidden md:flex shrink-0 w-20 h-20 md:w-24 md:h-24 bg-white rounded-[1.8rem] shadow-[0_30px_60px_-15px_rgba(0,85,255,0.25)] items-center justify-center transform -rotate-6 hover:scale-110 hover:rotate-0 transition-all duration-500 ease-out relative top-2 cursor-pointer z-10 group">
                             {/* Framer Logo Gradient Background */}
-                            <div className="w-14 h-14 md:w-16 md:h-16 rounded-xl bg-gradient-to-br from-[#0055FF] to-[#0033CC] flex items-center justify-center shadow-inner group-hover:shadow-[inset_0_4px_10px_rgba(0,0,0,0.2)] transition-shadow">
+                            <div className="w-14 h-14 md:w-16 md:h-16 rounded-xl bg-gradient-to-br from-primary to-[#0033CC] flex items-center justify-center shadow-inner group-hover:shadow-[inset_0_4px_10px_rgba(0,0,0,0.2)] transition-shadow">
                                 <svg viewBox="0 0 24 24" className="w-7 h-7 md:w-8 md:h-8 text-white fill-current">
                                     <path d="M4 0h16v8h-8zM4 8h8l8 8h-16zM4 16h8v8z" />
                                 </svg>
@@ -77,7 +77,7 @@ const HeroSection = () => {
                         </Button>
 
                         <Button to="/features" variant="white" className="w-full sm:w-auto text-lg border border-gray-100">
-                            <span className="w-2.5 h-2.5 bg-[#0055FF] rounded-full animate-pulse mr-2"></span>
+                            <span className="w-2.5 h-2.5 bg-primary rounded-full animate-pulse mr-2"></span>
                             Framerstore Features
                         </Button>
                     </div>

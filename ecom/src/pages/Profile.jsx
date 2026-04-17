@@ -57,7 +57,7 @@ const Profile = () => {
                 <div className="lg:col-span-1">
                     <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 sticky top-32">
                         <div className="flex flex-col items-center mb-8">
-                            <div className="w-20 h-20 bg-gradient-to-br from-[#0055FF] to-blue-600 rounded-full flex items-center justify-center text-white text-3xl font-bold mb-4 shadow-lg shadow-blue-500/30">
+                            <div className="w-20 h-20 bg-gradient-to-br from-primary to-blue-600 rounded-full flex items-center justify-center text-white text-3xl font-bold mb-4 shadow-lg shadow-blue-500/30">
                                 {user.avatar ? <img src={user.avatar} alt="User" className="w-full h-full object-cover rounded-full" /> : user.name.charAt(0)}
                             </div>
                             <h2 className="text-xl font-black text-black">{user.name}</h2>
@@ -114,7 +114,7 @@ const Profile = () => {
                                                 View Plans
                                             </button>
                                         </div>
-                                        <div className="absolute top-0 right-0 w-64 h-full bg-gradient-to-l from-[#0055FF]/20 to-transparent"></div>
+                                        <div className="absolute top-0 right-0 w-64 h-full bg-gradient-to-l from-primary/20 to-transparent"></div>
                                     </div>
                                 )}
                             </div>
@@ -129,7 +129,7 @@ const Profile = () => {
                                         <div className="text-4xl mb-4">🛍️</div>
                                         <h3 className="text-xl font-bold text-black mb-2">No orders yet</h3>
                                         <p className="text-gray-500 mb-6">Start browsing our collection of premium templates.</p>
-                                        <button onClick={() => navigate('/templates')} className="bg-[#0055FF] text-white px-8 py-3 rounded-full font-bold shadow-lg shadow-blue-500/30 hover:bg-blue-600 transition-all">
+                                        <button onClick={() => navigate('/templates')} className="bg-primary text-white px-8 py-3 rounded-full font-bold shadow-lg shadow-blue-500/30 hover:bg-blue-600 transition-all">
                                             Browse Market
                                         </button>
                                     </div>
@@ -227,7 +227,7 @@ const StatCard = ({ label, value, color }) => (
 
 const PlanCard = ({ title, price, features, current, recommended }) => (
     <div className={`p-6 rounded-2xl border ${current ? 'border-2 border-blue-500 bg-blue-50' : 'border-gray-200'} ${recommended ? 'shadow-lg relative' : ''}`}>
-        {recommended && <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-[#0055FF] text-white text-xs font-bold px-3 py-1 rounded-full">POPULAR</div>}
+        {recommended && <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-primary text-white text-xs font-bold px-3 py-1 rounded-full">POPULAR</div>}
         <h4 className="text-xl font-bold mb-2">{title}</h4>
         <div className="text-2xl font-black mb-4">{price}</div>
         <ul className="space-y-2 mb-6">

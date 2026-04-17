@@ -25,7 +25,7 @@ const Cart = () => {
         return (
             <div className="min-h-[60vh] flex flex-col items-center justify-center p-6">
                 <h2 className="text-2xl font-bold mb-4">Your cart is empty</h2>
-                <Link to="/templates" className="bg-[#0055FF] text-white px-6 py-3 rounded-full font-bold">
+                <Link to="/templates" className="bg-primary text-white px-6 py-3 rounded-full font-bold">
                     Browse Templates
                 </Link>
             </div>
@@ -47,7 +47,7 @@ const Cart = () => {
                                 <div className="flex-grow">
                                     <h3 className="text-xl font-bold text-black">{item.title}</h3>
                                     <p className="text-gray-500 text-sm">{item.category}</p>
-                                    <h4 className="text-lg font-bold text-[#0055FF] mt-1">{item.formattedPrice}</h4>
+                                    <h4 className="text-lg font-bold text-primary mt-1">{item.formattedPrice}</h4>
                                 </div>
                                 <button
                                     onClick={() => removeFromCart(item.id)}
@@ -76,7 +76,7 @@ const Cart = () => {
                             <div className="h-px bg-gray-100 w-full mb-6"></div>
                             <div className="flex justify-between items-center mb-8">
                                 <span className="text-xl font-bold">Total</span>
-                                <span className="text-2xl font-black text-[#0055FF]">{formatCurrency(total)}</span>
+                                <span className="text-2xl font-black text-primary">{formatCurrency(total)}</span>
                             </div>
                             <button
                                 onClick={checkoutHandler}
