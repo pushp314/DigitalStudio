@@ -1,4 +1,5 @@
 import { createContext, useState, useEffect } from 'react';
+import { normalizeProduct } from '../utils/normalizers';
 
 const CartContext = createContext();
 
@@ -8,7 +9,7 @@ export const CartProvider = ({ children }) => {
     useEffect(() => {
         const fromStorage = localStorage.getItem('cartItems');
         if (fromStorage) {
-            setCartItems(JSON.parse(fromStorage));
+            setCartItems(JSON.parse(fromStorage).map(normalizeProduct));
         }
     }, []);
 
@@ -17,23 +18,21 @@ export const CartProvider = ({ children }) => {
     }, [cartItems]);
 
     const addToCart = (product) => {
-        const existItem = cartItems.find((x) => x._id === product._id || x.id === product.id);
+        const normalizedProduct = normalizeProduct(product);
+        const existItem = cartItems.find((x) => x.id === normalizedProduct.id);
         if (existItem) {
-            // If exists, usually update quantity, but for digital templates, maybe just warn or do nothing?
-            // Assuming quantity is 1 for templates.
-            // Or we can just overwrite.
             setCartItems(
                 cartItems.map((x) =>
-                    (x._id === product._id || x.id === product.id) ? product : x
+                    x.id === normalizedProduct.id ? normalizedProduct : x
                 )
             );
         } else {
-            setCartItems([...cartItems, product]);
+            setCartItems([...cartItems, normalizedProduct]);
         }
     };
 
     const removeFromCart = (id) => {
-        setCartItems(cartItems.filter((x) => (x._id !== id && x.id !== id)));
+        setCartItems(cartItems.filter((x) => x.id !== id));
     };
 
     const clearCart = () => {

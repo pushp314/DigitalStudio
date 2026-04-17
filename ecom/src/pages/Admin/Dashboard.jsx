@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import AuthContext from '../../context/AuthContext';
 import productService from '../../services/productService';
 import { useToast } from '../../context/ToastContext';
+import { normalizeProduct } from '../../utils/normalizers';
 
 const Dashboard = () => {
     const [products, setProducts] = useState([]);
@@ -11,25 +12,25 @@ const Dashboard = () => {
     const { addToast } = useToast();
     const navigate = useNavigate();
 
-    useEffect(() => {
-        if (!user || user.role !== 'admin') {
-            navigate('/login');
-        } else {
-            fetchProducts();
-        }
-    }, [user, navigate]);
-
-    const fetchProducts = async () => {
+    const fetchProducts = useCallback(async () => {
         try {
             const data = await productService.getAll();
-            setProducts(data);
+            setProducts(Array.isArray(data) ? data.map(normalizeProduct) : []);
         } catch (error) {
             addToast('Error loading products', 'error');
             console.error(error);
         } finally {
             setLoading(false);
         }
-    };
+    }, [addToast]);
+
+    useEffect(() => {
+        if (!user || user.role !== 'admin') {
+            navigate('/login');
+        } else {
+            fetchProducts();
+        }
+    }, [fetchProducts, navigate, user]);
 
     const deleteHandler = async (id) => {
         if (window.confirm('Are you sure you want to delete this product?')) {
@@ -45,13 +46,7 @@ const Dashboard = () => {
     };
 
     const createHandler = async () => {
-        try {
-            const data = await productService.create({});
-            navigate(`/admin/product/${data._id}/edit`);
-        } catch (error) {
-            addToast('Error creating product', 'error');
-            console.error(error);
-        }
+        navigate('/admin/product/new');
     };
 
     if (loading) {
@@ -121,7 +116,7 @@ const Dashboard = () => {
                                 </thead>
                                 <tbody className="divide-y divide-gray-100">
                                     {products.map((product) => (
-                                        <tr key={product._id} className="hover:bg-gray-50/50 transition-colors">
+                                        <tr key={product.id} className="hover:bg-gray-50/50 transition-colors">
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center gap-3">
                                                     <div className="w-12 h-12 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
@@ -130,23 +125,23 @@ const Dashboard = () => {
                                                     <div className="font-bold text-black max-w-xs truncate">{product.title}</div>
                                                 </div>
                                             </td>
-                                            <td className="px-6 py-4 font-bold text-black">${product.price}</td>
+                                            <td className="px-6 py-4 font-bold text-black">{product.formattedPrice}</td>
                                             <td className="px-6 py-4">
                                                 <span className="px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-xs font-bold uppercase">
                                                     {product.category}
                                                 </span>
                                             </td>
-                                            <td className="px-6 py-4 font-mono text-xs text-gray-400">{product._id.substring(0, 8)}...</td>
+                                            <td className="px-6 py-4 font-mono text-xs text-gray-400">#{product.id}</td>
                                             <td className="px-6 py-4 text-right">
                                                 <div className="flex items-center justify-end gap-2">
                                                     <Link
-                                                        to={`/admin/product/${product._id}/edit`}
+                                                        to={`/admin/product/${product.id}/edit`}
                                                         className="bg-blue-50 text-blue-600 px-4 py-2 rounded-lg text-xs font-bold hover:bg-blue-100 transition-colors"
                                                     >
                                                         Edit
                                                     </Link>
                                                     <button
-                                                        onClick={() => deleteHandler(product._id)}
+                                                        onClick={() => deleteHandler(product.id)}
                                                         className="bg-red-50 text-red-600 px-4 py-2 rounded-lg text-xs font-bold hover:bg-red-100 transition-colors"
                                                     >
                                                         Delete
@@ -162,7 +157,7 @@ const Dashboard = () => {
                         {/* Mobile Card View */}
                         <div className="lg:hidden divide-y divide-gray-100">
                             {products.map((product) => (
-                                <div key={product._id} className="p-4 hover:bg-gray-50 transition-colors">
+                                <div key={product.id} className="p-4 hover:bg-gray-50 transition-colors">
                                     <div className="flex items-center gap-3 mb-3">
                                         <div className="w-16 h-16 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
                                             {product.image && <img src={product.image} alt={product.title} className="w-full h-full object-cover" />}
@@ -170,7 +165,7 @@ const Dashboard = () => {
                                         <div className="flex-1 min-w-0">
                                             <h3 className="font-bold text-black truncate">{product.title}</h3>
                                             <div className="flex items-center gap-2 mt-1">
-                                                <span className="font-bold text-black">${product.price}</span>
+                                                <span className="font-bold text-black">{product.formattedPrice}</span>
                                                 <span className="text-gray-400">•</span>
                                                 <span className="text-xs text-gray-500 uppercase">{product.category}</span>
                                             </div>
@@ -178,13 +173,13 @@ const Dashboard = () => {
                                     </div>
                                     <div className="flex gap-2">
                                         <Link
-                                            to={`/admin/product/${product._id}/edit`}
+                                            to={`/admin/product/${product.id}/edit`}
                                             className="flex-1 bg-blue-50 text-blue-600 px-4 py-2 rounded-lg text-sm font-bold hover:bg-blue-100 transition-colors text-center"
                                         >
                                             Edit
                                         </Link>
                                         <button
-                                            onClick={() => deleteHandler(product._id)}
+                                            onClick={() => deleteHandler(product.id)}
                                             className="flex-1 bg-red-50 text-red-600 px-4 py-2 rounded-lg text-sm font-bold hover:bg-red-100 transition-colors"
                                         >
                                             Delete

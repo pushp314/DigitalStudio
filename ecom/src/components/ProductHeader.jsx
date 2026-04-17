@@ -4,8 +4,10 @@ import CartContext from '../context/CartContext';
 import WishlistContext from '../context/WishlistContext';
 import { useToast } from '../context/ToastContext';
 import StarRating from './ui/StarRating';
+import { normalizeProduct } from '../utils/normalizers';
 
 const ProductHeader = ({ product }) => {
+  const normalizedProduct = normalizeProduct(product);
   const { addToCart } = useContext(CartContext);
   const { addToWishlist, removeFromWishlist, isInWishlist } = useContext(WishlistContext);
   const navigate = useNavigate();
@@ -22,7 +24,7 @@ const ProductHeader = ({ product }) => {
   };
 
   const handleWishlist = () => {
-    const id = product._id || product.id;
+    const id = normalizedProduct.id;
     if (isInWishlist(id)) {
       removeFromWishlist(id);
       success('Removed from wishlist');
@@ -35,11 +37,11 @@ const ProductHeader = ({ product }) => {
   const {
     title = "AI Chatbot",
     description = "Transform customer engagement with intelligent AI solutions",
-    price = "$79",
+    formattedPrice: price = "$79",
     previewUrl = "#"
-  } = product || {};
+  } = normalizedProduct || {};
 
-  const id = product ? (product._id || product.id) : null;
+  const id = normalizedProduct ? normalizedProduct.id : null;
 
   // Avatars for the social proof section
   const avatars = [
@@ -65,21 +67,21 @@ const ProductHeader = ({ product }) => {
 
           {/* Star Rating & Sales Info */}
           <div className="flex items-center gap-6 mt-2">
-            {product && product.rating > 0 && (
-              <StarRating rating={product.rating} numReviews={product.numReviews} size="md" />
+            {normalizedProduct && normalizedProduct.rating > 0 && (
+              <StarRating rating={normalizedProduct.rating} numReviews={normalizedProduct.numReviews} size="md" />
             )}
-            {product && product.numSales > 0 && (
+            {normalizedProduct && normalizedProduct.numSales > 0 && (
               <span className="text-gray-500 text-sm">
-                🔥 {product.numSales} sales
+                🔥 {normalizedProduct.numSales} sales
               </span>
             )}
           </div>
 
           {/* Tech Stack */}
-          {product && product.techStack && product.techStack.length > 0 && (
+          {normalizedProduct && normalizedProduct.techStack && normalizedProduct.techStack.length > 0 && (
             <div className="flex flex-wrap gap-2 mt-4">
               <span className="text-sm font-medium text-gray-600 mr-2">Tech Stack:</span>
-              {product.techStack.map((tech, idx) => (
+              {normalizedProduct.techStack.map((tech, idx) => (
                 <span key={idx} className="bg-gray-200 text-gray-700 px-3 py-1 rounded-full text-sm font-medium">
                   {tech}
                 </span>
@@ -144,15 +146,14 @@ const ProductHeader = ({ product }) => {
               </a>
             </div>
 
-            {/* Trust Badge: Lemon Squeezy */}
+            {/* Trust Badge */}
             <div className="flex items-center gap-2 text-gray-500 font-medium text-sm">
               <span>Payments secured by</span>
               <div className="flex items-center gap-1.5 text-black font-bold opacity-80">
-                {/* Lemon Squeezy Icon SVG */}
                 <svg viewBox="0 0 24 24" className="w-4 h-4" fill="currentColor">
-                  <path d="M19.4 6.7c-2.4-2.7-6.3-2.7-8.7 0L12 5.5l1.3 1.2c1.7-1.9 4.4-1.9 6.1 0 1.7 1.9 1.7 5 0 6.9l-6.1 6.8-1.3-1.4 4.8-5.4c1.2-1.3 1.2-3.5 0-4.8l2.6 2.1zM4.6 17.3c2.4 2.7 6.3 2.7 8.7 0L12 18.5l-1.3-1.2c-1.7 1.9-4.4 1.9-6.1 0-1.7-1.9-1.7-5 0-6.9l6.1-6.8 1.3 1.4-4.8 5.4c-1.2 1.3-1.2 3.5 0 4.8l-2.6-2.1z" />
+                  <path d="M12 2a10 10 0 100 20 10 10 0 000-20zm1 14.93V18h-2v-1.07A8.003 8.003 0 014.07 13H3v-2h1.07A8.003 8.003 0 0111 4.07V3h2v1.07A8.003 8.003 0 0119.93 11H21v2h-1.07A8.003 8.003 0 0113 16.93z" />
                 </svg>
-                <span>lemon squeezy</span>
+                <span>Razorpay</span>
               </div>
             </div>
 

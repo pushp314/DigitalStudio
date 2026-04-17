@@ -1,9 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import productService from '../services/productService';
 import BuildSitesHeader from '../components/BuildSitesHeader';
 import TemplateGrid from '../components/TemplateGrid';
 import LoadingSkeleton from '../components/ui/LoadingSkeleton';
+import AIRecommendationModal from '../components/ui/AIRecommendationModal';
+import { FEATURES } from '../config/features';
+import { normalizeProduct } from '../utils/normalizers';
 
 const Templates = () => {
     const [searchParams, setSearchParams] = useSearchParams();
@@ -11,29 +14,30 @@ const Templates = () => {
     const [templates, setTemplates] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [isAIModalOpen, setIsAIModalOpen] = useState(false);
 
     // Filter states
     const [selectedCategory, setSelectedCategory] = useState('all');
     const [selectedProductType, setSelectedProductType] = useState('all');
     const [sortBy, setSortBy] = useState('newest');
 
-    useEffect(() => {
-        fetchTemplates();
-    }, [keyword]);
-
-    const fetchTemplates = async () => {
+    const fetchTemplates = useCallback(async () => {
         setLoading(true);
         setError(null);
         try {
             const data = await productService.getAll(keyword);
-            setTemplates(data);
+            setTemplates(Array.isArray(data) ? data.map(normalizeProduct) : []);
         } catch (err) {
             console.error("Failed to fetch templates", err);
             setError(err.message);
         } finally {
             setLoading(false);
         }
-    };
+    }, [keyword]);
+
+    useEffect(() => {
+        fetchTemplates();
+    }, [fetchTemplates]);
 
     // Client-side filtering
     const filteredTemplates = templates.filter(template => {
@@ -50,9 +54,9 @@ const Templates = () => {
     const sortedTemplates = [...filteredTemplates].sort((a, b) => {
         switch (sortBy) {
             case 'price-low':
-                return parseFloat(a.price.replace(/[^0-9.]/g, '')) - parseFloat(b.price.replace(/[^0-9.]/g, ''));
+                return a.price - b.price;
             case 'price-high':
-                return parseFloat(b.price.replace(/[^0-9.]/g, '')) - parseFloat(a.price.replace(/[^0-9.]/g, ''));
+                return b.price - a.price;
             case 'rating':
                 return (b.rating || 0) - (a.rating || 0);
             case 'popular':
@@ -133,6 +137,16 @@ const Templates = () => {
                                 <option value="price-low">Price: Low to High</option>
                                 <option value="price-high">Price: High to Low</option>
                             </select>
+                            
+                            {FEATURES.ai && (
+                                <button
+                                    onClick={() => setIsAIModalOpen(true)}
+                                    className="hidden md:flex items-center gap-2 bg-[#0055FF] text-white px-4 py-2 rounded-lg font-bold text-sm shadow-md hover:bg-blue-600 hover:shadow-lg transition-all"
+                                >
+                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                                    Ask AI
+                                </button>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -179,6 +193,15 @@ const Templates = () => {
                 </div>
             ) : (
                 <TemplateGrid items={sortedTemplates} />
+            )}
+
+            {/* AI Agent Recommendations */}
+            {FEATURES.ai && (
+                <AIRecommendationModal
+                    isOpen={isAIModalOpen}
+                    onClose={() => setIsAIModalOpen(false)}
+                    selectedTechStack={selectedCategory}
+                />
             )}
         </>
     );

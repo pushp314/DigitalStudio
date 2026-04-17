@@ -2,14 +2,12 @@ import React, { useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import CartContext from '../context/CartContext';
 import AuthContext from '../context/AuthContext';
-import orderService from '../services/orderService';
-import { useToast } from '../context/ToastContext';
+import { formatCurrency } from '../utils/normalizers';
 
 const Cart = () => {
-    const { cartItems, removeFromCart, clearCart } = useContext(CartContext);
+    const { cartItems, removeFromCart } = useContext(CartContext);
     const { user } = useContext(AuthContext);
     const navigate = useNavigate();
-    const { success, error } = useToast();
 
     const checkoutHandler = () => {
         if (!user) {
@@ -20,9 +18,7 @@ const Cart = () => {
     };
 
     const total = cartItems.reduce((acc, item) => {
-        // Handle price strings like "$39"
-        const price = Number(item.price.replace(/[^0-9.-]+/g, ""));
-        return acc + price;
+        return acc + Number(item.price || 0);
     }, 0);
 
     if (cartItems.length === 0) {
@@ -46,15 +42,15 @@ const Cart = () => {
                     {/* Items List */}
                     <div className="flex-grow flex flex-col gap-6">
                         {cartItems.map((item) => (
-                            <div key={item._id || item.id} className="bg-white p-4 rounded-2xl shadow-sm flex items-center gap-6">
+                            <div key={item.id} className="bg-white p-4 rounded-2xl shadow-sm flex items-center gap-6">
                                 <img src={item.image} alt={item.title} className="w-24 h-24 object-cover rounded-xl bg-gray-100" />
                                 <div className="flex-grow">
                                     <h3 className="text-xl font-bold text-black">{item.title}</h3>
                                     <p className="text-gray-500 text-sm">{item.category}</p>
-                                    <h4 className="text-lg font-bold text-[#0055FF] mt-1">{item.price}</h4>
+                                    <h4 className="text-lg font-bold text-[#0055FF] mt-1">{item.formattedPrice}</h4>
                                 </div>
                                 <button
-                                    onClick={() => removeFromCart(item._id || item.id)}
+                                    onClick={() => removeFromCart(item.id)}
                                     className="p-2 hover:bg-gray-100 rounded-full transition-colors"
                                 >
                                     <svg className="w-6 h-6 text-gray-400 hover:text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -71,7 +67,7 @@ const Cart = () => {
                             <h2 className="text-2xl font-bold mb-6">Summary</h2>
                             <div className="flex justify-between items-center mb-4">
                                 <span className="text-gray-500">Subtotal</span>
-                                <span className="font-bold">${total}</span>
+                                <span className="font-bold">{formatCurrency(total)}</span>
                             </div>
                             <div className="flex justify-between items-center mb-6">
                                 <span className="text-gray-500">Tax</span>
@@ -80,7 +76,7 @@ const Cart = () => {
                             <div className="h-px bg-gray-100 w-full mb-6"></div>
                             <div className="flex justify-between items-center mb-8">
                                 <span className="text-xl font-bold">Total</span>
-                                <span className="text-2xl font-black text-[#0055FF]">${total}</span>
+                                <span className="text-2xl font-black text-[#0055FF]">{formatCurrency(total)}</span>
                             </div>
                             <button
                                 onClick={checkoutHandler}

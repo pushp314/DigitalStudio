@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import AuthContext from '../context/AuthContext';
 import orderService from '../services/orderService';
 import { useToast } from '../context/ToastContext';
+import { FEATURES } from '../config/features';
+import { normalizeOrder } from '../utils/normalizers';
 
 const Profile = () => {
     const { user, logout } = useContext(AuthContext);
@@ -20,7 +22,7 @@ const Profile = () => {
             const fetchOrders = async () => {
                 try {
                     const data = await orderService.getMyOrders();
-                    setOrders(data);
+                    setOrders(Array.isArray(data) ? data.map(normalizeOrder) : []);
                 } catch (error) {
                     addToast("Failed to fetch orders", "error");
                     console.error(error);
@@ -43,8 +45,8 @@ const Profile = () => {
     const tabs = [
         { id: 'overview', label: 'Overview', icon: '⚡' },
         { id: 'orders', label: 'My Products', icon: '📦' },
-        { id: 'subscription', label: 'Subscription', icon: '💎' },
         { id: 'settings', label: 'Settings', icon: '⚙️' },
+        ...(FEATURES.subscriptions ? [{ id: 'subscription', label: 'Subscription', icon: '💎' }] : []),
     ];
 
     return (
@@ -61,7 +63,7 @@ const Profile = () => {
                             <h2 className="text-xl font-black text-black">{user.name}</h2>
                             <p className="text-gray-500 text-sm">{user.email}</p>
                             <span className="mt-2 text-xs font-bold uppercase tracking-wider bg-gray-100 text-gray-500 px-3 py-1 rounded-full">
-                                {user.subscription_plan || 'Free Plan'}
+                                {user.subscriptionPlan || 'free'}
                             </span>
                         </div>
 
@@ -100,19 +102,21 @@ const Profile = () => {
                             <div className="space-y-8">
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                     <StatCard label="Total Orders" value={orders.length} color="blue" />
-                                    <StatCard label="Member Since" value={new Date(user.createdAt).toLocaleDateString()} color="green" />
-                                    <StatCard label="Status" value="Active" color="purple" />
+                                    <StatCard label="Member Since" value={new Date(user.createdAt || Date.now()).toLocaleDateString()} color="green" />
+                                    <StatCard label="Plan" value={user.subscriptionPlan || 'free'} color="slate" />
                                 </div>
-                                <div className="bg-gradient-to-r from-zinc-900 to-black rounded-2xl p-8 text-white relative overflow-hidden">
-                                    <div className="relative z-10">
-                                        <h3 className="text-2xl font-bold mb-2">Upgrade to Pro</h3>
-                                        <p className="text-zinc-400 mb-6 max-w-md">Get unlimited access to premium templates, faster downloads, and priority support.</p>
-                                        <button onClick={() => setActiveTab('subscription')} className="bg-white text-black px-6 py-3 rounded-full font-bold hover:bg-gray-100 transition-colors">
-                                            View Plans
-                                        </button>
+                                {FEATURES.subscriptions && (
+                                    <div className="bg-gradient-to-r from-zinc-900 to-black rounded-2xl p-8 text-white relative overflow-hidden">
+                                        <div className="relative z-10">
+                                            <h3 className="text-2xl font-bold mb-2">Upgrade to Pro</h3>
+                                            <p className="text-zinc-400 mb-6 max-w-md">Get unlimited access to premium templates, faster downloads, and priority support.</p>
+                                            <button onClick={() => setActiveTab('subscription')} className="bg-white text-black px-6 py-3 rounded-full font-bold hover:bg-gray-100 transition-colors">
+                                                View Plans
+                                            </button>
+                                        </div>
+                                        <div className="absolute top-0 right-0 w-64 h-full bg-gradient-to-l from-[#0055FF]/20 to-transparent"></div>
                                     </div>
-                                    <div className="absolute top-0 right-0 w-64 h-full bg-gradient-to-l from-[#0055FF]/20 to-transparent"></div>
-                                </div>
+                                )}
                             </div>
                         )}
 
@@ -130,36 +134,56 @@ const Profile = () => {
                                         </button>
                                     </div>
                                 ) : (
-                                    orders.map(order => (
-                                        <div key={order._id} className="border border-gray-100 rounded-2xl p-6 hover:shadow-md transition-shadow">
+                                    orders.map(order => {
+                                        const firstItem = order.orderItems[0];
+                                        const firstProduct = firstItem?.product;
+
+                                        return (
+                                        <div key={order.id} className="border border-gray-100 rounded-2xl p-6 hover:shadow-md transition-shadow">
                                             <div className="flex flex-col md:flex-row justify-between items-center gap-4">
                                                 <div className="flex items-center gap-4 w-full md:w-auto">
                                                     <div className="w-16 h-16 bg-gray-100 rounded-xl flex-shrink-0 overflow-hidden">
-                                                        <img src={order.orderItems[0].image} alt={order.orderItems[0].title} className="w-full h-full object-cover" />
+                                                        {firstProduct?.image && <img src={firstProduct.image} alt={firstProduct.title} className="w-full h-full object-cover" />}
                                                     </div>
                                                     <div>
-                                                        <h4 className="font-bold text-black text-lg">{order.orderItems[0].title}</h4>
-                                                        <p className="text-gray-500 text-sm">Order #{order._id.substring(0, 8)}</p>
+                                                        <h4 className="font-bold text-black text-lg">{firstProduct?.title || 'Untitled product'}</h4>
+                                                        <p className="text-gray-500 text-sm">Order #{order.id}</p>
+                                                        <p className="text-xs text-gray-400 mt-1 uppercase tracking-wide">
+                                                            {order.paymentStatus}
+                                                        </p>
                                                     </div>
                                                 </div>
                                                 <div className="flex items-center gap-6 w-full md:w-auto justify-between md:justify-end">
-                                                    <span className="font-bold text-black text-lg">${order.totalPrice}</span>
-                                                    <button className="bg-black text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-gray-800 transition-colors">Download</button>
+                                                    <span className="font-bold text-black text-lg">{order.formattedTotalPrice}</span>
+                                                    {order.entitled && firstProduct?.fileURL ? (
+                                                        <a
+                                                            href={firstProduct.fileURL}
+                                                            target="_blank"
+                                                            rel="noreferrer"
+                                                            className="bg-black text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-gray-800 transition-colors"
+                                                        >
+                                                            Download
+                                                        </a>
+                                                    ) : (
+                                                        <button className="bg-gray-100 text-gray-500 px-4 py-2 rounded-lg text-sm font-bold cursor-not-allowed">
+                                                            Payment Pending
+                                                        </button>
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>
-                                    ))
+                                    )})
                                 )}
                             </div>
                         )}
 
-                        {activeTab === 'subscription' && (
+                        {FEATURES.subscriptions && activeTab === 'subscription' && (
                             <div className="text-center py-10">
                                 <h3 className="text-xl font-bold mb-6">Manage Your Plan</h3>
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                    <PlanCard title="Free" price="$0" features={["Basic Templates", "Community Support"]} current={user.subscription_plan === 'free'} />
-                                    <PlanCard title="Pro" price="$29/mo" features={["All Templates", "Premium Docs", "Priority Support"]} current={user.subscription_plan === 'pro'} recommended />
-                                    <PlanCard title="Enterprise" price="$99/mo" features={["Custom Solutions", "API Access", "Dedicated Agent"]} current={user.subscription_plan === 'enterprise'} />
+                                    <PlanCard title="Free" price="$0" features={["Basic Templates", "Community Support"]} current={user.subscriptionPlan === 'free'} />
+                                    <PlanCard title="Pro" price="$29/mo" features={["All Templates", "Premium Docs", "Priority Support"]} current={user.subscriptionPlan === 'pro'} recommended />
+                                    <PlanCard title="Enterprise" price="$99/mo" features={["Custom Solutions", "API Access", "Dedicated Agent"]} current={user.subscriptionPlan === 'enterprise'} />
                                 </div>
                             </div>
                         )}
@@ -188,10 +212,16 @@ const Profile = () => {
     );
 };
 
+const STAT_CARD_STYLES = {
+    blue: 'bg-blue-50 border-blue-100 text-blue-600',
+    green: 'bg-green-50 border-green-100 text-green-600',
+    slate: 'bg-slate-50 border-slate-100 text-slate-700',
+};
+
 const StatCard = ({ label, value, color }) => (
-    <div className={`p-6 rounded-2xl bg-${color}-50 border border-${color}-100`}>
+    <div className={`p-6 rounded-2xl border ${STAT_CARD_STYLES[color] || STAT_CARD_STYLES.blue}`}>
         <div className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-2">{label}</div>
-        <div className={`text-3xl font-black text-${color}-600`}>{value}</div>
+        <div className="text-3xl font-black">{value}</div>
     </div>
 );
 

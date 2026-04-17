@@ -1,21 +1,19 @@
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import api from '../../services/api';
+import React, { useCallback, useEffect, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import productService from '../../services/productService';
 import { useToast } from '../../context/ToastContext';
+import { normalizeProduct } from '../../utils/normalizers';
 
 const ProductList = () => {
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
     const { addToast } = useToast();
+    const navigate = useNavigate();
 
-    useEffect(() => {
-        fetchProducts();
-    }, []);
-
-    const fetchProducts = async () => {
+    const fetchProducts = useCallback(async () => {
         try {
-            const { data } = await api.get('/products');
-            setProducts(Array.isArray(data) ? data : []);
+            const data = await productService.getAll();
+            setProducts(Array.isArray(data) ? data.map(normalizeProduct) : []);
         } catch (error) {
             addToast('Error fetching products', 'error');
             console.error(error);
@@ -23,12 +21,16 @@ const ProductList = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [addToast]);
+
+    useEffect(() => {
+        fetchProducts();
+    }, [fetchProducts]);
 
     const deleteHandler = async (id) => {
         if (window.confirm('Are you sure you want to delete this product?')) {
             try {
-                await api.delete(`/products/${id}`);
+                await productService.delete(id);
                 addToast('Product deleted successfully', 'success');
                 fetchProducts();
             } catch (error) {
@@ -39,14 +41,7 @@ const ProductList = () => {
     };
 
     const createProductHandler = async () => {
-        try {
-            const { data } = await api.post('/products', {}); // Creates sample
-            addToast('Sample product created', 'success');
-            fetchProducts(); // Refresh
-        } catch (error) {
-            addToast('Error creating product', 'error');
-            console.error(error);
-        }
+        navigate('/admin/product/new');
     }
 
     if (loading) return <div className="text-gray-500">Loading products...</div>;
@@ -74,20 +69,20 @@ const ProductList = () => {
                     <tbody className="divide-y divide-gray-100">
                         {Array.isArray(products) && products.length > 0 ? (
                             products.map((product) => (
-                                <tr key={product._id} className="hover:bg-gray-50 transition-colors">
-                                    <td className="px-4 py-3 font-mono text-xs text-gray-400">{product._id.substring(0, 6)}...</td>
+                                <tr key={product.id} className="hover:bg-gray-50 transition-colors">
+                                    <td className="px-4 py-3 font-mono text-xs text-gray-400">#{product.id}</td>
                                     <td className="px-4 py-3 font-medium text-black">{product.title}</td>
-                                    <td className="px-4 py-3 text-green-600 font-bold">${product.price}</td>
+                                    <td className="px-4 py-3 text-green-600 font-bold">{product.formattedPrice}</td>
                                     <td className="px-4 py-3 text-xs uppercase">{product.category}</td>
                                     <td className="px-4 py-3 text-right space-x-2">
                                         <Link
-                                            to={`/admin/product/${product._id}/edit`}
+                                            to={`/admin/product/${product.id}/edit`}
                                             className="text-gray-600 hover:text-[#0055FF] transition-colors"
                                         >
                                             Edit
                                         </Link>
                                         <button
-                                            onClick={() => deleteHandler(product._id)}
+                                            onClick={() => deleteHandler(product.id)}
                                             className="text-red-500 hover:text-red-600 transition-colors"
                                         >
                                             Delete

@@ -5,9 +5,10 @@ import WishlistContext from '../context/WishlistContext';
 import CartContext from '../context/CartContext';
 import StarRating from './ui/StarRating';
 import { useToast } from '../context/ToastContext';
+import { normalizeProduct } from '../utils/normalizers';
 
 const TemplateGrid = ({ items, limit }) => {
-  let templates = items || allTemplates;
+  let templates = (items || allTemplates).map(normalizeProduct);
   const { addToWishlist, removeFromWishlist, isInWishlist } = useContext(WishlistContext);
   const { addToCart } = useContext(CartContext);
   const { success } = useToast();
@@ -19,7 +20,7 @@ const TemplateGrid = ({ items, limit }) => {
   const handleWishlistClick = (e, template) => {
     e.preventDefault();
     e.stopPropagation();
-    const id = template._id || template.id;
+    const id = template.id;
     if (isInWishlist(id)) {
       removeFromWishlist(id);
       success('Removed from wishlist');
@@ -63,7 +64,7 @@ const TemplateGrid = ({ items, limit }) => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {templates.map((template) => (
-            <Link to={`/templates/${template._id || template.id}`} key={template._id || template.id} className="group flex flex-col gap-4 cursor-pointer relative">
+            <Link to={`/templates/${template.id}`} key={template.id} className="group flex flex-col gap-4 cursor-pointer relative">
 
               <div className="w-full aspect-[4/3] rounded-2xl overflow-hidden bg-gray-200 relative shadow-sm transition-all duration-300 group-hover:shadow-xl group-hover:-translate-y-1">
                 <img
@@ -107,7 +108,7 @@ const TemplateGrid = ({ items, limit }) => {
                   onClick={(e) => handleWishlistClick(e, template)}
                   className="absolute top-4 right-4 bg-white/80 hover:bg-white backdrop-blur-sm p-2 rounded-full shadow-sm z-10 transition-colors"
                 >
-                  <svg className={`w-5 h-5 ${isInWishlist(template._id || template.id) ? 'text-red-500 fill-current' : 'text-gray-600'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className={`w-5 h-5 ${isInWishlist(template.id) ? 'text-red-500 fill-current' : 'text-gray-600'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                   </svg>
                 </button>
@@ -133,7 +134,7 @@ const TemplateGrid = ({ items, limit }) => {
                     )}
                   </div>
                   <span className="text-2xl font-bold text-black ml-4">
-                    {template.price}
+                    {template.formattedPrice}
                   </span>
                 </div>
 

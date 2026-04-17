@@ -1,5 +1,6 @@
 import React, { createContext, useState, useEffect } from 'react';
 import api from '../services/api';
+import { normalizeSiteConfig } from '../utils/normalizers';
 
 const ConfigContext = createContext();
 
@@ -21,8 +22,8 @@ export const ConfigProvider = ({ children }) => {
 
     const fetchConfig = async () => {
         try {
-            const { data } = await api.get('/config');
-            setConfig(data);
+            const data = await api.get('/config');
+            setConfig(normalizeSiteConfig(data));
         } catch (error) {
             console.error("Failed to fetch site config", error);
         } finally {
@@ -35,7 +36,7 @@ export const ConfigProvider = ({ children }) => {
     }, []);
 
     const updateContextConfig = (newConfig) => {
-        setConfig(newConfig);
+        setConfig(normalizeSiteConfig(newConfig));
     };
 
     return (

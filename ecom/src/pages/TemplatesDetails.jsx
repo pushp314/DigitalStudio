@@ -3,8 +3,11 @@ import { useParams, Link } from 'react-router-dom';
 import ProductHeader from '../components/ProductHeader';
 import TemplateCarousel from '../components/TemplateCarousel';
 import TemplateDetails from '../components/TemplateDetails';
+import ProductReviews from '../components/ProductReviews';
 import { templates } from '../data/templates';
 import productService from '../services/productService';
+import { FEATURES } from '../config/features';
+import { normalizeProduct } from '../utils/normalizers';
 
 const TemplatesDetails = () => {
     const { id } = useParams();
@@ -16,13 +19,11 @@ const TemplatesDetails = () => {
 
         const fetchProduct = async () => {
             try {
-                // Try fetching from API first
                 const data = await productService.getById(id);
-                setTemplate(data);
-            } catch (err) {
-                // Fallback to static data
+                setTemplate(normalizeProduct(data));
+            } catch {
                 const fallback = templates.find(t => t.id === Number(id));
-                setTemplate(fallback);
+                setTemplate(fallback ? normalizeProduct(fallback) : null);
             } finally {
                 setLoading(false);
             }
@@ -52,12 +53,13 @@ const TemplatesDetails = () => {
                 pages={template.pages}
                 techStack={template.techStack}
                 productType={template.productType}
-                documentation={template.documentation}
+                documentation={template.documentationInfo}
                 liveDemo={template.liveDemo}
                 githubRepo={template.githubRepo}
                 rating={template.rating}
                 numReviews={template.numReviews}
             />
+            {FEATURES.reviews && <ProductReviews productId={template.id} />}
         </div>
     );
 }

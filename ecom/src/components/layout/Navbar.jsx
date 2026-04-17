@@ -5,6 +5,7 @@ import CartContext from '../../context/CartContext';
 import WishlistContext from '../../context/WishlistContext';
 import ConfigContext from '../../context/ConfigContext';
 import LoginModal from '../auth/LoginModal';
+import { FEATURES } from '../../config/features';
 
 const FloatingNavbar = () => {
     const { user, logout } = useContext(AuthContext);
@@ -24,7 +25,7 @@ const FloatingNavbar = () => {
 
     const navLinks = [
         { name: 'Templates', path: '/templates' },
-        { name: 'Docs', path: '/docs' },
+        ...(FEATURES.docs ? [{ name: 'Docs', path: '/docs' }] : []),
         { name: 'Features', path: '/features' },
         { name: 'Testimonials', path: '/testimonials' },
         { name: 'FAQ', path: '/faq' }

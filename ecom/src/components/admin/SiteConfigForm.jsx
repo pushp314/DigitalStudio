@@ -39,7 +39,7 @@ const SiteConfigForm = () => {
         e.preventDefault();
         setLoading(true);
         try {
-            const { data } = await api.put('/config', formData);
+            const data = await api.put('/config', formData);
             updateContextConfig(data);
             addToast('Site configuration updated successfully!', 'success');
         } catch (error) {

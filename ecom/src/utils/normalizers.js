@@ -1,0 +1,170 @@
+const CURRENCY_FORMATTER = new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    maximumFractionDigits: 2,
+});
+
+const toArray = (value) => (Array.isArray(value) ? value : []);
+const toString = (value, fallback = '') => (typeof value === 'string' ? value : fallback);
+
+export const normalizeId = (value) => {
+    const raw = value ?? null;
+    const numeric = Number(raw);
+    return Number.isFinite(numeric) && raw !== '' && raw !== null ? numeric : raw;
+};
+
+export const formatCurrency = (value) => {
+    const amount = Number(value ?? 0);
+    return CURRENCY_FORMATTER.format(Number.isFinite(amount) ? amount : 0);
+};
+
+export const normalizeUser = (user = {}) => ({
+    ...user,
+    id: normalizeId(user.id ?? user._id),
+    name: toString(user.name, 'Anonymous User'),
+    email: toString(user.email),
+    role: toString(user.role, 'user'),
+    subscriptionPlan: toString(user.subscriptionPlan ?? user.subscription_plan, 'free'),
+    provider: toString(user.provider, 'local'),
+    providerId: toString(user.providerId ?? user.provider_id),
+    createdAt: user.createdAt ?? user.created_at ?? null,
+    updatedAt: user.updatedAt ?? user.updated_at ?? null,
+});
+
+const normalizeStatusFlags = (statusFlags) => {
+    const flags = Array.isArray(statusFlags)
+        ? statusFlags
+        : String(statusFlags || '')
+            .split(',')
+            .map((flag) => flag.trim())
+            .filter(Boolean);
+
+    return {
+        raw: flags,
+        isFree: flags.includes('free'),
+        isBestseller: flags.includes('bestseller'),
+        isNewProduct: flags.includes('new'),
+        isTrending: flags.includes('trending'),
+        isFeatured: flags.includes('featured'),
+    };
+};
+
+const normalizeDocumentationInfo = (documentation) => {
+    const items = toArray(documentation).filter(Boolean);
+    return {
+        items,
+        setup: items.some((item) => /setup|frontend/i.test(item)),
+        deployment: items.some((item) => /deploy|backend/i.test(item)),
+    };
+};
+
+export const normalizeProduct = (product = {}) => {
+    const id = normalizeId(product.id ?? product._id);
+    const price = Number(product.price ?? 0);
+    const status = normalizeStatusFlags(product.statusFlags ?? product.status_flags ?? []);
+    const documentation = normalizeDocumentationInfo(product.documentation);
+
+    return {
+        ...product,
+        id,
+        price: Number.isFinite(price) ? price : 0,
+        formattedPrice: formatCurrency(price),
+        productType: product.productType ?? product.type ?? 'template',
+        fileURL: product.fileURL ?? product.file_url ?? '',
+        previewUrl: product.previewUrl ?? product.liveDemo ?? product.live_demo ?? '',
+        techStack: toArray(product.techStack ?? product.tech_stack),
+        documentation: documentation.items,
+        documentationInfo: documentation,
+        previewImages: toArray(product.previewImages ?? product.preview_images),
+        features: toArray(product.features),
+        pages: toArray(product.pages),
+        rating: Number(product.rating ?? 0),
+        numReviews: Number(product.numReviews ?? product.num_reviews ?? 0),
+        numSales: Number(product.numSales ?? product.num_sales ?? 0),
+        requiresSubscription: Boolean(product.requiresSubscription ?? product.requires_subscription ?? false),
+        createdAt: product.createdAt ?? product.created_at ?? null,
+        updatedAt: product.updatedAt ?? product.updated_at ?? null,
+        isFree: product.isFree ?? (price === 0 || status.isFree),
+        isBestseller: product.isBestseller ?? status.isBestseller,
+        isNewProduct: product.isNewProduct ?? status.isNewProduct,
+        isTrending: product.isTrending ?? status.isTrending,
+        isFeatured: product.isFeatured ?? status.isFeatured,
+    };
+};
+
+export const normalizeOrder = (order = {}) => {
+    const orderItems = toArray(order.orderItems ?? order.order_items).map((item) => {
+        const normalizedProduct = normalizeProduct(item.product ?? item);
+        const price = Number(item.price ?? normalizedProduct.price ?? 0);
+
+        return {
+            ...item,
+            id: normalizeId(item.id ?? item._id),
+            orderId: normalizeId(item.orderId ?? item.order_id),
+            productId: normalizeId(item.productId ?? item.product_id ?? normalizedProduct.id),
+            quantity: Number(item.quantity ?? 1),
+            price,
+            formattedPrice: formatCurrency(price),
+            product: normalizedProduct,
+            title: normalizedProduct.title,
+            image: normalizedProduct.image,
+        };
+    });
+
+    const totalPrice = Number(order.totalPrice ?? order.total_price ?? 0);
+
+    return {
+        ...order,
+        id: normalizeId(order.id ?? order._id),
+        userId: normalizeId(order.userId ?? order.user_id),
+        totalPrice,
+        formattedTotalPrice: formatCurrency(totalPrice),
+        status: order.status ?? 'pending',
+        paymentStatus: order.paymentStatus ?? order.payment_status ?? 'pending',
+        entitled: Boolean(
+            order.entitled ??
+            order.isPaid ??
+            ((order.paymentStatus ?? order.payment_status) === 'paid' || (order.status ?? '') === 'paid')
+        ),
+        orderItems,
+        createdAt: order.createdAt ?? order.created_at ?? null,
+        updatedAt: order.updatedAt ?? order.updated_at ?? null,
+    };
+};
+
+export const normalizeDoc = (doc = {}) => {
+    const price = Number(doc.price ?? 0);
+
+    return {
+        ...doc,
+        id: normalizeId(doc.id ?? doc._id),
+        price,
+        formattedPrice: price === 0 ? 'Free' : formatCurrency(price),
+        isPremium: Boolean(doc.isPremium ?? doc.is_premium ?? price > 0),
+        hasAccess: Boolean(doc.hasAccess ?? doc.has_access ?? false),
+        locked: Boolean(doc.locked ?? false),
+        previewContent: toString(doc.previewContent ?? doc.preview_content),
+        tableOfContents: toArray(doc.tableOfContents ?? doc.table_of_contents),
+        tags: toArray(doc.tags ?? doc.docTags),
+        createdAt: doc.createdAt ?? doc.created_at ?? null,
+        updatedAt: doc.updatedAt ?? doc.updated_at ?? null,
+    };
+};
+
+export const normalizeSiteConfig = (config = {}) => ({
+    ...config,
+    heroTitle: config.heroTitle ?? '',
+    heroSubtitle: config.heroSubtitle ?? '',
+    announcementMessage: config.announcementMessage ?? '',
+    showAnnouncement: Boolean(config.showAnnouncement),
+    supportEmail: config.supportEmail ?? '',
+    features: config.features ?? {},
+});
+
+export const normalizeSalesSummary = (entry = {}) => ({
+    ...entry,
+    productId: normalizeId(entry.productId ?? entry.product_id),
+    totalSold: Number(entry.totalSold ?? entry.total_sold ?? 0),
+    revenue: Number(entry.revenue ?? 0),
+    formattedRevenue: formatCurrency(entry.revenue ?? 0),
+});

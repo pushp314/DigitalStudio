@@ -26,9 +26,9 @@ const Wishlist = () => {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                     {wishlistItems.map((item) => (
-                        <div key={item._id || item.id} className="bg-white rounded-2xl p-4 shadow-sm hover:shadow-md transition-shadow relative group">
+                        <div key={item.id} className="bg-white rounded-2xl p-4 shadow-sm hover:shadow-md transition-shadow relative group">
                             <button
-                                onClick={() => removeFromWishlist(item._id || item.id)}
+                                onClick={() => removeFromWishlist(item.id)}
                                 className="absolute top-4 right-4 bg-gray-100 hover:bg-red-50 p-2 rounded-full transition-colors z-10"
                                 title="Remove from wishlist"
                             >
@@ -37,12 +37,12 @@ const Wishlist = () => {
                                 </svg>
                             </button>
 
-                            <Link to={`/templates/${item._id || item.id}`} className="block">
+                            <Link to={`/templates/${item.id}`} className="block">
                                 <div className="aspect-w-16 aspect-h-12 mb-4 rounded-xl overflow-hidden bg-gray-100">
                                     <img src={item.image} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                                 </div>
                                 <h3 className="text-xl font-bold text-black mb-1">{item.title}</h3>
-                                <p className="text-[#0055FF] font-bold text-lg mb-4">{item.price}</p>
+                                <p className="text-[#0055FF] font-bold text-lg mb-4">{item.formattedPrice}</p>
                             </Link>
 
                             <button

@@ -1,4 +1,7 @@
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+export const API_URL = (import.meta.env.VITE_API_URL || '/api').replace(/\/$/, '');
+export const getOAuthLoginUrl = (provider) => `${API_URL}/auth/${provider}/login`;
+
+const isFormDataBody = (body) => typeof FormData !== 'undefined' && body instanceof FormData;
 
 const api = {
     // Helper to get token
@@ -7,28 +10,37 @@ const api = {
     // Standard Fetch wrapper
     request: async (endpoint, options = {}) => {
         const token = localStorage.getItem('token');
+        const bodyIsFormData = isFormDataBody(options.body);
         const headers = {
-            'Content-Type': 'application/json',
-            ...(token && { 'Authorization': `Bearer ${token}` }),
+            ...(token && { Authorization: `Bearer ${token}` }),
             ...options.headers,
         };
+
+        if (!bodyIsFormData && options.body !== undefined && !headers['Content-Type']) {
+            headers['Content-Type'] = 'application/json';
+        }
 
         const config = {
             ...options,
             headers,
         };
 
+        if (options.body !== undefined && !bodyIsFormData && typeof options.body !== 'string') {
+            config.body = JSON.stringify(options.body);
+        }
+
         try {
             const res = await fetch(`${API_URL}${endpoint}`, config);
-            const data = await res.json();
+            const contentType = res.headers.get('content-type') || '';
+            const data = contentType.includes('application/json')
+                ? await res.json()
+                : await res.text();
 
             if (!res.ok) {
-                // Handle 401 Unauthorized via global event or redirect logic if needed
                 if (res.status === 401) {
-                    // Optional: Window.location.href = '/login'; or dispatch event
                     localStorage.removeItem('token');
                 }
-                throw new Error(data.message || 'API Error');
+                throw new Error(data?.error ?? data?.message ?? (typeof data === 'string' ? data : 'API Error'));
             }
             return data;
         } catch (error) {
@@ -39,14 +51,22 @@ const api = {
 
     get: (endpoint) => api.request(endpoint, { method: 'GET' }),
 
-    post: (endpoint, body) => api.request(endpoint, {
+    post: (endpoint, body, options = {}) => api.request(endpoint, {
+        ...options,
         method: 'POST',
-        body: JSON.stringify(body)
+        body,
     }),
 
-    put: (endpoint, body) => api.request(endpoint, {
+    put: (endpoint, body, options = {}) => api.request(endpoint, {
+        ...options,
         method: 'PUT',
-        body: JSON.stringify(body)
+        body,
+    }),
+
+    patch: (endpoint, body, options = {}) => api.request(endpoint, {
+        ...options,
+        method: 'PATCH',
+        body,
     }),
 
     delete: (endpoint) => api.request(endpoint, { method: 'DELETE' }),

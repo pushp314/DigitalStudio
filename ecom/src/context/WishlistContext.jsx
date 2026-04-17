@@ -1,4 +1,5 @@
 import { createContext, useState, useEffect } from 'react';
+import { normalizeProduct } from '../utils/normalizers';
 
 const WishlistContext = createContext();
 
@@ -8,7 +9,7 @@ export const WishlistProvider = ({ children }) => {
     useEffect(() => {
         const storedWishlist = localStorage.getItem('wishlistItems');
         if (storedWishlist) {
-            setWishlistItems(JSON.parse(storedWishlist));
+            setWishlistItems(JSON.parse(storedWishlist).map(normalizeProduct));
         }
     }, []);
 
@@ -17,19 +18,20 @@ export const WishlistProvider = ({ children }) => {
     }, [wishlistItems]);
 
     const addToWishlist = (product) => {
-        const existItem = wishlistItems.find((x) => (x._id || x.id) === (product._id || product.id));
+        const normalizedProduct = normalizeProduct(product);
+        const existItem = wishlistItems.find((x) => x.id === normalizedProduct.id);
         if (existItem) {
-            return; // Already in wishlist
+            return;
         }
-        setWishlistItems([...wishlistItems, product]);
+        setWishlistItems([...wishlistItems, normalizedProduct]);
     };
 
     const removeFromWishlist = (id) => {
-        setWishlistItems(wishlistItems.filter((x) => (x._id || x.id) !== id));
+        setWishlistItems(wishlistItems.filter((x) => x.id !== id));
     };
 
     const isInWishlist = (id) => {
-        return wishlistItems.some((x) => (x._id || x.id) === id);
+        return wishlistItems.some((x) => x.id === id);
     };
 
     return (

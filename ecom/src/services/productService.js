@@ -6,6 +6,8 @@ const productService = {
     create: (data) => api.post('/products', data), // Admin
     update: (id, data) => api.put(`/products/${id}`, data), // Admin
     delete: (id) => api.delete(`/products/${id}`), // Admin
+    getReviews: (id) => api.get(`/products/${id}/reviews`),
+    createReview: (id, data) => api.post(`/products/${id}/review`, data),
 };
 
 export default productService;

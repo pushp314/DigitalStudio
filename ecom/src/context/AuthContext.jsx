@@ -1,11 +1,22 @@
-import { createContext, useState, useEffect } from 'react';
+import { createContext, useState, useEffect, useCallback } from 'react';
 import authService from '../services/authService';
+import { normalizeUser } from '../utils/normalizers';
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
+
+    const applyAuthPayload = useCallback((payload) => {
+        if (!payload) return;
+        if (payload.token) {
+            localStorage.setItem('token', payload.token);
+        }
+        if (payload.user) {
+            setUser(normalizeUser(payload.user));
+        }
+    }, []);
 
     // Check if user is logged in
     useEffect(() => {
@@ -20,9 +31,8 @@ export const AuthProvider = ({ children }) => {
                 return;
             }
 
-            // Verify token with backend
             const data = await authService.getMe();
-            setUser(data);
+            setUser(normalizeUser(data));
         } catch (err) {
             console.error("Auth Check Error", err);
             localStorage.removeItem('token');
@@ -34,8 +44,7 @@ export const AuthProvider = ({ children }) => {
     const login = async (email, password) => {
         try {
             const data = await authService.login(email, password);
-            setUser(data);
-            localStorage.setItem('token', data.token);
+            applyAuthPayload(data);
             return { success: true };
         } catch (error) {
             return { success: false, error: error.message };
@@ -45,10 +54,30 @@ export const AuthProvider = ({ children }) => {
     const register = async (name, email, password) => {
         try {
             const data = await authService.register(name, email, password);
-            setUser(data);
-            localStorage.setItem('token', data.token);
+            applyAuthPayload(data);
             return { success: true };
         } catch (error) {
+            return { success: false, error: error.message };
+        }
+    };
+
+    const completeOAuth = async ({ token, user: initialUser }) => {
+        if (!token) {
+            return { success: false, error: 'Missing OAuth token' };
+        }
+
+        localStorage.setItem('token', token);
+
+        if (initialUser) {
+            setUser(normalizeUser(initialUser));
+        }
+
+        try {
+            const me = await authService.getMe();
+            setUser(normalizeUser(me));
+            return { success: true };
+        } catch (error) {
+            localStorage.removeItem('token');
             return { success: false, error: error.message };
         }
     };
@@ -59,7 +88,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     return (
-        <AuthContext.Provider value={{ user, login, register, logout, loading }}>
+        <AuthContext.Provider value={{ user, login, register, logout, loading, completeOAuth }}>
             {children}
         </AuthContext.Provider>
     );
