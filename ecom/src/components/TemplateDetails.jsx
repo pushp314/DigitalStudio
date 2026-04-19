@@ -1,32 +1,41 @@
 import React from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
-const TemplateDetails = ({
-  description = "A premium template designed for excellence.",
-  pages = [],
-  features = [],
-  techStack = [],
-  productType = 'template',
-  documentation = {},
-  liveDemo = '',
-  githubRepo = '',
-  rating = 0,
-  numReviews = 0
-}) => {
+const TemplateDetails = ({ product }) => {
+  const {
+    description = 'A premium product designed for developer teams.',
+    pages = [],
+    features = [],
+    techStack = [],
+    productType = 'template',
+    documentationInfo = {},
+    liveDemo = '',
+    githubRepo = '',
+    rating = 0,
+    numReviews = 0,
+    snippet = '',
+    snippetLanguage = '',
+    courseOutline = '',
+    duration = '',
+  } = product || {};
+
   return (
     <div className="w-full bg-[#F5F5F7] px-6 py-20 font-sans border-b border-gray-200/50">
       <div className="max-w-[1400px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16">
-
-        {/* ================= COLUMN 1: DESCRIPTION & LINKS (Wider) ================= */}
         <div className="lg:col-span-6 flex flex-col gap-10">
           <div>
             <h2 className="text-4xl md:text-5xl font-bold text-black tracking-tight mb-8">
-              Template description
+              Product description
             </h2>
 
             <div className="text-gray-500 text-lg leading-relaxed flex flex-col gap-6">
-              <p>{description}</p>
+              <article className="markdown-content">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  {description}
+                </ReactMarkdown>
+              </article>
 
-              {/* Action Buttons */}
               <div className="flex flex-wrap gap-4 mt-4">
                 {liveDemo && (
                   <a href={liveDemo} target="_blank" rel="noopener noreferrer" className="bg-primary text-white px-8 py-3 rounded-full font-bold hover:bg-blue-600 transition-colors">
@@ -43,8 +52,7 @@ const TemplateDetails = ({
             </div>
           </div>
 
-          {/* Technical Specs */}
-          {techStack && techStack.length > 0 && (
+          {techStack.length > 0 && (
             <div>
               <h3 className="text-2xl font-bold text-black mb-6">Tech Stack</h3>
               <div className="flex flex-wrap gap-3">
@@ -56,40 +64,98 @@ const TemplateDetails = ({
               </div>
             </div>
           )}
+
+          {snippet && (
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-2xl font-bold text-black">Code Preview</h3>
+                {snippetLanguage && <span className="text-xs font-bold uppercase tracking-wider text-primary">{snippetLanguage}</span>}
+              </div>
+              <pre className="bg-black text-white rounded-2xl p-6 overflow-x-auto text-sm leading-6 shadow-sm">
+                <code>{snippet}</code>
+              </pre>
+            </div>
+          )}
+
+          {courseOutline && (
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-2xl font-bold text-black">Course Outline</h3>
+                {duration && <span className="text-sm font-bold text-gray-500">{duration}</span>}
+              </div>
+              <div className="bg-white rounded-2xl border border-gray-100 p-6 text-gray-600 whitespace-pre-wrap leading-relaxed">
+                {courseOutline}
+              </div>
+            </div>
+          )}
+
+          {/* Protocol Updates (Changelog) */}
+          {product?.changelog?.length > 0 && (
+            <div className="mt-12">
+              <h3 className="text-2xl font-black text-slate-900 mb-8 tracking-tight uppercase text-[10px] tracking-[0.3em]">Protocol Updates</h3>
+              <div className="space-y-8 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px before:h-full before:w-0.5 before:bg-slate-100">
+                {product.changelog.map((entry, index) => (
+                  <div key={index} className="relative flex items-start pl-14 group">
+                    {/* Timeline Node */}
+                    <div className="absolute left-0 w-10 h-10 rounded-full bg-white border-2 border-slate-100 flex items-center justify-center shadow-sm z-10 group-hover:border-primary transition-colors duration-500">
+                      <div className="w-2.5 h-2.5 rounded-full bg-slate-200 group-hover:bg-primary transition-colors duration-500"></div>
+                    </div>
+                    
+                    {/* Change Card */}
+                    <div className="flex-1 bg-white border border-slate-100 p-8 rounded-[2rem] shadow-sm group-hover:shadow-xl group-hover:shadow-indigo-900/5 transition-all duration-500">
+                      <div className="flex justify-between items-center mb-6">
+                        <span className="text-[10px] font-black text-primary uppercase tracking-widest bg-blue-50 px-4 py-1.5 rounded-full">Version {entry.version}</span>
+                        <div className="flex items-center gap-2">
+                           <span className="w-1.5 h-1.5 rounded-full bg-slate-200"></span>
+                           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{entry.date}</span>
+                        </div>
+                      </div>
+                      <ul className="space-y-3">
+                        {entry.changes?.map((change, i) => (
+                          <li key={i} className="text-sm text-slate-500 font-medium flex items-start gap-3 leading-relaxed">
+                            <span className="mt-2 w-1 h-1 rounded-full bg-primary shrink-0"></span>
+                            {change}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
-
-        {/* ================= COLUMN 2: FEATURES & PAGES ================= */}
         <div className="lg:col-span-3 flex flex-col gap-10">
-          {/* Features */}
-          <div>
-            <h2 className="text-2xl font-bold text-black mb-6">Features</h2>
-            <ul className="flex flex-col gap-4 text-gray-500 font-medium">
-              {features.map((feature, index) => (
-                <li key={index} className="flex items-start gap-3">
-                  <div className="w-5 h-5 mt-1 flex items-center justify-center text-black shrink-0">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
-                      <polyline points="20 6 9 17 4 12" />
-                    </svg>
-                  </div>
-                  <span className="text-sm">{feature}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
+          {features.length > 0 && (
+            <div>
+              <h2 className="text-2xl font-bold text-black mb-6">Features</h2>
+              <ul className="flex flex-col gap-4 text-gray-500 font-medium">
+                {features.map((feature, index) => (
+                  <li key={`${feature}-${index}`} className="flex items-start gap-3">
+                    <div className="w-5 h-5 mt-1 flex items-center justify-center text-black shrink-0">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                    </div>
+                    <span className="text-sm">{feature}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
-          {/* Documentation Availability */}
-          {(documentation?.setup || documentation?.deployment) && (
+          {(documentationInfo?.setup || documentationInfo?.deployment) && (
             <div>
               <h2 className="text-2xl font-bold text-black mb-6">Documentation</h2>
               <div className="flex flex-col gap-3">
-                {documentation.setup && (
+                {documentationInfo.setup && (
                   <div className="flex items-center gap-3 text-sm text-gray-600">
                     <span className="w-2 h-2 rounded-full bg-green-500"></span>
                     Setup Guide Included
                   </div>
                 )}
-                {documentation.deployment && (
+                {documentationInfo.deployment && (
                   <div className="flex items-center gap-3 text-sm text-gray-600">
                     <span className="w-2 h-2 rounded-full bg-green-500"></span>
                     Deployment Guide Included
@@ -100,22 +166,21 @@ const TemplateDetails = ({
           )}
         </div>
 
-
-        {/* ================= COLUMN 3: PAGES & INFO ================= */}
         <div className="lg:col-span-3 flex flex-col gap-10">
-          <div>
-            <h2 className="text-2xl font-bold text-black mb-6">Pages ({pages.length})</h2>
-            <ul className="flex flex-col gap-3 text-gray-500 font-medium">
-              {pages.map((page) => (
-                <li key={page} className="flex items-center gap-3">
-                  <span className="w-1.5 h-1.5 rounded-full bg-gray-400 shrink-0"></span>
-                  <span className="text-sm">{page}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
+          {pages.length > 0 && (
+            <div>
+              <h2 className="text-2xl font-bold text-black mb-6">Pages ({pages.length})</h2>
+              <ul className="flex flex-col gap-3 text-gray-500 font-medium">
+                {pages.map((page) => (
+                  <li key={page} className="flex items-center gap-3">
+                    <span className="w-1.5 h-1.5 rounded-full bg-gray-400 shrink-0"></span>
+                    <span className="text-sm">{page}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
-          {/* Product Info */}
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
             <h3 className="font-bold text-black mb-4">Product Info</h3>
             <div className="flex flex-col gap-3 text-sm">
@@ -129,14 +194,15 @@ const TemplateDetails = ({
                   ⭐ {rating} <span className="text-gray-400">({numReviews})</span>
                 </span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">License</span>
-                <span className="font-medium">Standard</span>
-              </div>
+              {duration && (
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Duration</span>
+                  <span className="font-medium">{duration}</span>
+                </div>
+              )}
             </div>
           </div>
         </div>
-
       </div>
     </div>
   );

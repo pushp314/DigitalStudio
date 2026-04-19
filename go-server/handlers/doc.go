@@ -11,11 +11,16 @@ import (
 
 func ListDocs(c *gin.Context) {
 	category := c.Query("category")
+	keyword := c.Query("search")
 	var docs []models.PremiumDoc
 	query := config.DB
 
 	if category != "" {
 		query = query.Where("category = ?", category)
+	}
+
+	if keyword != "" {
+		query = query.Where("title ILIKE ? OR description ILIKE ?", "%"+keyword+"%", "%"+keyword+"%")
 	}
 
 	if err := query.Find(&docs).Error; err != nil {

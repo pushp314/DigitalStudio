@@ -16,7 +16,12 @@ const Login = () => {
         setError('');
         const res = await login(email, password);
         if (res.success) {
-            navigate('/');
+            // Check if user is admin to redirect accordingly
+            if (res.user?.role === 'admin') {
+                navigate('/admin');
+            } else {
+                navigate('/');
+            }
         } else {
             setError(res.error);
         }

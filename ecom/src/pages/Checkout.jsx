@@ -4,7 +4,7 @@ import CartContext from '../context/CartContext';
 import AuthContext from '../context/AuthContext';
 import api from '../services/api';
 import { useToast } from '../context/ToastContext';
-import { FEATURES } from '../config/features';
+import ConfigContext from '../context/ConfigContext';
 import { formatCurrency } from '../utils/normalizers';
 
 const loadRazorpayScript = () => {
@@ -18,12 +18,16 @@ const loadRazorpayScript = () => {
 };
 
 const Checkout = () => {
+    const { config } = useContext(ConfigContext);
     const { cartItems, clearCart } = useContext(CartContext);
     const { user } = useContext(AuthContext);
     const { success, error } = useToast();
     const navigate = useNavigate();
 
     const [loading, setLoading] = useState(false);
+    const [couponCode, setCouponCode] = useState('');
+    const [appliedCoupon, setAppliedCoupon] = useState(null);
+    const [validatingCoupon, setValidatingCoupon] = useState(false);
 
     useEffect(() => {
         if (!user) {
@@ -32,15 +36,34 @@ const Checkout = () => {
         if (cartItems.length === 0) {
             navigate('/cart');
         }
-        if (!FEATURES.payments) {
+        if (config && config.features && config.features.payments === false) {
             error('Payments are currently unavailable.');
             navigate('/cart');
         }
-    }, [cartItems, error, navigate, user]);
+    }, [cartItems, config, error, navigate, user]);
 
-    const total = cartItems.reduce((acc, item) => {
+    const subtotal = cartItems.reduce((acc, item) => {
         return acc + Number(item.price || 0);
     }, 0);
+
+    const discountAmount = appliedCoupon ? appliedCoupon.discount : 0;
+    const total = Math.max(0, subtotal - discountAmount);
+
+    const handleApplyCoupon = async () => {
+        if (!couponCode) return;
+        setValidatingCoupon(true);
+        try {
+            // Passing subtotal as totalAmount context for validation
+            const res = await api.get(`/marketing/validate?code=${couponCode}&totalAmount=${subtotal}`);
+            setAppliedCoupon(res);
+            success(`Coupon '${res.code}' applied! You saved ${formatCurrency(res.discount)}`);
+        } catch (err) {
+            error(err.message || 'Invalid or expired coupon code.');
+            setAppliedCoupon(null);
+        } finally {
+            setValidatingCoupon(false);
+        }
+    };
 
     const submitHandler = async () => {
         setLoading(true);
@@ -58,8 +81,11 @@ const Checkout = () => {
         }));
 
         try {
-            // Create Order on Backend
-            const res = await api.post('/payments/create-order', { items });
+            // Create Order on Backend with Coupon Code if applied
+            const res = await api.post('/payments/create-order', { 
+                items,
+                couponCode: appliedCoupon?.code
+            });
             const { orderId, amount, currency, keyId } = res;
 
             const options = {
@@ -73,7 +99,7 @@ const Checkout = () => {
                     name: user.name || "Customer",
                     email: user.email,
                 },
-                theme: { color: "#0055FF" },
+                theme: { color: "#000000" },
                 handler: async function (response) {
                     try {
                         const verifyRes = await api.post('/payments/verify', {
@@ -95,7 +121,7 @@ const Checkout = () => {
             
             const rzp = new window.Razorpay(options);
             rzp.on('payment.failed', function (_response){
-                error("Payment mapping failed. Try again.");
+                error("Payment processing failed. Try again.");
             });
             
             rzp.open();
@@ -109,79 +135,124 @@ const Checkout = () => {
     };
 
     return (
-        <div className="min-h-screen bg-[#F5F5F7] px-6 py-20 font-sans">
+        <div className="min-h-screen bg-[#F5F5F7] px-6 py-20 font-sans" style={{ fontFamily: "'Inter', sans-serif" }}>
             <div className="max-w-6xl mx-auto">
-                <h1 className="text-4xl font-black text-black mb-10">Checkout</h1>
+                <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-6">
+                    <div>
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.3em] mb-2">Final Step</p>
+                        <h1 className="text-5xl font-black text-black tracking-tight">Checkout Overview</h1>
+                    </div>
+                    <div className="flex items-center gap-4 text-emerald-500 font-bold text-xs uppercase tracking-widest bg-emerald-50 px-6 py-3 rounded-2xl border border-emerald-100">
+                        <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+                        Secure Checkout Active
+                    </div>
+                </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
                     
-                    {/* Left Column: Forms */}
+                    {/* Left Column: Review Summary */}
                     <div className="lg:col-span-8 flex flex-col gap-8">
-                        <div className="bg-white p-8 rounded-3xl shadow-sm">
-                            <h2 className="text-2xl font-bold mb-6 flex items-center gap-3">
-                                <span className="w-8 h-8 bg-blue-100 text-primary rounded-full flex items-center justify-center text-sm" aria-hidden="true">1</span>
-                                Review Purchase
+                        <div className="bg-white p-10 rounded-[2.5rem] shadow-sm border border-gray-100">
+                            <h2 className="text-xl font-bold mb-8 flex items-center gap-4">
+                                <span className="w-10 h-10 bg-black text-white rounded-2xl flex items-center justify-center text-xs">01</span>
+                                Selected Items
                             </h2>
-                            <div className="space-y-4">
+                            <div className="space-y-6">
                                 {cartItems.map((item) => (
-                                    <div key={item.id} className="flex items-center gap-4 rounded-2xl border border-gray-100 p-4">
-                                        <img src={item.image} alt={item.title} className="w-20 h-20 object-cover rounded-xl bg-gray-100" />
-                                        <div className="flex-1">
-                                            <p className="font-bold text-black">{item.title}</p>
-                                            <p className="text-sm text-gray-500">{item.category}</p>
+                                    <div key={item.id} className="flex items-center gap-6 rounded-3xl border border-gray-50 p-6 bg-gray-50/30 transition-all hover:bg-gray-50">
+                                        <div className="w-24 h-24 rounded-2xl border border-gray-100 overflow-hidden shadow-sm flex-shrink-0">
+                                            <img src={item.image} alt={item.title} className="w-full h-full object-cover" />
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="font-bold text-black text-lg truncate">{item.title}</p>
+                                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">{item.category}</p>
                                         </div>
                                         <div className="text-right">
-                                            <p className="font-bold text-primary">{item.formattedPrice}</p>
-                                            <p className="text-xs text-gray-400">Qty 1</p>
+                                            <p className="font-black text-black text-xl">{item.formattedPrice}</p>
+                                            <p className="text-[9px] text-emerald-500 font-bold uppercase tracking-widest">Lifetime Access</p>
                                         </div>
                                     </div>
                                 ))}
-                                <div className="rounded-2xl bg-gray-50 border border-gray-100 p-5 text-sm text-gray-600">
-                                    Razorpay will open in a secure checkout modal. We only send the purchased items to the backend and unlock downloads after a verified captured payment.
-                                </div>
                             </div>
+                        </div>
+
+                        {/* Coupon Interface */}
+                        <div className="bg-white p-10 rounded-[2.5rem] shadow-sm border border-gray-100 animate-in slide-in-from-bottom-5 duration-500">
+                            <h2 className="text-xl font-bold mb-6 flex items-center gap-4">
+                                <span className="w-10 h-10 bg-gray-50 text-black border border-gray-100 rounded-2xl flex items-center justify-center text-xs">02</span>
+                                Discount Coupon
+                            </h2>
+                            <div className="flex flex-col md:flex-row gap-4">
+                                <div className="flex-1 relative">
+                                    <input 
+                                        type="text" 
+                                        placeholder="Enter Coupon Code..." 
+                                        value={couponCode}
+                                        onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                                        className="w-full px-8 py-5 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:border-black font-bold text-sm tracking-widest placeholder:text-gray-300 transition-all"
+                                    />
+                                    {appliedCoupon && <span className="absolute right-6 top-1/2 -translate-y-1/2 text-[10px] font-black text-emerald-500 uppercase">Applied ✓</span>}
+                                </div>
+                                <button 
+                                    onClick={handleApplyCoupon}
+                                    disabled={validatingCoupon || !couponCode}
+                                    className="px-10 py-5 bg-black text-white rounded-2xl font-bold uppercase text-[10px] tracking-widest shadow-xl shadow-black/10 hover:bg-gray-800 disabled:opacity-30 disabled:grayscale transition-all"
+                                >
+                                    {validatingCoupon ? 'Validating...' : 'Apply Code'}
+                                </button>
+                            </div>
+                            {appliedCoupon && (
+                                <div className="mt-4 p-4 bg-emerald-50 border border-emerald-100 rounded-2xl flex justify-between items-center animate-in fade-in duration-300">
+                                    <p className="text-[10px] font-bold text-emerald-700 uppercase tracking-widest">Coupon Applied: {appliedCoupon.code}</p>
+                                    <button onClick={() => setAppliedCoupon(null)} className="text-[10px] font-black text-emerald-700 hover:text-red-500 transition-colors">REMOVE</button>
+                                </div>
+                            )}
                         </div>
                     </div>
 
                     {/* Right Column: Order Summary */}
                     <div className="lg:col-span-4">
-                        <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 sticky top-24">
-                            <h2 className="text-xl font-bold mb-6">Order Summary</h2>
+                        <div className="bg-white p-10 rounded-[3rem] shadow-xl border border-gray-100 sticky top-24 overflow-hidden relative">
+                            {/* Visual Polish */}
+                            <div className="absolute top-0 right-0 w-24 h-24 bg-gray-50/50 rounded-bl-full -translate-y-4 translate-x-4"></div>
                             
-                            <div className="flex flex-col gap-4 mb-6 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
-                                {cartItems.map((item) => (
-                                    <div key={item.id} className="flex gap-4 items-center">
-                                        <img src={item.image} alt={item.title} className="w-16 h-16 object-cover rounded-lg bg-gray-100" />
-                                        <div>
-                                            <p className="font-bold text-sm line-clamp-1">{item.title}</p>
-                                            <p className="text-primary font-bold text-sm">{item.formattedPrice}</p>
-                                        </div>
+                            <h2 className="text-xl font-bold mb-8 relative z-10">Value Summary</h2>
+                            
+                            <div className="space-y-6 mb-10 border-b border-gray-50 pb-8">
+                                <div className="flex justify-between items-center">
+                                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Subtotal</span>
+                                    <span className="font-bold text-black">{formatCurrency(subtotal)}</span>
+                                </div>
+                                {appliedCoupon && (
+                                    <div className="flex justify-between items-center animate-in slide-in-from-right-4 duration-300">
+                                        <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest">Discount</span>
+                                        <span className="font-bold text-emerald-500">- {formatCurrency(discountAmount)}</span>
                                     </div>
-                                ))}
-                            </div>
-
-                            <div className="h-px bg-gray-100 w-full mb-6"></div>
-                            
-                            <div className="flex justify-between items-center mb-4">
-                                <span className="text-gray-500">Subtotal</span>
-                                <span className="font-bold">{formatCurrency(total)}</span>
-                            </div>
-                            <div className="flex justify-between items-center mb-8">
-                                <span className="text-xl font-bold">Total</span>
-                                <span className="text-2xl font-black text-primary">{formatCurrency(total)}</span>
+                                )}
+                                <div className="flex justify-between items-center pt-6 border-t border-gray-50">
+                                    <span className="text-sm font-black text-black uppercase tracking-tighter">Final Total</span>
+                                    <span className="text-3xl font-black text-black tracking-tighter">{formatCurrency(total)}</span>
+                                </div>
                             </div>
 
                             <button
                                 onClick={submitHandler}
                                 disabled={loading}
-                                className={`w-full bg-black text-white py-4 rounded-xl font-bold hover:bg-gray-800 transition-all shadow-lg shadow-black/20 ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
+                                className={`w-full bg-black text-white py-6 rounded-[2rem] font-black uppercase text-[11px] tracking-[0.2em] shadow-2xl shadow-black/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3 ${loading ? 'opacity-70 cursor-not-allowed grayscale' : ''}`}
                             >
-                                {loading ? 'Processing...' : 'Pay with Razorpay'}
+                                {loading ? 'Processing...' : 'Confirm Payment'}
+                                {!loading && <span className="text-lg">→</span>}
                             </button>
                             
-                            <p className="text-xs text-gray-400 text-center mt-4">
-                                Secure checkout powered by Razorpay.
-                            </p>
+                            <div className="mt-8 space-y-3">
+                                <div className="flex items-center gap-2 px-4 py-2 bg-gray-50 rounded-xl border border-gray-100">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
+                                    <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">End-to-End Encrypted</span>
+                                </div>
+                                <p className="text-[9px] text-gray-400 text-center leading-relaxed">
+                                    By proceeding, you agree to the license terms. Downloads are instantly unlocked upon payment.
+                                </p>
+                            </div>
                         </div>
                     </div>
 

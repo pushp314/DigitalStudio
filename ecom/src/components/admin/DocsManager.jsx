@@ -1,220 +1,127 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import docService from '../../services/docService';
 import { useToast } from '../../context/ToastContext';
 import { normalizeDoc } from '../../utils/normalizers';
 
-const initialForm = {
-    title: '',
-    category: '',
-    description: '',
-    previewContent: '',
-    content: '',
-    price: 0,
-    isPremium: true,
-    icon: '📄',
-};
-
 const DocsManager = () => {
+    const queryClient = useQueryClient();
+    const navigate = useNavigate();
     const { success, error } = useToast();
-    const [docs, setDocs] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [isCreating, setIsCreating] = useState(false);
-    const [editingId, setEditingId] = useState(null);
-    const [formData, setFormData] = useState(initialForm);
 
-    const fetchDocs = useCallback(async () => {
-        try {
-            const data = await docService.getAll();
-            setDocs(Array.isArray(data) ? data.map(normalizeDoc) : []);
-        } catch (err) {
-            error(err.message || 'Failed to load docs');
-        } finally {
-            setLoading(false);
-        }
-    }, [error]);
+    const { data: docData, isLoading: loading } = useQuery({
+        queryKey: ['docs'],
+        queryFn: () => docService.getAll(),
+    });
 
-    useEffect(() => {
-        fetchDocs();
-    }, [fetchDocs]);
+    const docs = useMemo(() => 
+        Array.isArray(docData) ? docData.map(normalizeDoc) : [],
+    [docData]);
 
-    const resetForm = () => {
-        setFormData(initialForm);
-        setEditingId(null);
-        setIsCreating(false);
-    };
+    const deleteMutation = useMutation({
+        mutationFn: (id) => docService.delete(id),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['docs'] });
+            success('Documentation asset deleted');
+        },
+        onError: (err) => error(err.message || 'Failed to delete doc'),
+    });
 
-    const handleSave = async () => {
-        if (!formData.title || !formData.content) {
-            error('Title and content are required');
-            return;
-        }
-
-        try {
-            if (editingId) {
-                await docService.update(editingId, formData);
-                success('Doc updated successfully');
-            } else {
-                await docService.create(formData);
-                success('Doc created successfully');
-            }
-            resetForm();
-            fetchDocs();
-        } catch (err) {
-            error(err.message || 'Failed to save doc');
-        }
-    };
-
-    const handleDelete = async (id) => {
-        if (!window.confirm('Delete this doc?')) return;
-
-        try {
-            await docService.delete(id);
-            success('Doc deleted');
-            fetchDocs();
-        } catch (err) {
-            error(err.message || 'Failed to delete doc');
-        }
-    };
-
-    const startEdit = (doc) => {
-        setEditingId(doc.id);
-        setIsCreating(true);
-        setFormData({
-            title: doc.title,
-            category: doc.category,
-            description: doc.description || '',
-            previewContent: doc.previewContent || '',
-            content: doc.content || '',
-            price: doc.price || 0,
-            isPremium: doc.isPremium,
-            icon: doc.icon || '📄',
-        });
+    const handleDelete = (id) => {
+        if (!window.confirm('Are you sure you want to delete this documentation?')) return;
+        deleteMutation.mutate(id);
     };
 
     return (
-        <div>
-            <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold text-black">Premium Docs Management</h2>
+        <div className="space-y-8 animate-in fade-in duration-500" style={{ fontFamily: "'Inter', sans-serif" }}>
+            <div className="flex justify-between items-center bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
+                <div>
+                    <h2 className="text-xl font-bold text-black">Technical Documentation</h2>
+                    <p className="text-xs text-gray-400 mt-1 uppercase tracking-widest font-bold">Manage your premium guides and setup manuals</p>
+                </div>
                 <button
-                    onClick={() => {
-                        if (isCreating) {
-                            resetForm();
-                        } else {
-                            setIsCreating(true);
-                        }
-                    }}
-                    className="bg-primary text-white px-4 py-2 rounded-lg font-bold hover:bg-blue-600 transition-colors shadow-lg shadow-blue-500/30"
+                    onClick={() => navigate('/admin/doc/new')}
+                    className="bg-black text-white px-8 py-3 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-gray-800 transition-all shadow-xl shadow-black/10"
                 >
-                    {isCreating ? 'Cancel' : '+ New Doc'}
+                    + Create New Doc
                 </button>
             </div>
 
-            {isCreating && (
-                <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm mb-6 space-y-4">
-                    <h3 className="text-lg font-bold text-black">{editingId ? 'Edit Doc' : 'Create New Doc'}</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <Field label="Title">
-                            <input value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 text-black focus:outline-none focus:border-primary" />
-                        </Field>
-                        <Field label="Category">
-                            <input value={formData.category} onChange={(e) => setFormData({ ...formData, category: e.target.value })} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 text-black focus:outline-none focus:border-primary" />
-                        </Field>
-                        <Field label="Price (USD)">
-                            <input type="number" value={formData.price} onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) })} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 text-black focus:outline-none focus:border-primary" />
-                        </Field>
-                        <Field label="Icon">
-                            <input value={formData.icon} onChange={(e) => setFormData({ ...formData, icon: e.target.value })} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 text-black focus:outline-none focus:border-primary" />
-                        </Field>
-                    </div>
-
-                    <Field label="Description">
-                        <textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} rows={3} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 text-black focus:outline-none focus:border-primary" />
-                    </Field>
-
-                    <Field label="Preview Content">
-                        <textarea value={formData.previewContent} onChange={(e) => setFormData({ ...formData, previewContent: e.target.value })} rows={4} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 text-black focus:outline-none focus:border-primary" />
-                    </Field>
-
-                    <Field label="Full Content">
-                        <textarea value={formData.content} onChange={(e) => setFormData({ ...formData, content: e.target.value })} rows={8} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 text-black focus:outline-none focus:border-primary" />
-                    </Field>
-
-                    <label className="flex items-center gap-2 text-black">
-                        <input type="checkbox" checked={formData.isPremium} onChange={(e) => setFormData({ ...formData, isPremium: e.target.checked })} className="w-4 h-4 text-primary" />
-                        <span className="text-sm font-bold">Premium Content</span>
-                    </label>
-
-                    <button onClick={handleSave} className="bg-green-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-green-700 transition-colors shadow-lg shadow-green-500/20">
-                        {editingId ? 'Update Doc' : 'Create Doc'}
-                    </button>
-                </div>
-            )}
-
-            <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
+            <div className="bg-white rounded-[2.5rem] border border-gray-100 overflow-hidden shadow-sm">
                 {loading ? (
-                    <div className="p-8 text-gray-500">Loading docs...</div>
+                    <div className="p-12 text-center text-gray-400 font-bold uppercase tracking-widest text-xs">Synchronizing Docs...</div>
                 ) : (
-                    <table className="w-full">
-                        <thead className="bg-gray-50">
-                            <tr>
-                                <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase">Title</th>
-                                <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase">Category</th>
-                                <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase">Price</th>
-                                <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase">Access</th>
-                                <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100">
-                            {docs.map((doc) => (
-                                <tr key={doc.id} className="hover:bg-gray-50 transition-colors">
-                                    <td className="px-6 py-4 text-black font-bold">{doc.title}</td>
-                                    <td className="px-6 py-4">
-                                        <span className="px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-xs">{doc.category || 'General'}</span>
-                                    </td>
-                                    <td className="px-6 py-4 text-green-600 font-bold">{doc.formattedPrice}</td>
-                                    <td className="px-6 py-4">
-                                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${doc.isPremium ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'}`}>
-                                            {doc.isPremium ? 'Premium' : 'Free'}
-                                        </span>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <div className="flex gap-2">
-                                            <button onClick={() => startEdit(doc)} className="bg-primary text-white px-3 py-1 rounded-lg text-xs font-bold hover:bg-blue-600 shadow-sm">
-                                                Edit
-                                            </button>
-                                            <button onClick={() => handleDelete(doc.id)} className="bg-red-500 text-white px-3 py-1 rounded-lg text-xs font-bold hover:bg-red-600 shadow-sm">
-                                                Delete
-                                            </button>
-                                        </div>
-                                    </td>
+                    <div className="overflow-x-auto">
+                        <table className="w-full">
+                            <thead className="bg-gray-50/50">
+                                <tr>
+                                    <th className="px-8 py-5 text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest">Title</th>
+                                    <th className="px-8 py-5 text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest">Section</th>
+                                    <th className="px-8 py-5 text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest">Price</th>
+                                    <th className="px-8 py-5 text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest">Tier</th>
+                                    <th className="px-8 py-5 text-right text-[10px] font-bold text-gray-400 uppercase tracking-widest">Actions</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody className="divide-y divide-gray-50">
+                                {docs.map((doc) => (
+                                    <tr key={doc.id} className="hover:bg-gray-50/50 transition-colors group">
+                                        <td className="px-8 py-6">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center text-lg">{doc.icon || '📄'}</div>
+                                                <span className="text-sm font-bold text-black">{doc.title}</span>
+                                            </div>
+                                        </td>
+                                        <td className="px-8 py-6 text-sm text-gray-500 font-medium">
+                                            {doc.section || 'General'}
+                                        </td>
+                                        <td className="px-8 py-6 text-sm font-bold text-black">
+                                            {doc.formattedPrice}
+                                        </td>
+                                        <td className="px-8 py-6">
+                                            <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${doc.isPremium ? 'bg-amber-50 text-amber-700 border border-amber-100' : 'bg-emerald-50 text-emerald-700 border border-emerald-100'}`}>
+                                                {doc.isPremium ? 'Premium' : 'Public'}
+                                            </span>
+                                        </td>
+                                        <td className="px-8 py-6">
+                                            <div className="flex justify-end gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <button 
+                                                    onClick={() => navigate(`/admin/doc/${doc.id}/edit`)} 
+                                                    className="p-2.5 bg-white border border-gray-200 rounded-lg text-gray-400 hover:text-black hover:border-black transition-all"
+                                                >
+                                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                                                </button>
+                                                <button 
+                                                    onClick={() => handleDelete(doc.id)} 
+                                                    disabled={deleteMutation.isPending}
+                                                    className="p-2.5 bg-red-50 text-red-400 rounded-lg hover:bg-red-500 hover:text-white transition-all border border-red-50"
+                                                >
+                                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                 )}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-                <StatCard label="Total Docs" value={docs.length} />
-                <StatCard label="Premium Docs" value={docs.filter((doc) => doc.isPremium).length} />
-                <StatCard label="Free Docs" value={docs.filter((doc) => !doc.isPremium).length} />
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {[
+                    { label: 'Total Index', value: docs.length, color: 'text-black' },
+                    { label: 'Monetized', value: docs.filter(d => d.isPremium).length, color: 'text-amber-600' },
+                    { label: 'Public Access', value: docs.filter(d => !d.isPremium).length, color: 'text-emerald-600' },
+                ].map((stat, i) => (
+                    <div key={i} className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">{stat.label}</p>
+                        <p className={`text-2xl font-bold ${stat.color}`}>{stat.value}</p>
+                    </div>
+                ))}
             </div>
         </div>
     );
 };
-
-const Field = ({ label, children }) => (
-    <div>
-        <label className="block text-sm font-bold text-gray-500 mb-2">{label}</label>
-        {children}
-    </div>
-);
-
-const StatCard = ({ label, value }) => (
-    <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
-        <div className="text-gray-500 text-sm mb-1">{label}</div>
-        <div className="text-2xl font-black text-black">{value}</div>
-    </div>
-);
 
 export default DocsManager;

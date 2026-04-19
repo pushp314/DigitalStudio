@@ -15,6 +15,7 @@ const (
 	ProductTypeIconSet     ProductType = "icon_set"
 	ProductTypeCodeSnippet ProductType = "code_snippet"
 	ProductTypeEduModule   ProductType = "edu_module"
+	ProductTypeSubscription ProductType = "subscription"
 )
 
 type ModerationStatus string
@@ -24,6 +25,19 @@ const (
 	ModStatusApproved ModerationStatus = "approved"
 	ModStatusRejected ModerationStatus = "rejected"
 )
+
+type ChangelogEntry struct {
+	Version string   `json:"version"`
+	Date    string   `json:"date"` // e.g., "2024-03-24"
+	Changes []string `json:"changes"`
+}
+
+type ProductPreview struct {
+	URL       string `json:"url"`
+	Alt       string `json:"alt,omitempty"`
+	Caption   string `json:"caption,omitempty"`
+	SortOrder int    `json:"sortOrder,omitempty"`
+}
 
 type Product struct {
 	ID                   uint             `gorm:"primaryKey" json:"id"`
@@ -49,11 +63,14 @@ type Product struct {
 	VideoURL        string   `json:"videoUrl"`
 	CourseOutline   string   `gorm:"type:text" json:"courseOutline"`
 	Duration        string   `json:"duration"`
-	PreviewImages   []string `gorm:"serializer:json;type:jsonb" json:"previewImages,omitempty"`
+	PreviewImages   []ProductPreview `gorm:"serializer:json;type:jsonb" json:"previewImages,omitempty"`
 	SnippetLanguage string   `json:"snippetLanguage"`
 	Snippet         string   `gorm:"type:text" json:"snippet"`
+	Features        []string `gorm:"serializer:json;type:jsonb" json:"features,omitempty"`
+	Pages           []string `gorm:"serializer:json;type:jsonb" json:"pages,omitempty"`
 
 	TechStacks    []string `gorm:"serializer:json;type:jsonb" json:"techStack,omitempty"`
+	Changelog     []ChangelogEntry `gorm:"serializer:json;type:jsonb" json:"changelog,omitempty"`
 	Documentation []string `gorm:"serializer:json;type:jsonb" json:"documentation,omitempty"`
 	Tags          []Tag    `gorm:"many2many:product_tags;" json:"tags,omitempty"`
 
@@ -61,6 +78,7 @@ type Product struct {
 	Rating     float64 `gorm:"-" json:"rating"`
 	NumReviews int64   `gorm:"-" json:"numReviews"`
 	NumSales   int64   `gorm:"-" json:"numSales"`
+	Revenue    float64 `gorm:"-" json:"revenue"`
 
 	CreatedAt time.Time `json:"createdAt"`
 	UpdatedAt time.Time `json:"updatedAt"`

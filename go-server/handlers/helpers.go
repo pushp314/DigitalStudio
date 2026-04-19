@@ -128,10 +128,44 @@ func optionalAuthenticatedUser(c *gin.Context) (*models.User, error) {
 	if err := config.DB.First(&user, uint(userIDFloat)).Error; err != nil {
 		return nil, err
 	}
+	if user.Suspended {
+		return nil, errors.New("account suspended")
+	}
 
 	return &user, nil
 }
 
 func aiServiceURL() string {
+	var siteConfig models.SiteConfig
+	if config.DB != nil && config.DB.First(&siteConfig).Error == nil {
+		if trimmed := strings.TrimRight(strings.TrimSpace(siteConfig.AISettings.ServiceURL), "/"); trimmed != "" {
+			return trimmed
+		}
+	}
 	return strings.TrimRight(os.Getenv("AI_SERVICE_URL"), "/")
+}
+
+func aiEnabled() bool {
+	var siteConfig models.SiteConfig
+	if config.DB != nil && config.DB.First(&siteConfig).Error == nil {
+		if enabled, ok := siteConfig.Features["ai"]; ok && !enabled {
+			return false
+		}
+		if !siteConfig.AISettings.Enabled {
+			return false
+		}
+	}
+
+	return true
+}
+
+func aiModel() string {
+	var siteConfig models.SiteConfig
+	if config.DB != nil && config.DB.First(&siteConfig).Error == nil {
+		if trimmed := strings.TrimSpace(siteConfig.AISettings.Model); trimmed != "" {
+			return trimmed
+		}
+	}
+
+	return ""
 }

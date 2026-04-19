@@ -13,7 +13,8 @@ export const WishlistProvider = ({ children }) => {
         if (existItem) {
             return;
         }
-        setWishlistItems([...wishlistItems, normalizedProduct]);
+        const itemWithTimestamp = { ...normalizedProduct, addedAt: Math.floor(Date.now() / 1000) };
+        setWishlistItems([...wishlistItems, itemWithTimestamp]);
     };
 
     const removeFromWishlist = (id) => {

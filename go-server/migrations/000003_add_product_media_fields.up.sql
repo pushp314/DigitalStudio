@@ -1,0 +1,7 @@
+ALTER TABLE products
+    ADD COLUMN IF NOT EXISTS video_url VARCHAR(255),
+    ADD COLUMN IF NOT EXISTS course_outline TEXT,
+    ADD COLUMN IF NOT EXISTS duration VARCHAR(100),
+    ADD COLUMN IF NOT EXISTS preview_images JSONB DEFAULT '[]'::jsonb,
+    ADD COLUMN IF NOT EXISTS snippet_language VARCHAR(50),
+    ADD COLUMN IF NOT EXISTS snippet TEXT;

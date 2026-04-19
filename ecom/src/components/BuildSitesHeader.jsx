@@ -6,11 +6,11 @@ const BuildSitesHeader = ({
   description = "No more website woes—just powerful solutions at your fingertips"
 }) => {
   return (
-    <div className="w-full bg-[#F5F5F7] px-6 py-20 font-sans">
+    <div className="w-full bg-[#F5F5F7] px-6 py-12 md:py-20 font-sans">
       <div className="max-w-[1400px] mx-auto flex flex-col lg:flex-row lg:items-end justify-between gap-10">
 
         {/* Left: Heading */}
-        <h2 className="max-w-4xl text-5xl md:text-6xl lg:text-[4.5rem] font-black text-black tracking-tight leading-[0.95]">
+        <h2 className="max-w-4xl text-5xl md:text-6xl lg:text-[4.5rem] font-bold text-black tracking-tight leading-[0.95]">
           {title} <br className="hidden md:block" />
           <span className="text-primary">{highlight}</span>
         </h2>

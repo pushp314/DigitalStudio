@@ -13,8 +13,10 @@ const Register = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
-        const res = await register(name, email, password);
+        const referrerCode = sessionStorage.getItem('ds_partner_ref');
+        const res = await register(name, email, password, referrerCode);
         if (res.success) {
+            sessionStorage.removeItem('ds_partner_ref'); // Clear after successful registration
             navigate('/');
         } else {
             setError(res.error);

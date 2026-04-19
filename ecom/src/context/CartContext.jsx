@@ -1,11 +1,23 @@
-import { createContext } from 'react';
+import { createContext, useContext } from 'react';
 import { normalizeProduct } from '../utils/normalizers';
 import { useLocalStorageState } from '../hooks/useLocalStorageState';
 
 const CartContext = createContext();
 
+export const useCart = () => {
+    const context = useContext(CartContext);
+    if (!context) {
+        throw new Error('useCart must be used within a CartProvider');
+    }
+    return context;
+};
+
 export const CartProvider = ({ children }) => {
     const [cartItems, setCartItems] = useLocalStorageState('cartItems', []);
+
+    // Growth Matrix: AOV Bundle Logic (10% off for 3+ items)
+    const isBundleEligible = cartItems.length >= 3;
+    const itemsCount = cartItems.length;
 
     const addToCart = (product) => {
         const normalizedProduct = normalizeProduct(product);
@@ -30,7 +42,7 @@ export const CartProvider = ({ children }) => {
     };
 
     return (
-        <CartContext.Provider value={{ cartItems, addToCart, removeFromCart, clearCart }}>
+        <CartContext.Provider value={{ cartItems, addToCart, removeFromCart, clearCart, isBundleEligible, itemsCount }}>
             {children}
         </CartContext.Provider>
     );

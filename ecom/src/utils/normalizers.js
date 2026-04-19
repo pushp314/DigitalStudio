@@ -1,11 +1,12 @@
-const CURRENCY_FORMATTER = new Intl.NumberFormat('en-US', {
+const CURRENCY_FORMATTER = new Intl.NumberFormat('en-IN', {
     style: 'currency',
-    currency: 'USD',
-    maximumFractionDigits: 2,
+    currency: 'INR',
+    maximumFractionDigits: 0,
 });
 
 const toArray = (value) => (Array.isArray(value) ? value : []);
 const toString = (value, fallback = '') => (typeof value === 'string' ? value : fallback);
+const toObject = (value, fallback = {}) => (value && typeof value === 'object' && !Array.isArray(value) ? value : fallback);
 
 export const normalizeId = (value) => {
     const raw = value ?? null;
@@ -27,6 +28,7 @@ export const normalizeUser = (user = {}) => ({
     subscriptionPlan: toString(user.subscriptionPlan ?? user.subscription_plan, 'free'),
     provider: toString(user.provider, 'local'),
     providerId: toString(user.providerId ?? user.provider_id),
+    suspended: Boolean(user.suspended ?? false),
     createdAt: user.createdAt ?? user.created_at ?? null,
     updatedAt: user.updatedAt ?? user.updated_at ?? null,
 });
@@ -58,11 +60,31 @@ const normalizeDocumentationInfo = (documentation) => {
     };
 };
 
+export const normalizePreviewAsset = (asset, index = 0) => {
+    if (typeof asset === 'string') {
+        return {
+            url: asset,
+            alt: '',
+            caption: '',
+            sortOrder: index + 1,
+        };
+    }
+
+    const normalized = toObject(asset);
+    return {
+        url: toString(normalized.url),
+        alt: toString(normalized.alt),
+        caption: toString(normalized.caption),
+        sortOrder: Number(normalized.sortOrder ?? index + 1),
+    };
+};
+
 export const normalizeProduct = (product = {}) => {
     const id = normalizeId(product.id ?? product._id);
     const price = Number(product.price ?? 0);
     const status = normalizeStatusFlags(product.statusFlags ?? product.status_flags ?? []);
     const documentation = normalizeDocumentationInfo(product.documentation);
+    const previewImages = toArray(product.previewImages ?? product.preview_images).map(normalizePreviewAsset).filter((item) => item.url);
 
     return {
         ...product,
@@ -72,16 +94,27 @@ export const normalizeProduct = (product = {}) => {
         productType: product.productType ?? product.type ?? 'template',
         fileURL: product.fileURL ?? product.file_url ?? '',
         previewUrl: product.previewUrl ?? product.liveDemo ?? product.live_demo ?? '',
+        image: toString(product.image),
+        liveDemo: toString(product.liveDemo ?? product.live_demo),
+        githubRepo: toString(product.githubRepo ?? product.github_repo),
+        videoUrl: toString(product.videoUrl ?? product.video_url),
+        courseOutline: toString(product.courseOutline ?? product.course_outline),
+        duration: toString(product.duration),
+        snippetLanguage: toString(product.snippetLanguage ?? product.snippet_language),
+        snippet: toString(product.snippet),
         techStack: toArray(product.techStack ?? product.tech_stack),
         documentation: documentation.items,
         documentationInfo: documentation,
-        previewImages: toArray(product.previewImages ?? product.preview_images),
+        previewImages,
         features: toArray(product.features),
         pages: toArray(product.pages),
         rating: Number(product.rating ?? 0),
         numReviews: Number(product.numReviews ?? product.num_reviews ?? 0),
         numSales: Number(product.numSales ?? product.num_sales ?? 0),
+        revenue: Number(product.revenue ?? 0),
         requiresSubscription: Boolean(product.requiresSubscription ?? product.requires_subscription ?? false),
+        tags: toArray(product.tags).map((tag) => typeof tag === 'string' ? tag : toString(tag?.name)).filter(Boolean),
+        moderationStatus: toString(product.moderationStatus ?? product.moderation_status, 'approved'),
         createdAt: product.createdAt ?? product.created_at ?? null,
         updatedAt: product.updatedAt ?? product.updated_at ?? null,
         isFree: product.isFree ?? (price === 0 || status.isFree),
@@ -121,6 +154,9 @@ export const normalizeOrder = (order = {}) => {
         formattedTotalPrice: formatCurrency(totalPrice),
         status: order.status ?? 'pending',
         paymentStatus: order.paymentStatus ?? order.payment_status ?? 'pending',
+        entitlementStatus: order.entitlementStatus ?? order.entitlement_status ?? 'auto',
+        razorpayOrderId: toString(order.razorpayOrderId ?? order.razorpay_order_id),
+        razorpayPaymentId: toString(order.razorpayPaymentId ?? order.razorpay_payment_id),
         entitled: Boolean(
             order.entitled ??
             order.isPaid ??
@@ -155,10 +191,35 @@ export const normalizeSiteConfig = (config = {}) => ({
     ...config,
     heroTitle: config.heroTitle ?? '',
     heroSubtitle: config.heroSubtitle ?? '',
-    announcementMessage: config.announcementMessage ?? '',
+    announcements: toArray(config.announcements).length > 0 
+        ? toArray(config.announcements) 
+        : (config.announcementMessage ? [config.announcementMessage] : []),
     showAnnouncement: Boolean(config.showAnnouncement),
     supportEmail: config.supportEmail ?? '',
     features: config.features ?? {},
+    memberPlans: toArray(config.memberPlans),
+    faqs: toArray(config.faqs),
+    socialProof: {
+        rating: toString(config.socialProof?.rating),
+        summary: toString(config.socialProof?.summary),
+        creatorsLabel: toString(config.socialProof?.creatorsLabel),
+        trustedCompanies: toArray(config.socialProof?.trustedCompanies),
+        avatarImages: toArray(config.socialProof?.avatarImages),
+    },
+    showcaseItems: toArray(config.showcaseItems),
+    contact: {
+        heading: toString(config.contact?.heading, 'Contact us'),
+        subheading: toString(config.contact?.subheading),
+        email: toString(config.contact?.email ?? config.supportEmail),
+        address: toString(config.contact?.address),
+        phone: toString(config.contact?.phone),
+    },
+    aiSettings: {
+        enabled: Boolean(config.aiSettings?.enabled ?? false),
+        serviceUrl: toString(config.aiSettings?.serviceUrl),
+        model: toString(config.aiSettings?.model),
+        apiKey: toString(config.aiSettings?.apiKey),
+    },
 });
 
 export const normalizeSalesSummary = (entry = {}) => ({
@@ -176,7 +237,26 @@ export const normalizeReview = (review = {}) => ({
     userId: normalizeId(review.userId ?? review.user_id),
     rating: Number(review.rating ?? 0),
     comment: toString(review.comment ?? review.text),
+    status: toString(review.status, 'approved'),
+    verifiedPurchase: Boolean(review.verifiedPurchase ?? review.verified_purchase ?? false),
     createdAt: review.createdAt ?? review.created_at ?? null,
     updatedAt: review.updatedAt ?? review.updated_at ?? null,
     user: review.user ? normalizeUser(review.user) : null,
+    product: review.product ? normalizeProduct(review.product) : null,
+});
+
+export const normalizeLicense = (license = {}) => ({
+    ...license,
+    id: normalizeId(license.id ?? license._id),
+    userId: normalizeId(license.userId ?? license.user_id),
+    productId: normalizeId(license.productId ?? license.product_id),
+    orderId: normalizeId(license.orderId ?? license.order_id),
+    type: toString(license.type, 'personal'),
+    status: toString(license.status, 'active'),
+    licenseKey: toString(license.licenseKey ?? license.license_key),
+    expiryDate: license.expiryDate ?? license.expiry_date ?? null,
+    createdAt: license.createdAt ?? license.created_at ?? null,
+    updatedAt: license.updatedAt ?? license.updated_at ?? null,
+    product: license.product ? normalizeProduct(license.product) : null,
+    order: license.order ? normalizeOrder(license.order) : null,
 });

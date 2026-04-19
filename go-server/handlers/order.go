@@ -52,11 +52,12 @@ func CreateOrder(c *gin.Context) {
 	}
 
 	order := models.Order{
-		UserID:     userID.(uint),
-		TotalPrice: total,
-		Status:     "pending",
-		PaymentStatus: "pending",
-		OrderItems: orderItems,
+		UserID:            userID.(uint),
+		TotalPrice:        total,
+		Status:            "pending",
+		PaymentStatus:     "pending",
+		EntitlementStatus: "auto",
+		OrderItems:        orderItems,
 	}
 
 	if err := config.DB.Create(&order).Error; err != nil {
@@ -76,13 +77,19 @@ func MyOrders(c *gin.Context) {
 	}
 
 	var orders []models.Order
-	if err := config.DB.Preload("OrderItems").Preload("OrderItems.Product").Where("user_id = ?", userID).Find(&orders).Error; err != nil {
+	if err := config.DB.
+		Preload("OrderItems").
+		Preload("OrderItems.Product").
+		Where("user_id = ?", userID).
+		Order("created_at desc").
+		Find(&orders).Error; err != nil {
 		respondError(c, http.StatusInternalServerError, "Failed to fetch orders")
 		return
 	}
 
 	for idx := range orders {
-		orders[idx].Entitled = orders[idx].PaymentStatus == "paid" || orders[idx].Status == "paid"
+		_ = issueMissingLicensesForOrder(orders[idx].ID)
+		orders[idx].Entitled = computeOrderEntitled(orders[idx])
 	}
 
 	c.JSON(http.StatusOK, orders)

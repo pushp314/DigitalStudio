@@ -33,11 +33,16 @@ func ConnectDB() {
 			&models.PremiumDoc{},
 			&models.Review{},
 			&models.License{},
-			&models.Post{},
+			&models.Testimonial{},
+			&models.Coupon{},
+			&models.Showcase{},
+			&models.ContactInquiry{},
+			&models.ChatMessage{},
 		)
 		if err != nil {
 			log.Fatal("Failed to auto-migrate database:", err)
 		}
+		log.Println("✅ AutoMigrate: Verified schema for all models (including ChatMessage)")
 		log.Println("AutoMigrate enabled for this environment")
 		return
 	}

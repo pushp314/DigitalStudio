@@ -2,46 +2,173 @@ package handlers
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/pushp314/digitalstudio/go-server/config"
 	"github.com/pushp314/digitalstudio/go-server/models"
 )
 
-func GetConfig(c *gin.Context) {
-	var siteConfig models.SiteConfig
-	if err := config.DB.First(&siteConfig).Error; err != nil {
-		siteConfig = models.SiteConfig{
-			HeroTitle:           "Welcome to DigitalStudio",
-			HeroSubtitle:        "Ship your startup faster.",
-			AnnouncementMessage: "Welcome!",
-			ShowAnnouncement:    true,
-			SupportEmail:        "support@example.com",
-			Features: map[string]bool{
-				"saas": true,
-				"docs": true,
-				"hub":  true,
+type UpdateConfigReq struct {
+	HeroTitle           string                   `json:"heroTitle"`
+	HeroSubtitle        string                   `json:"heroSubtitle"`
+	HeroImages          []string                 `json:"heroImages"`
+	HeroVisualEffect    string                   `json:"heroVisualEffect"`
+	Announcements       []string                 `json:"announcements"`
+	ShowAnnouncement    bool                     `json:"showAnnouncement"`
+	SupportEmail        string                   `json:"supportEmail"`
+	Features            map[string]bool          `json:"features"`
+	MemberPlans         []models.MemberPlan      `json:"memberPlans"`
+	FAQs                []models.FAQItem         `json:"faqs"`
+	SocialProof         models.SocialProofConfig `json:"socialProof"`
+	ShowcaseItems       []models.ShowcaseItem    `json:"showcaseItems"`
+	Contact             models.ContactConfig     `json:"contact"`
+	AISettings          models.AISettings        `json:"aiSettings"`
+	MaintenanceMode     bool                     `json:"maintenanceMode"`
+	MaintenanceMessage  string                   `json:"maintenanceMessage"`
+}
+
+func defaultSiteConfig() models.SiteConfig {
+	return models.SiteConfig{
+		HeroTitle:           "Build premium products for developers",
+		HeroSubtitle:        "Dynamic templates, docs, and tools for teams that ship quickly.",
+		Announcements: []string{
+			"New marketplace updates are live.",
+			"Pro members get 20% off all templates! 💎",
+			"Check out our new premium documentation section. 📚",
+		},
+		ShowAnnouncement:    true,
+		SupportEmail:        "support@digitalstudio.com",
+		Features: map[string]bool{
+			"docs":          true,
+			"reviews":       true,
+			"analytics":     true,
+			"ai":            true,
+			"payments":      true,
+			"subscriptions": false,
+			"licenses":      true,
+			"testimonials":  true,
+		},
+		MemberPlans: []models.MemberPlan{
+			{
+				Name:       "Standard",
+				Badge:      "Community",
+				Price:      0,
+				Period:     "forever",
+				Features:   []string{"Browse Marketplace", "Access Free Docs"},
+				ButtonText: "Explore Assets",
+				IsPopular:  false,
+				IsPrimary:  false,
 			},
-		}
-		config.DB.Create(&siteConfig)
+			{
+				Name:       "Pro Membership",
+				Badge:      "Most Popular",
+				Price:      29,
+				Period:     "month",
+				Features:   []string{"Unlimited Premium Documentation", "Unlimited AI Recommendations", "Early Access to Drops", "Private Slack Community"},
+				ButtonText: "Get All-Access Now",
+				IsPopular:  true,
+				IsPrimary:  true,
+			},
+		},
+		FAQs: []models.FAQItem{
+			{
+				Question: "Do purchases unlock downloads immediately?",
+				Answer:   "Yes. Verified paid orders unlock downloads and any linked license keys automatically.",
+			},
+			{
+				Question: "Can I preview products before buying?",
+				Answer:   "Products can include live demos, galleries, videos, and code snippets directly from the product record.",
+			},
+			{
+				Question: "How do premium docs work?",
+				Answer:   "Premium docs can be unlocked by eligible plans or other entitlement rules configured by the platform.",
+			},
+		},
+		SocialProof: models.SocialProofConfig{
+			Rating:        "4.9/5",
+			Summary:       "Trusted by high-output developer teams",
+			CreatorsLabel: "Loved by engineering teams and creators",
+			TrustedCompanies: []string{
+				"Rise",
+				"Sitemark",
+				"PinPoint",
+				"Product.",
+			},
+		},
+		ShowcaseItems: []models.ShowcaseItem{
+			{
+				Title:       "Developer dashboards",
+				Subtitle:    "Desktop-ready previews",
+				Description: "Show admin surfaces, analytics, and purchase flows with real product screenshots.",
+				Image:       "",
+				Footer:      "Desktop preview",
+			},
+			{
+				Title:       "Responsive storefronts",
+				Subtitle:    "Mobile and tablet shots",
+				Description: "Highlight how the same product looks across breakpoints using uploaded media.",
+				Image:       "",
+				Footer:      "Responsive preview",
+			},
+		},
+		Contact: models.ContactConfig{
+			Heading:    "Contact us",
+			Subheading: "Questions about templates, docs, or custom work? Reach out and we will reply quickly.",
+			Email:      "support@digitalstudio.com",
+			Address:    "Remote-first product studio",
+			Phone:      "+91 00000 00000",
+		},
+		AISettings: models.AISettings{
+			Enabled: true,
+			Model:   "qwen3.5:2b",
+		},
+	}
+}
+
+func ensureSiteConfig() (models.SiteConfig, error) {
+	var siteConfig models.SiteConfig
+	if err := config.DB.First(&siteConfig).Error; err == nil {
+		return siteConfig, nil
+	}
+
+	siteConfig = defaultSiteConfig()
+	if err := config.DB.Create(&siteConfig).Error; err != nil {
+		return models.SiteConfig{}, err
+	}
+
+	return siteConfig, nil
+}
+
+func sanitizeSiteConfig(siteConfig models.SiteConfig) models.SiteConfig {
+	siteConfig.AISettings.APIKey = ""
+	return siteConfig
+}
+
+func GetConfig(c *gin.Context) {
+	siteConfig, err := ensureSiteConfig()
+	if err != nil {
+		respondError(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, sanitizeSiteConfig(siteConfig))
+}
+
+func GetAdminConfig(c *gin.Context) {
+	siteConfig, err := ensureSiteConfig()
+	if err != nil {
+		respondError(c, http.StatusInternalServerError, err.Error())
+		return
 	}
 
 	c.JSON(http.StatusOK, siteConfig)
 }
 
-type UpdateConfigReq struct {
-	HeroTitle           string          `json:"heroTitle"`
-	HeroSubtitle        string          `json:"heroSubtitle"`
-	AnnouncementMessage string          `json:"announcementMessage"`
-	ShowAnnouncement    bool            `json:"showAnnouncement"`
-	SupportEmail        string          `json:"supportEmail"`
-	Features            map[string]bool `json:"features"`
-}
-
 func UpdateConfig(c *gin.Context) {
-	var siteConfig models.SiteConfig
-	if err := config.DB.First(&siteConfig).Error; err != nil {
-		respondError(c, http.StatusNotFound, "Config not found")
+	siteConfig, err := ensureSiteConfig()
+	if err != nil {
+		respondError(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
@@ -51,15 +178,26 @@ func UpdateConfig(c *gin.Context) {
 		return
 	}
 
-	if req.HeroTitle != "" { siteConfig.HeroTitle = req.HeroTitle }
-	if req.HeroSubtitle != "" { siteConfig.HeroSubtitle = req.HeroSubtitle }
-	if req.AnnouncementMessage != "" { siteConfig.AnnouncementMessage = req.AnnouncementMessage }
-	siteConfig.ShowAnnouncement = req.ShowAnnouncement
-	if req.SupportEmail != "" { siteConfig.SupportEmail = req.SupportEmail }
-
-	if req.Features != nil {
-		siteConfig.Features = req.Features
+	if strings.TrimSpace(req.AISettings.APIKey) == "" {
+		req.AISettings.APIKey = siteConfig.AISettings.APIKey
 	}
+
+	siteConfig.HeroTitle = req.HeroTitle
+	siteConfig.HeroSubtitle = req.HeroSubtitle
+	siteConfig.HeroImages = req.HeroImages
+	siteConfig.HeroVisualEffect = req.HeroVisualEffect
+	siteConfig.Announcements = req.Announcements
+	siteConfig.ShowAnnouncement = req.ShowAnnouncement
+	siteConfig.SupportEmail = req.SupportEmail
+	siteConfig.Features = req.Features
+	siteConfig.MemberPlans = req.MemberPlans
+	siteConfig.FAQs = req.FAQs
+	siteConfig.SocialProof = req.SocialProof
+	siteConfig.ShowcaseItems = req.ShowcaseItems
+	siteConfig.Contact = req.Contact
+	siteConfig.AISettings = req.AISettings
+	siteConfig.MaintenanceMode = req.MaintenanceMode
+	siteConfig.MaintenanceMessage = req.MaintenanceMessage
 
 	if err := config.DB.Save(&siteConfig).Error; err != nil {
 		respondError(c, http.StatusInternalServerError, err.Error())

@@ -1,62 +1,35 @@
 import React from 'react';
+import testimonialService from '../services/testimonialService';
 
 const TestimonialsGrid = () => {
-  const testimonials = [
-    {
-      id: 1,
-      name: "Jake Thompson",
-      handle: "@jakethompsonux",
-      avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=200",
-      text: "Framerstore made launching my first Framer template effortless! The layout is sleek, the CMS is intuitive, and I had my store up in minutes. Highly recommend!",
-      template: "Haven Estate",
-      date: "Feb 16, 2025"
-    },
-    {
-      id: 2,
-      name: "Emily Carter",
-      handle: "@emilycdesigns",
-      avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=200",
-      text: "I've used several Framer templates before, but this one is a game-changer. Everything is optimized for selling templates effortlessly!",
-      template: "Educore",
-      date: "Feb 16, 2025"
-    },
-    {
-      id: 3,
-      name: "Ryan Mitchell",
-      handle: "@ryanmitchellux",
-      avatar: "https://images.unsplash.com/photo-1599566150163-29194dcaad36?auto=format&fit=crop&q=80&w=200",
-      text: "Framerstore is hands down the best way to launch a Framer template store. The UI is clean, and the CMS is perfectly structured. 10/10!",
-      template: "Bento Portfolio",
-      date: "Feb 16, 2025"
-    },
-    {
-      id: 4,
-      name: "Sophia Williams",
-      handle: "@sophiawdesigns",
-      avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&q=80&w=200",
-      text: "The perfect balance of aesthetics and functionality! I had my store live in under an hour, and it looks stunning!",
-      template: "Designo",
-      date: "Feb 16, 2025"
-    },
-    {
-      id: 5,
-      name: "Brandon Scott",
-      handle: "@brandonscottui",
-      avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80&w=200",
-      text: "As a designer, I appreciate how polished and flexible Framerstore is. It's exactly what I needed to start selling templates professionally!",
-      template: "Vellox",
-      date: "Feb 16, 2025"
-    },
-    {
-      id: 6,
-      name: "Olivia Reed",
-      handle: "@oliviareedux",
-      avatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=200",
-      text: "Framerstore turned what used to be a complicated process into something super easy. It's fast, responsive, and built for success!",
-      template: "AI Chatbot",
-      date: "Feb 16, 2025"
-    }
-  ];
+  const [testimonials, setTestimonials] = React.useState([]);
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    const fetchTestimonials = async () => {
+      try {
+        const data = await testimonialService.getApproved();
+        setTestimonials(data);
+      } catch (error) {
+        console.error("Failed to fetch testimonials:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchTestimonials();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="w-full bg-[#F5F5F7] px-6 py-20 flex justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (testimonials.length === 0) {
+    return null; // Or show a default section
+  }
 
   return (
     <div className="w-full bg-[#F5F5F7] px-6 py-20 font-sans">
@@ -71,24 +44,24 @@ const TestimonialsGrid = () => {
               <div className="flex items-start justify-between mb-6">
                 <div className="flex items-center gap-3">
                   <img
-                    src={item.avatar}
-                    alt={item.name}
+                    src={item.user?.avatar || `https://ui-avatars.com/api/?name=${item.user?.name || 'User'}&background=random`}
+                    alt={item.user?.name || 'User'}
                     className="w-12 h-12 rounded-full object-cover"
                   />
                   <div className="flex flex-col">
                     <span className="font-bold text-black text-sm leading-tight">
-                      {item.name}
+                      {item.user?.name || 'Verified User'}
                     </span>
                     <span className="text-primary text-xs font-medium">
-                      {item.handle}
+                      @{item.user?.email?.split('@')[0] || 'user'}
                     </span>
                   </div>
                 </div>
 
-                {/* 5 Blue Stars */}
+                {/* Stars based on rating */}
                 <div className="flex gap-1">
                   {[...Array(5)].map((_, i) => (
-                    <svg key={i} className="w-4 h-4 text-primary" viewBox="0 0 24 24" fill="currentColor">
+                    <svg key={i} className={`w-4 h-4 ${i < item.rating ? 'text-primary' : 'text-gray-200'}`} viewBox="0 0 24 24" fill="currentColor">
                       <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
                     </svg>
                   ))}
@@ -96,16 +69,16 @@ const TestimonialsGrid = () => {
               </div>
 
               {/* Review Text */}
-              <p className="text-gray-800 text-[15px] leading-relaxed font-normal">
-                "{item.text}"
+              <p className="text-gray-800 text-[15px] leading-relaxed font-normal italic">
+                "{item.content}"
               </p>
             </div>
 
-            {/* Bottom Section: Template & Date */}
+            {/* Bottom Section: Date */}
             <div className="mt-8 pt-0 flex items-center gap-2 text-xs font-medium text-black">
-              <span>{item.template}</span>
+              <span>Customer</span>
               <span className="text-gray-300 text-sm">//</span>
-              <span>{item.date}</span>
+              <span>{new Date(item.createdAt).toLocaleDateString()}</span>
             </div>
 
           </div>

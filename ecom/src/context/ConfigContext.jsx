@@ -1,28 +1,54 @@
 import React, { createContext, useState, useEffect } from 'react';
-import api from '../services/api';
+import configService from '../services/configService';
 import { normalizeSiteConfig } from '../utils/normalizers';
 
 const ConfigContext = createContext();
 
 export const ConfigProvider = ({ children }) => {
     const [config, setConfig] = useState({
-        heroTitle: "Building quality templates",
-        heroSubtitle: "Ship your startup faster.",
-        announcementMessage: "",
+        heroTitle: "Build premium products for developers",
+        announcements: [],
         showAnnouncement: false,
         supportEmail: "",
         features: {
-            saas: true,
             docs: true,
-            hub: true
-        }
+            reviews: true,
+            analytics: true,
+            ai: true,
+            payments: true,
+            subscriptions: false,
+            licenses: true,
+            testimonials: true,
+        },
+        faqs: [],
+        socialProof: {
+            rating: '',
+            summary: '',
+            creatorsLabel: '',
+            trustedCompanies: [],
+            avatarImages: [],
+        },
+        showcaseItems: [],
+        contact: {
+            heading: 'Contact us',
+            subheading: '',
+            email: '',
+            address: '',
+            phone: '',
+        },
+        aiSettings: {
+            enabled: false,
+            serviceUrl: '',
+            model: '',
+            apiKey: '',
+        },
     });
 
     const [loading, setLoading] = useState(true);
 
     const fetchConfig = async () => {
         try {
-            const data = await api.get('/config');
+            const data = await configService.getPublic();
             setConfig(normalizeSiteConfig(data));
         } catch (error) {
             console.error("Failed to fetch site config", error);

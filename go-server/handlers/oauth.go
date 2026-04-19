@@ -168,6 +168,10 @@ func handleOAuthUser(c *gin.Context, provider, providerID, name, email string) {
 			config.DB.Save(&user)
 		}
 	}
+	if user.Suspended {
+		respondError(c, http.StatusForbidden, "Account suspended")
+		return
+	}
 
 	redirectOAuthSuccess(c, user)
 }

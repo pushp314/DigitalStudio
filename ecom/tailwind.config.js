@@ -4,7 +4,7 @@ export default {
   theme: {
     extend: { 
       colors: {
-        primary: '#0055FF'
+        primary: '#2563eb'
       },
       backgroundImage: {
         'radial-gradient': 'radial-gradient(circle at center, rgba(255, 120, 0, 0.4) 0%, rgba(255, 120, 0, 0) 70%)',

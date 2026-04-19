@@ -40,6 +40,7 @@ func main() {
 	r := gin.New()
 	r.Use(gin.Recovery())
 	r.Use(middleware.RequestLogger())
+	r.Use(middleware.MaintenanceMiddleware())
 
 	sessionSecret := os.Getenv("SESSION_SECRET")
 	if sessionSecret == "" {
@@ -85,6 +86,8 @@ func main() {
 	{
 		products.GET("/", publicLimiter, handlers.ListProducts)
 		products.GET("/:id", publicLimiter, handlers.GetProduct)
+		products.GET("/:id/share", handlers.ServeProductSEO)
+		products.GET("/:id/download", middleware.AuthMiddleware(), handlers.DownloadSecureAsset)
 		products.POST("/", middleware.AuthMiddleware(), middleware.AdminMiddleware(), handlers.CreateProduct)
 		products.PUT("/:id", middleware.AuthMiddleware(), middleware.AdminMiddleware(), handlers.UpdateProduct)
 		products.DELETE("/:id", middleware.AuthMiddleware(), middleware.AdminMiddleware(), handlers.DeleteProduct)
@@ -97,15 +100,26 @@ func main() {
 		orders.GET("/myorders", handlers.MyOrders)
 	}
 
-	users := api.Group("/users")
-	users.Use(middleware.AuthMiddleware(), middleware.AdminMiddleware())
+	adminOrders := api.Group("/admin/orders")
+	adminOrders.Use(middleware.AuthMiddleware(), middleware.AdminMiddleware())
 	{
-		users.GET("/", handlers.ListUsers)
+		adminOrders.GET("/", handlers.AdminListOrders)
+		adminOrders.GET("/:id", handlers.AdminGetOrder)
+		adminOrders.PATCH("/:id", handlers.AdminUpdateOrder)
+	}
+
+	adminUsers := api.Group("/admin/users")
+	adminUsers.Use(middleware.AuthMiddleware(), middleware.AdminMiddleware())
+	{
+		adminUsers.GET("", handlers.ListUsers)
+		adminUsers.PATCH("/:id", handlers.UpdateUser)
+		adminUsers.POST("/:id/reset-password", handlers.ResetUserPassword)
 	}
 
 	siteConfig := api.Group("/config")
 	{
 		siteConfig.GET("/", handlers.GetConfig)
+		siteConfig.GET("/admin", middleware.AuthMiddleware(), middleware.AdminMiddleware(), handlers.GetAdminConfig)
 		siteConfig.PUT("/", middleware.AuthMiddleware(), middleware.AdminMiddleware(), handlers.UpdateConfig)
 	}
 
@@ -131,20 +145,37 @@ func main() {
 	ai := api.Group("/ai")
 	{
 		ai.GET("/recommend", middleware.AuthMiddleware(), middleware.ProMiddleware(), handlers.GetAIRecommendation)
+		ai.POST("/roadmap", middleware.AuthMiddleware(), handlers.GetUserRoadmap)
 		ai.POST("/docsummary", middleware.AuthMiddleware(), middleware.ProMiddleware(), handlers.GenerateDocSummary)
+		ai.POST("/doc-universal", middleware.AuthMiddleware(), middleware.ProMiddleware(), handlers.UniversalDocSearchChat)
+		ai.POST("/chat", middleware.AuthMiddleware(), middleware.ProMiddleware(), handlers.AskDocAI)
 	}
 
-	// Analytics
+	chat := api.Group("/chat")
+	chat.Use(middleware.AuthMiddleware())
+	{
+		chat.GET("/ws", handlers.ServeChatWs)
+		chat.GET("/history", handlers.GetChatHistory)
+	}
+
 	analytics := api.Group("/analytics")
 	analytics.Use(middleware.AuthMiddleware(), middleware.AdminMiddleware())
 	{
-		analytics.GET("/sales", handlers.GetSalesAnalytics)
-		analytics.GET("/top-products", handlers.GetTopProducts)
+		analytics.GET("/metrics", handlers.GetIntelligenceMetrics)
 	}
 
 	// Reviews
 	products.POST("/:id/review", middleware.AuthMiddleware(), handlers.CreateReview)
 	products.GET("/:id/reviews", handlers.GetReviews)
+	products.GET("/:id/review-eligibility", middleware.AuthMiddleware(), handlers.GetReviewEligibility)
+
+	adminReviews := api.Group("/admin/reviews")
+	adminReviews.Use(middleware.AuthMiddleware(), middleware.AdminMiddleware())
+	{
+		adminReviews.GET("/", handlers.AdminListReviews)
+		adminReviews.PATCH("/:id", handlers.AdminUpdateReview)
+		adminReviews.DELETE("/:id", handlers.AdminDeleteReview)
+	}
 
 	// Payments (Razorpay)
 	payments := api.Group("/payments")
@@ -153,10 +184,71 @@ func main() {
 		payments.POST("/verify", middleware.AuthMiddleware(), handlers.VerifyRazorpayPayment)
 	}
 
-	// Webhooks
+	// Testimonials
+	api.GET("/testimonials", handlers.GetApprovedTestimonials)
+	api.POST("/testimonials", middleware.AuthMiddleware(), handlers.CreateTestimonial)
+
+	adminTestimonials := api.Group("/admin/testimonials")
+	adminTestimonials.Use(middleware.AuthMiddleware(), middleware.AdminMiddleware())
+	{
+		adminTestimonials.GET("/", handlers.AdminListTestimonials)
+		adminTestimonials.PATCH("/:id/approve", handlers.AdminApproveTestimonial)
+		adminTestimonials.PATCH("/:id/reject", handlers.AdminRejectTestimonial)
+		adminTestimonials.DELETE("/:id", handlers.AdminDeleteTestimonial)
+	}
+
+	marketingHandler := handlers.NewMarketingHandler(config.DB)
+	
+	adminMarketing := api.Group("/admin/marketing")
+	adminMarketing.Use(middleware.AuthMiddleware(), middleware.AdminMiddleware())
+	{
+		adminMarketing.GET("/coupons", marketingHandler.ListCoupons)
+		adminMarketing.POST("/coupons", marketingHandler.CreateCoupon)
+		adminMarketing.DELETE("/coupons/:id", marketingHandler.DeleteCoupon)
+	}
+
+	// Showcase & Social Proof
+	api.POST("/showcase", middleware.AuthMiddleware(), handlers.SubmitShowcase)
+	adminShowcases := api.Group("/admin/showcases")
+	adminShowcases.Use(middleware.AuthMiddleware(), middleware.AdminMiddleware())
+	{
+		adminShowcases.GET("/", handlers.AdminListShowcases)
+		adminShowcases.PATCH("/:id/status", handlers.AdminUpdateShowcaseStatus)
+	}
+
+	marketing := api.Group("/marketing")
+	{
+		marketing.GET("/validate", marketingHandler.ValidateCoupon)
+		marketing.GET("/wishlist-deals", middleware.AuthMiddleware(), marketingHandler.GetWishlistDeals)
+		marketing.POST("/personalized-offers", middleware.AuthMiddleware(), marketingHandler.GetPersonalizedOffers)
+	}
+
+	adminIntelligence := api.Group("/admin/intelligence")
+	adminIntelligence.Use(middleware.AuthMiddleware(), middleware.AdminMiddleware())
+	{
+		adminIntelligence.GET("/metrics", handlers.GetIntelligenceMetrics)
+	}
+
 	webhooks := api.Group("/webhooks")
 	{
 		webhooks.POST("/razorpay", handlers.RazorpayWebhook)
+	}
+
+	// Contact Inquiries
+	api.POST("/contact", handlers.CreateContactInquiry)
+	api.GET("/my-inquiries", middleware.AuthMiddleware(), handlers.MyInquiries)
+
+	adminContact := api.Group("/admin/contact")
+	adminContact.Use(middleware.AuthMiddleware(), middleware.AdminMiddleware())
+	{
+		adminContact.GET("/", handlers.AdminListInquiries)
+		adminContact.PATCH("/:id/reply", handlers.AdminReplyToInquiry)
+	}
+
+	adminLicenses := api.Group("/admin/licenses")
+	adminLicenses.Use(middleware.AuthMiddleware(), middleware.AdminMiddleware())
+	{
+		adminLicenses.POST("/issue", handlers.AdminIssueLicenses)
 	}
 
 	port := os.Getenv("PORT")

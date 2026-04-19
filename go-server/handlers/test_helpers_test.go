@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"net/http"
 	"net/http/httptest"
 	"os"
 	"strings"
@@ -39,7 +38,7 @@ func setupTestDB(t *testing.T) {
 		&models.PremiumDoc{},
 		&models.Review{},
 		&models.License{},
-		&models.Post{},
+		&models.Testimonial{},
 	); err != nil {
 		t.Fatalf("failed to migrate test db: %v", err)
 	}
@@ -190,11 +189,4 @@ func unsetEnv(t *testing.T, key string) {
 			_ = os.Setenv(key, oldValue)
 		}
 	})
-}
-
-func performRequest(t *testing.T, router *gin.Engine, req *http.Request) *httptest.ResponseRecorder {
-	t.Helper()
-	recorder := httptest.NewRecorder()
-	router.ServeHTTP(recorder, req)
-	return recorder
 }

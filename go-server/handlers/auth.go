@@ -6,13 +6,16 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/pushp314/digitalstudio/go-server/config"
 	"github.com/pushp314/digitalstudio/go-server/models"
+	"github.com/pushp314/digitalstudio/go-server/utils"
+	"time"
 	"golang.org/x/crypto/bcrypt"
 )
 
 type RegisterReq struct {
-	Name     string `json:"name" binding:"required"`
-	Email    string `json:"email" binding:"required,email"`
-	Password string `json:"password" binding:"required,min=6"`
+	Name         string `json:"name" binding:"required"`
+	Email        string `json:"email" binding:"required,email"`
+	Password     string `json:"password" binding:"required,min=6"`
+	ReferrerCode string `json:"referrerCode"` // Partner code of the inviter
 }
 
 func Register(c *gin.Context) {
@@ -34,10 +37,24 @@ func Register(c *gin.Context) {
 		Password:         string(hashedPassword),
 		Role:             models.RoleUser,
 		SubscriptionPlan: "free",
+		PartnerCode:      utils.GeneratePartnerCode(req.Name),
 	}
 
+	// Link Referrer if provided
+	if req.ReferrerCode != "" {
+		var referrer models.User
+		if err := config.DB.Where("partner_code = ?", req.ReferrerCode).First(&referrer).Error; err == nil {
+			user.ReferrerID = &referrer.ID
+		}
+	}
+
+	// Growth Matrix: Trigger 10-minute Flash Window
+	now := time.Now()
+	flashExpiry := now.Add(10 * time.Minute)
+	user.FlashSaleExpiresAt = &flashExpiry
+
 	if err := config.DB.Create(&user).Error; err != nil {
-		respondError(c, http.StatusBadRequest, "Email already exists")
+		respondError(c, http.StatusBadRequest, "Email already exists or internal error")
 		return
 	}
 
@@ -61,6 +78,10 @@ func Login(c *gin.Context) {
 		respondError(c, http.StatusUnauthorized, "Invalid credentials")
 		return
 	}
+	if user.Suspended {
+		respondError(c, http.StatusForbidden, "Account suspended")
+		return
+	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password)); err != nil {
 		respondError(c, http.StatusUnauthorized, "Invalid credentials")
@@ -76,5 +97,51 @@ func Me(c *gin.Context) {
 		respondError(c, http.StatusNotFound, "User not found in context")
 		return
 	}
+	c.JSON(http.StatusOK, user)
+}
+func AdminListUsers(c *gin.Context) {
+	var users []models.User
+	if err := config.DB.Order("created_at desc").Find(&users).Error; err != nil {
+		respondError(c, http.StatusInternalServerError, "Failed to fetch users")
+		return
+	}
+	c.JSON(http.StatusOK, users)
+}
+
+func AdminUpdateUser(c *gin.Context) {
+	id := c.Param("id")
+	var user models.User
+	if err := config.DB.First(&user, id).Error; err != nil {
+		respondError(c, http.StatusNotFound, "User not found")
+		return
+	}
+
+	var req map[string]interface{}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		respondError(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	if role, ok := req["role"].(string); ok {
+		user.Role = models.Role(role)
+	}
+	if plan, ok := req["subscriptionPlan"].(string); ok {
+		user.SubscriptionPlan = plan
+	}
+	if suspended, ok := req["suspended"].(bool); ok {
+		user.Suspended = suspended
+	}
+	if password, ok := req["password"].(string); ok && password != "" {
+		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+		if err == nil {
+			user.Password = string(hashedPassword)
+		}
+	}
+
+	if err := config.DB.Save(&user).Error; err != nil {
+		respondError(c, http.StatusInternalServerError, "Failed to update user")
+		return
+	}
+
 	c.JSON(http.StatusOK, user)
 }

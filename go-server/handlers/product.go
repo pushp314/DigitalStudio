@@ -2,27 +2,140 @@ package handlers
 
 import (
 	"net/http"
+	"os"
+	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gosimple/slug"
 	"github.com/pushp314/digitalstudio/go-server/config"
 	"github.com/pushp314/digitalstudio/go-server/models"
+	"github.com/pushp314/digitalstudio/go-server/services"
 )
 
+// ... (other handlers)
+
+func DownloadSecureAsset(c *gin.Context) {
+	userID, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Authentication required"})
+		return
+	}
+
+	productID := c.Param("id")
+	var product models.Product
+	if err := config.DB.First(&product, productID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Asset not found"})
+		return
+	}
+
+	// 1. Check if user is Pro
+	var user models.User
+	if err := config.DB.First(&user, userID).Error; err == nil {
+		if user.IsPro {
+			goto generateUrl
+		}
+	}
+
+	// 2. Check if user owned the product
+	{
+		var count int64
+		config.DB.Table("order_items").
+			Joins("JOIN orders ON orders.id = order_items.order_id").
+			Where("order_items.product_id = ? AND orders.user_id = ? AND (orders.payment_status = ? OR orders.status = ?)", productID, userID, "paid", "paid").
+			Count(&count)
+		
+		if count > 0 {
+			goto generateUrl
+		}
+	}
+
+	c.JSON(http.StatusForbidden, gin.H{"error": "Active entitlement or purchase required for this asset"})
+	return
+
+generateUrl:
+	fileKey := strings.TrimPrefix(product.FileURL, os.Getenv("R2_PUBLIC_URL")+"/")
+	// If it's a full URL from another source, we might have a problem, 
+	// but assuming internally hosted on R2 for production.
+	
+	url, err := services.GeneratePresignedURL(fileKey)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate security payload"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"downloadUrl": url,
+		"expiresIn": "15m",
+	})
+}
+
+type CreateProductReq struct {
+	Title                string                  `json:"title" binding:"required"`
+	Slug                 string                  `json:"slug"`
+	Description          string                  `json:"description"`
+	LongDescription      string                  `json:"longDescription"`
+	Price                float64                 `json:"price"`
+	Category             string                  `json:"category"`
+	Type                 models.ProductType      `json:"productType"`
+	StatusFlags          string                  `json:"statusFlags"`
+	Image                string                  `json:"image"`
+	LiveDemo             string                  `json:"liveDemo"`
+	GithubRepo           string                  `json:"githubRepo"`
+	FileURL              string                  `json:"fileURL"`
+	Version              string                  `json:"version"`
+	RequiresSubscription bool                    `json:"requiresSubscription"`
+	VideoURL             string                  `json:"videoUrl"`
+	CourseOutline        string                  `json:"courseOutline"`
+	Duration             string                  `json:"duration"`
+	SnippetLanguage      string                  `json:"snippetLanguage"`
+	Snippet              string                  `json:"snippet"`
+	TechStacks           []string                `json:"techStack"`
+	Documentation        []string                `json:"documentation"`
+	Tags                 []string                `json:"tags"`
+	PreviewImages        []models.ProductPreview `json:"previewImages"`
+	Features             []string                `json:"features"`
+	Pages                []string                `json:"pages"`
+}
+
+type reviewMetric struct {
+	ProductID  uint
+	Rating     float64
+	NumReviews int64
+}
+
+type salesMetric struct {
+	ProductID uint
+	NumSales  int64
+	Revenue   float64
+}
+
 func ListProducts(c *gin.Context) {
-	keyword := c.Query("keyword")
-	category := c.Query("category")
-	priceMin := c.Query("priceMin")
-	priceMax := c.Query("priceMax")
+	keyword := strings.TrimSpace(c.Query("keyword"))
+	category := strings.TrimSpace(c.Query("category"))
+	priceMin := strings.TrimSpace(c.Query("priceMin"))
+	priceMax := strings.TrimSpace(c.Query("priceMax"))
+	productType := strings.TrimSpace(c.Query("productType"))
+	statusFlag := strings.TrimSpace(c.Query("statusFlag"))
+	featured := strings.EqualFold(c.Query("featured"), "true")
+	includeAll := strings.EqualFold(c.Query("includeAll"), "true")
+	limitValue := strings.TrimSpace(c.Query("limit"))
 
 	var products []models.Product
 	query := config.DB.Preload("Tags")
 
+	if !canViewAllProducts(c, includeAll) {
+		query = query.Where("moderation_status = ? AND status_flags NOT ILIKE ?", models.ModStatusApproved, "%archived%")
+	}
+
 	if keyword != "" {
-		query = query.Where("title ILIKE ? OR description ILIKE ?", "%"+keyword+"%", "%"+keyword+"%")
+		query = query.Where("title ILIKE ? OR description ILIKE ? OR long_description ILIKE ?", "%"+keyword+"%", "%"+keyword+"%", "%"+keyword+"%")
 	}
 	if category != "" {
 		query = query.Where("category = ?", category)
+	}
+	if productType != "" {
+		query = query.Where("type = ?", productType)
 	}
 	if priceMin != "" {
 		query = query.Where("price >= ?", priceMin)
@@ -30,8 +143,19 @@ func ListProducts(c *gin.Context) {
 	if priceMax != "" {
 		query = query.Where("price <= ?", priceMax)
 	}
+	if featured {
+		query = query.Where("status_flags ILIKE ?", "%featured%")
+	}
+	if statusFlag != "" {
+		query = query.Where("status_flags ILIKE ?", "%"+statusFlag+"%")
+	}
+	if limitValue != "" {
+		if limit, err := strconv.Atoi(limitValue); err == nil && limit > 0 {
+			query = query.Limit(limit)
+		}
+	}
 
-	if err := query.Find(&products).Error; err != nil {
+	if err := query.Order("created_at desc").Find(&products).Error; err != nil {
 		respondError(c, http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -43,34 +167,17 @@ func ListProducts(c *gin.Context) {
 func GetProduct(c *gin.Context) {
 	id := c.Param("id")
 	var product models.Product
-	if err := config.DB.Preload("Tags").First(&product, id).Error; err != nil {
+	query := config.DB.Preload("Tags")
+	if !canViewAllProducts(c, strings.EqualFold(c.Query("includeAll"), "true")) {
+		query = query.Where("moderation_status = ? AND status_flags NOT ILIKE ?", models.ModStatusApproved, "%archived%")
+	}
+	if err := query.First(&product, id).Error; err != nil {
 		respondError(c, http.StatusNotFound, "Product not found")
 		return
 	}
 
 	enrichProduct(&product)
 	c.JSON(http.StatusOK, product)
-}
-
-type CreateProductReq struct {
-	Title                string             `json:"title" binding:"required"`
-	Slug                 string             `json:"slug"`
-	Description          string             `json:"description"`
-	LongDescription      string             `json:"longDescription"`
-	Price                float64            `json:"price"`
-	Category             string             `json:"category"`
-	Type                 models.ProductType `json:"productType"`
-	StatusFlags          string             `json:"statusFlags"`
-	Image                string             `json:"image"`
-	LiveDemo             string             `json:"liveDemo"`
-	GithubRepo           string             `json:"githubRepo"`
-	FileURL              string             `json:"fileURL"`
-	Version              string             `json:"version"`
-	RequiresSubscription bool               `json:"requiresSubscription"`
-	TechStacks           []string           `json:"techStack"`
-	Documentation        []string           `json:"documentation"`
-	Tags                 []string           `json:"tags"`
-	PreviewImages        []string           `json:"previewImages"`
 }
 
 func CreateProduct(c *gin.Context) {
@@ -100,24 +207,36 @@ func CreateProduct(c *gin.Context) {
 		FileURL:              req.FileURL,
 		Version:              req.Version,
 		RequiresSubscription: req.RequiresSubscription,
+		VideoURL:             req.VideoURL,
+		CourseOutline:        req.CourseOutline,
+		Duration:             req.Duration,
+		SnippetLanguage:      req.SnippetLanguage,
+		Snippet:              req.Snippet,
 		TechStacks:           req.TechStacks,
 		Documentation:        req.Documentation,
 		PreviewImages:        req.PreviewImages,
+		Features:             req.Features,
+		Pages:                req.Pages,
 	}
 
 	if product.Type == "" {
 		product.Type = models.ProductTypeTemplate
 	}
-
-	for _, tagName := range req.Tags {
-		var tag models.Tag
-		config.DB.FirstOrCreate(&tag, models.Tag{Name: tagName})
-		product.Tags = append(product.Tags, tag)
+	if strings.TrimSpace(product.StatusFlags) == "" {
+		product.StatusFlags = "active"
 	}
+
+	applyProductTags(&product, req.Tags)
 
 	if err := config.DB.Create(&product).Error; err != nil {
 		respondError(c, http.StatusInternalServerError, err.Error())
 		return
+	}
+	if len(product.Tags) > 0 {
+		if err := config.DB.Model(&product).Association("Tags").Replace(product.Tags); err != nil {
+			respondError(c, http.StatusInternalServerError, err.Error())
+			return
+		}
 	}
 
 	enrichProduct(&product)
@@ -138,37 +257,70 @@ func UpdateProduct(c *gin.Context) {
 		return
 	}
 
-	if req.Title != "" { product.Title = req.Title }
-	if req.Slug != "" { product.Slug = req.Slug }
-	if req.Description != "" { product.Description = req.Description }
-	if req.LongDescription != "" { product.LongDescription = req.LongDescription }
-	if req.Price != 0 { product.Price = req.Price }
-	if req.Category != "" { product.Category = req.Category }
-	if req.Type != "" { product.Type = req.Type }
-	if req.StatusFlags != "" { product.StatusFlags = req.StatusFlags }
-	if req.Image != "" { product.Image = req.Image }
-	if req.LiveDemo != "" { product.LiveDemo = req.LiveDemo }
-	if req.GithubRepo != "" { product.GithubRepo = req.GithubRepo }
-	if req.FileURL != "" { product.FileURL = req.FileURL }
-	if req.Version != "" { product.Version = req.Version }
+	if req.Title != "" {
+		product.Title = req.Title
+	}
+	if req.Slug != "" {
+		product.Slug = req.Slug
+	}
+	if req.Description != "" {
+		product.Description = req.Description
+	}
+	if req.LongDescription != "" {
+		product.LongDescription = req.LongDescription
+	}
+	if req.Price != 0 {
+		product.Price = req.Price
+	}
+	if req.Category != "" {
+		product.Category = req.Category
+	}
+	if req.Type != "" {
+		product.Type = req.Type
+	}
+	if req.StatusFlags != "" {
+		product.StatusFlags = req.StatusFlags
+	}
+	if req.Image != "" {
+		product.Image = req.Image
+	}
+	if req.LiveDemo != "" {
+		product.LiveDemo = req.LiveDemo
+	}
+	if req.GithubRepo != "" {
+		product.GithubRepo = req.GithubRepo
+	}
+	if req.FileURL != "" {
+		product.FileURL = req.FileURL
+	}
+	if req.Version != "" {
+		product.Version = req.Version
+	}
 	product.RequiresSubscription = req.RequiresSubscription
+	product.VideoURL = req.VideoURL
+	product.CourseOutline = req.CourseOutline
+	product.Duration = req.Duration
+	product.SnippetLanguage = req.SnippetLanguage
+	product.Snippet = req.Snippet
 	product.TechStacks = req.TechStacks
 	product.Documentation = req.Documentation
 	product.PreviewImages = req.PreviewImages
+	product.Features = req.Features
+	product.Pages = req.Pages
 
-	if len(req.Tags) > 0 {
-		var newTags []models.Tag
-		for _, tagName := range req.Tags {
-			var tag models.Tag
-			config.DB.FirstOrCreate(&tag, models.Tag{Name: tagName})
-			newTags = append(newTags, tag)
-		}
-		config.DB.Model(&product).Association("Tags").Replace(newTags)
+	if req.Tags != nil {
+		applyProductTags(&product, req.Tags)
 	}
 
 	if err := config.DB.Save(&product).Error; err != nil {
 		respondError(c, http.StatusInternalServerError, err.Error())
 		return
+	}
+	if req.Tags != nil {
+		if err := config.DB.Model(&product).Association("Tags").Replace(product.Tags); err != nil {
+			respondError(c, http.StatusInternalServerError, err.Error())
+			return
+		}
 	}
 
 	enrichProduct(&product)
@@ -184,15 +336,37 @@ func DeleteProduct(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Product deleted successfully"})
 }
 
-type reviewMetric struct {
-	ProductID  uint
-	Rating     float64
-	NumReviews int64
+func applyProductTags(product *models.Product, tagNames []string) {
+	if product == nil {
+		return
+	}
+	if len(tagNames) == 0 {
+		product.Tags = nil
+		return
+	}
+
+	product.Tags = nil
+	for _, tagName := range tagNames {
+		trimmed := strings.TrimSpace(tagName)
+		if trimmed == "" {
+			continue
+		}
+		var tag models.Tag
+		config.DB.FirstOrCreate(&tag, models.Tag{Name: trimmed})
+		product.Tags = append(product.Tags, tag)
+	}
 }
 
-type salesMetric struct {
-	ProductID uint
-	NumSales  int64
+func canViewAllProducts(c *gin.Context, includeAll bool) bool {
+	if !includeAll {
+		return false
+	}
+	user, err := optionalAuthenticatedUser(c)
+	if err != nil || user == nil {
+		return false
+	}
+
+	return user.Role == models.RoleAdmin
 }
 
 func enrichProducts(products *[]models.Product) {
@@ -210,15 +384,16 @@ func enrichProducts(products *[]models.Product) {
 	var reviewMetrics []reviewMetric
 	config.DB.Model(&models.Review{}).
 		Select("product_id, avg(rating) as rating, count(*) as num_reviews").
-		Where("product_id IN ?", productIDs).
+		Where("product_id IN ? AND status = ?", productIDs, "approved").
 		Group("product_id").
 		Scan(&reviewMetrics)
 
 	var salesMetrics []salesMetric
-	config.DB.Model(&models.OrderItem{}).
-		Select("product_id, sum(quantity) as num_sales").
-		Where("product_id IN ?", productIDs).
-		Group("product_id").
+	config.DB.Table("order_items").
+		Select("order_items.product_id, sum(order_items.quantity) as num_sales, sum(order_items.price * order_items.quantity) as revenue").
+		Joins("JOIN orders ON orders.id = order_items.order_id").
+		Where("order_items.product_id IN ? AND (orders.payment_status = ? OR orders.status = ?)", productIDs, "paid", "paid").
+		Group("order_items.product_id").
 		Scan(&salesMetrics)
 
 	reviewMap := make(map[uint]reviewMetric, len(reviewMetrics))
@@ -226,9 +401,9 @@ func enrichProducts(products *[]models.Product) {
 		reviewMap[metric.ProductID] = metric
 	}
 
-	salesMap := make(map[uint]int64, len(salesMetrics))
+	salesMap := make(map[uint]salesMetric, len(salesMetrics))
 	for _, metric := range salesMetrics {
-		salesMap[metric.ProductID] = metric.NumSales
+		salesMap[metric.ProductID] = metric
 	}
 
 	for idx := range *products {
@@ -237,7 +412,10 @@ func enrichProducts(products *[]models.Product) {
 			product.Rating = metric.Rating
 			product.NumReviews = metric.NumReviews
 		}
-		product.NumSales = salesMap[product.ID]
+		if metric, ok := salesMap[product.ID]; ok {
+			product.NumSales = metric.NumSales
+			product.Revenue = metric.Revenue
+		}
 	}
 }
 

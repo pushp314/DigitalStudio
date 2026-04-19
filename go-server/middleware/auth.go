@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
@@ -15,20 +16,25 @@ import (
 func AuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
-		if authHeader == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header is required"})
+		tokenString := ""
+
+		if authHeader != "" {
+			parts := strings.Split(authHeader, " ")
+			if len(parts) == 2 && parts[0] == "Bearer" {
+				tokenString = parts[1]
+			}
+		}
+
+		// Fallback to query parameter (crucial for WebSockets)
+		if tokenString == "" {
+			tokenString = c.Query("token")
+		}
+
+		if tokenString == "" {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization token is required"})
 			c.Abort()
 			return
 		}
-
-		parts := strings.Split(authHeader, " ")
-		if len(parts) != 2 || parts[0] != "Bearer" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid authorization header format"})
-			c.Abort()
-			return
-		}
-
-		tokenString := parts[1]
 		secret := os.Getenv("JWT_SECRET")
 
 		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
@@ -58,35 +64,55 @@ func AuthMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		var user models.User
-		if err := config.DB.First(&user, uint(userIDFloat)).Error; err != nil {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "User not found"})
-			c.Abort()
-			return
-		}
+			var user models.User
+			if err := config.DB.First(&user, uint(userIDFloat)).Error; err != nil {
+				c.JSON(http.StatusUnauthorized, gin.H{"error": "User not found"})
+				c.Abort()
+				return
+			}
+			if user.Suspended {
+				c.JSON(http.StatusForbidden, gin.H{"error": "Account suspended"})
+				c.Abort()
+				return
+			}
 
-		c.Set("user", user)
-		c.Set("userID", user.ID)
-		c.Set("userRole", user.Role)
-		c.Set("userPlan", user.SubscriptionPlan)
+			// Self-Healing Subscription Logic
+			if user.IsPro && user.ProExpiresAt != nil {
+				if time.Now().After(*user.ProExpiresAt) {
+					user.IsPro = false
+					user.SubscriptionPlan = "free"
+					config.DB.Save(&user)
+					// Log for system audit
+					fmt.Printf("Subscription expired and revoked for user ID: %d\n", user.ID)
+				}
+			}
 
-		c.Next()
+			c.Set("user", user)
+			c.Set("userID", user.ID)
+			c.Set("userRole", user.Role)
+			c.Set("userPlan", user.SubscriptionPlan)
+			c.Set("isPro", user.IsPro)
+
+			c.Next()
 	}
 }
 
 func ProMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		role, _ := c.Get("userRole")
-		plan, exists := c.Get("userPlan")
+		isPro, _ := c.Get("isPro")
+		
 		if role == models.RoleAdmin {
 			c.Next()
 			return
 		}
-		if !exists || (plan != "pro" && plan != "enterprise") {
-			c.JSON(http.StatusForbidden, gin.H{"error": "Pro subscription required"})
+
+		if isPro != true {
+			c.JSON(http.StatusForbidden, gin.H{"error": "Active Pro subscription required to access this protocol"})
 			c.Abort()
 			return
 		}
+
 		c.Next()
 	}
 }

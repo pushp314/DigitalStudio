@@ -13,6 +13,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"github.com/google/uuid"
+	"time"
 )
 
 var S3Client *s3.Client
@@ -81,4 +82,25 @@ func CheckR2(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+func GeneratePresignedURL(key string) (string, error) {
+	if S3Client == nil {
+		return "", errors.New("r2 client not initialized")
+	}
+
+	bucket := os.Getenv("R2_BUCKET_NAME")
+	presignClient := s3.NewPresignClient(S3Client)
+
+	// Set expiration to 15 minutes
+	request, err := presignClient.PresignGetObject(context.TODO(), &s3.GetObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(key),
+	}, s3.WithPresignExpires(15*time.Minute))
+	
+	if err != nil {
+		return "", err
+	}
+
+	return request.URL, nil
 }

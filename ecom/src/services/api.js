@@ -41,6 +41,10 @@ const api = {
                     localStorage.removeItem('token');
                     window.location.href = '/login?session_expired=true';
                 }
+                if (res.status === 503 && data?.maintenance) {
+                    // Dispatch global event for Maintenance UI
+                    window.dispatchEvent(new CustomEvent('platform_maintenance', { detail: data.message }));
+                }
                 throw new Error(data?.error ?? data?.message ?? (typeof data === 'string' ? data : 'API Error'));
             }
             return data;

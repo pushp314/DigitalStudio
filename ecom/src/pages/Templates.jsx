@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import productService from '../services/productService';
@@ -8,8 +8,10 @@ import LoadingSkeleton from '../components/ui/LoadingSkeleton';
 import AIRecommendationModal from '../components/ui/AIRecommendationModal';
 import { FEATURES } from '../config/features';
 import { normalizeProduct } from '../utils/normalizers';
+import ConfigContext from '../context/ConfigContext';
 
 const Templates = () => {
+    const { config } = useContext(ConfigContext);
     const [searchParams, setSearchParams] = useSearchParams();
     const keyword = searchParams.get('search') || '';
     const [isAIModalOpen, setIsAIModalOpen] = useState(false);
@@ -17,6 +19,7 @@ const Templates = () => {
     // Filter states
     const [selectedCategory, setSelectedCategory] = useState('all');
     const [selectedProductType, setSelectedProductType] = useState('all');
+    const [showProOnly, setShowProOnly] = useState(false);
     const [sortBy, setSortBy] = useState('newest');
 
     const { data: rawTemplates, isLoading: loading, error: queryError, refetch } = useQuery({
@@ -33,6 +36,9 @@ const Templates = () => {
             return false;
         }
         if (selectedProductType !== 'all' && template.productType !== selectedProductType) {
+            return false;
+        }
+        if (showProOnly && !template.requiresSubscription) {
             return false;
         }
         return true;
@@ -76,7 +82,7 @@ const Templates = () => {
             />
 
             {/* Filter Bar */}
-            <div className="w-full bg-white border-b border-gray-200 sticky top-0 z-40">
+            <div className={`w-full bg-white border-b border-gray-200 sticky z-40 transition-all duration-300 ${config?.showAnnouncement && config?.announcements?.length > 0 ? 'top-[88px] md:top-[112px]' : 'top-[64px] md:top-[88px]'}`}>
                 <div className="max-w-[1400px] mx-auto px-6 py-4">
                     <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
                         {/* Left: Filters */}
@@ -106,6 +112,17 @@ const Templates = () => {
                                         {category === 'all' ? 'All' : category}
                                     </button>
                                 ))}
+
+                                <button
+                                    onClick={() => setShowProOnly(!showProOnly)}
+                                    className={`px-4 py-2 rounded-full text-sm font-bold transition-all flex items-center gap-2 border-2 ${showProOnly
+                                            ? 'bg-amber-400 border-amber-500 text-black shadow-lg shadow-amber-500/20'
+                                            : 'bg-white border-amber-100 text-amber-600 hover:bg-amber-50'
+                                        }`}
+                                >
+                                    <span className="text-xs">💎</span>
+                                    Pro Members only
+                                </button>
                             </div>
                         </div>
 
@@ -180,7 +197,9 @@ const Templates = () => {
                     </div>
                 </div>
             ) : (
-                <TemplateGrid items={sortedTemplates} />
+                <div className="mt-8 md:mt-12">
+                    <TemplateGrid items={sortedTemplates} />
+                </div>
             )}
 
             {/* AI Agent Recommendations */}

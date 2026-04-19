@@ -1,11 +1,42 @@
-import React, { useContext } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useContext, useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import WishlistContext from '../context/WishlistContext';
 import CartContext from '../context/CartContext';
+import ConfigContext from '../context/ConfigContext';
+import api from '../services/api';
 
 const Wishlist = () => {
+    const { config } = useContext(ConfigContext);
     const { wishlistItems, removeFromWishlist } = useContext(WishlistContext);
     const { addToCart } = useContext(CartContext);
+    const [deals, setDeals] = useState({});
+    const navigate = useNavigate();
+
+    // Feature Enforcement
+    useEffect(() => {
+        if (config && config.features && config.features.wishlist === false) {
+            navigate('/');
+        }
+    }, [config, navigate]);
+
+    useEffect(() => {
+        if (wishlistItems.length > 0) {
+            const fetchDeals = async () => {
+                try {
+                    const reqItems = wishlistItems.map(i => ({ id: i.id, addedAt: i.addedAt }));
+                    const res = await api.post('/marketing/wishlist-deals', { items: reqItems });
+                    const dealMap = {};
+                    res.forEach(d => {
+                        dealMap[d.productId] = d;
+                    });
+                    setDeals(dealMap);
+                } catch (err) {
+                    console.error("Newsletter deal sync failed", err);
+                }
+            };
+            fetchDeals();
+        }
+    }, [wishlistItems]);
 
     if (wishlistItems.length === 0) {
         return (
@@ -38,11 +69,25 @@ const Wishlist = () => {
                             </button>
 
                             <Link to={`/templates/${item.id}`} className="block">
-                                <div className="aspect-w-16 aspect-h-12 mb-4 rounded-xl overflow-hidden bg-gray-100">
+                                <div className="aspect-w-16 aspect-h-12 mb-4 rounded-xl overflow-hidden bg-gray-100 relative">
                                     <img src={item.image} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                                    {deals[item.id] && (
+                                        <div className="absolute bottom-4 left-4 bg-emerald-500 text-white text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full shadow-lg shadow-emerald-500/20 animate-pulse z-20">
+                                            {deals[item.id].reason}
+                                        </div>
+                                    )}
                                 </div>
                                 <h3 className="text-xl font-bold text-black mb-1">{item.title}</h3>
-                                <p className="text-primary font-bold text-lg mb-4">{item.formattedPrice}</p>
+                                <div className="flex items-center gap-3 mb-4">
+                                     {deals[item.id] ? (
+                                         <>
+                                             <p className="text-emerald-500 font-black text-xl">₹{(item.price * 0.85).toFixed(2)}</p>
+                                             <p className="text-gray-300 font-bold text-sm line-through uppercase">MRP: {item.formattedPrice}</p>
+                                         </>
+                                     ) : (
+                                         <p className="text-primary font-bold text-lg">{item.formattedPrice}</p>
+                                     )}
+                                </div>
                             </Link>
 
                             <button

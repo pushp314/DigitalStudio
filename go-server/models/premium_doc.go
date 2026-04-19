@@ -20,6 +20,7 @@ type PremiumDoc struct {
 	Price           float64   `gorm:"type:numeric(10,2);not null;default:0" json:"price"`
 	IsPremium       bool      `gorm:"default:true" json:"isPremium"`
 	Icon            string    `json:"icon"`
+	Image           string    `json:"image"`
 	TableOfContents []TOCItem `gorm:"serializer:json;type:jsonb" json:"tableOfContents,omitempty"`
 
 	DocTags []string `gorm:"serializer:json;type:jsonb" json:"tags,omitempty"`

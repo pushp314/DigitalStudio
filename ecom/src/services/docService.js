@@ -1,7 +1,12 @@
 import api from './api';
 
 const docService = {
-    getAll: (category = '') => api.get(`/docs${category ? `?category=${encodeURIComponent(category)}` : ''}`),
+    getAll: (category = '', search = '') => {
+        let url = '/docs?';
+        if (category) url += `category=${encodeURIComponent(category)}&`;
+        if (search) url += `search=${encodeURIComponent(search)}`;
+        return api.get(url);
+    },
     getById: (id) => api.get(`/docs/${id}`),
     create: (data) => api.post('/docs', data),
     update: (id, data) => api.put(`/docs/${id}`, data),

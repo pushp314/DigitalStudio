@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/pushp314/digitalstudio/go-server/config"
@@ -17,7 +18,8 @@ import (
 )
 
 type CreatePaymentOrderReq struct {
-	Items []OrderItemReq `json:"items" binding:"required,min=1"`
+	Items      []OrderItemReq `json:"items" binding:"required,min=1"`
+	CouponCode string         `json:"couponCode"`
 }
 
 func CreateRazorpayOrder(c *gin.Context) {
@@ -54,12 +56,31 @@ func CreateRazorpayOrder(c *gin.Context) {
 		orderItems = append(orderItems, models.OrderItem{ProductID: product.ID, Quantity: itemReq.Quantity, Price: price})
 	}
 
+	// Apply Coupon if present
+	var discount float64
+	if req.CouponCode != "" {
+		var coupon models.Coupon
+		if err := config.DB.Where("code = ? AND active = ?", req.CouponCode, true).First(&coupon).Error; err == nil {
+			if coupon.IsValid(total) {
+				discount = coupon.CalculateDiscount(total)
+				total = total - discount
+				if total < 0 {
+					total = 0
+				}
+				// Increment usage count
+				coupon.UsageCount++
+				config.DB.Save(&coupon)
+			}
+		}
+	}
+
 	order := models.Order{
-		UserID:        userID.(uint),
-		TotalPrice:    total,
-		Status:        "pending",
-		PaymentStatus: "pending",
-		OrderItems:    orderItems,
+		UserID:            userID.(uint),
+		TotalPrice:        total, // Total is now discounted
+		Status:            "pending",
+		PaymentStatus:     "pending",
+		EntitlementStatus: "auto",
+		OrderItems:        orderItems,
 	}
 
 	if err := config.DB.Create(&order).Error; err != nil {
@@ -150,7 +171,50 @@ func VerifyRazorpayPayment(c *gin.Context) {
 	order.RazorpayPaymentID = req.RazorpayPaymentID
 	order.RazorpaySignature = req.RazorpaySignature
 	config.DB.Save(&order)
-	order.Entitled = true
+
+	// Partner Protocol Reward Settlement
+	ProcessPartnerRewards(order)
+
+	// Automated Membership Entitlement logic
+	var isMembershipOrder bool
+	for _, item := range order.OrderItems {
+		var product models.Product
+		if err := config.DB.First(&product, item.ProductID).Error; err == nil {
+			if product.Category == "Membership" {
+				isMembershipOrder = true
+				break
+			}
+		}
+	}
+
+	if isMembershipOrder {
+		var user models.User
+		if err := config.DB.First(&user, order.UserID).Error; err == nil {
+			now := time.Now()
+			oneYear := time.Hour * 24 * 365
+			
+			var newExpiry time.Time
+			if user.IsPro && user.ProExpiresAt != nil && user.ProExpiresAt.After(now) {
+				// Extend existing subscription
+				newExpiry = user.ProExpiresAt.Add(oneYear)
+			} else {
+				// Start new subscription
+				newExpiry = now.Add(oneYear)
+			}
+			
+			user.IsPro = true
+			user.ProExpiresAt = &newExpiry
+			user.SubscriptionPlan = "pro"
+			config.DB.Save(&user)
+			fmt.Printf("Subscription Entitlement: User %d is now Pro until %v\n", user.ID, newExpiry)
+		}
+	}
+
+	if err := issueMissingLicensesForOrder(order.ID); err != nil {
+		respondError(c, http.StatusInternalServerError, "Failed to issue license keys")
+		return
+	}
+	order.Entitled = computeOrderEntitled(order)
 
 	c.JSON(http.StatusOK, gin.H{
 		"status":        "captured",
@@ -200,14 +264,16 @@ func RazorpayWebhook(c *gin.Context) {
 	orderID := payload.Payload.Payment.Entity.OrderID
 
 	switch payload.Event {
-	case "payment.captured", "order.paid":
-		var order models.Order
-		if err := config.DB.Where("razorpay_order_id = ?", orderID).First(&order).Error; err == nil {
-			order.PaymentStatus = "paid"
-			order.Status = "paid"
-			order.RazorpayPaymentID = payload.Payload.Payment.Entity.ID
-			config.DB.Save(&order)
-		}
+		case "payment.captured", "order.paid":
+			var order models.Order
+			if err := config.DB.Where("razorpay_order_id = ?", orderID).First(&order).Error; err == nil {
+				order.PaymentStatus = "paid"
+				order.Status = "paid"
+				order.RazorpayPaymentID = payload.Payload.Payment.Entity.ID
+				config.DB.Save(&order)
+				_ = issueMissingLicensesForOrder(order.ID)
+				ProcessPartnerRewards(order)
+			}
 	case "payment.failed":
 		var order models.Order
 		if err := config.DB.Where("razorpay_order_id = ?", orderID).First(&order).Error; err == nil {
@@ -218,4 +284,23 @@ func RazorpayWebhook(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"status": "ok"})
+}
+
+func ProcessPartnerRewards(order models.Order) {
+	var user models.User
+	if err := config.DB.First(&user, order.UserID).Error; err != nil {
+		return
+	}
+
+	// Only reward if the user was referred by someone
+	if user.ReferrerID != nil && *user.ReferrerID != 0 {
+		var referrer models.User
+		if err := config.DB.First(&referrer, *user.ReferrerID).Error; err == nil {
+			// Reward logic: ₹100 credit per purchase
+			rewardAmount := 100.0
+			referrer.PartnerBalance += rewardAmount
+			config.DB.Save(&referrer)
+			fmt.Printf("Partner Protocol: Credited ₹%.2f to Referrer ID %d for order %d\n", rewardAmount, referrer.ID, order.ID)
+		}
+	}
 }

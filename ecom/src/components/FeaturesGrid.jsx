@@ -23,7 +23,7 @@ const FeaturesGrid = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 
           {/* CARD 1: White Card (Bottom-Right Decoration) */}
-          <div className="bg-white rounded-[2.5rem] p-8 md:p-10 flex flex-col justify-between relative overflow-hidden h-[500px] group hover:shadow-xl transition-all duration-300">
+          <div className="bg-white rounded-[2.5rem] p-8 md:p-10 flex flex-col justify-between relative overflow-hidden min-h-[450px] h-auto group hover:shadow-xl transition-all duration-300">
 
             {/* Content */}
             <div className="relative z-10 flex flex-col items-start gap-6">
@@ -38,7 +38,7 @@ const FeaturesGrid = () => {
                   Built with global standards
                 </h3>
                 <p className="text-gray-500 text-lg font-medium">
-                  Unlock brilliance—build your website the smart way.
+                  We follow elite-tier coding practices to ensure your site is secure, fast, and SEO-optimized out of the box.
                 </p>
               </div>
 
@@ -50,30 +50,30 @@ const FeaturesGrid = () => {
             </div>
 
             {/* Decoration Shape (Bottom Right) */}
-            <div className="absolute -bottom-10 -right-10 w-64 h-64 bg-gray-100 rounded-[3rem] transform rotate-12 opacity-80 z-0 group-hover:scale-105 transition-transform duration-500" />
+            <div className="absolute -bottom-10 -right-10 w-64 h-64 bg-gray-50 rounded-[3rem] transform rotate-12 opacity-80 z-0 group-hover:scale-105 transition-transform duration-500" />
           </div>
 
 
           {/* CARD 2: White Card (Top-Right Decoration) */}
-          <div className="bg-white rounded-[2.5rem] p-8 md:p-10 flex flex-col relative overflow-hidden h-[500px] group hover:shadow-xl transition-all duration-300">
+          <div className="bg-white rounded-[2.5rem] p-8 md:p-10 flex flex-col relative overflow-hidden min-h-[450px] h-auto group hover:shadow-xl transition-all duration-300">
 
             {/* Decoration Shape (Top Right) */}
-            <div className="absolute -top-10 -right-10 w-64 h-64 bg-gray-100 rounded-[3rem] transform -rotate-12 opacity-80 z-0 group-hover:scale-105 transition-transform duration-500" />
+            <div className="absolute -top-10 -right-10 w-64 h-64 bg-gray-50 rounded-[3rem] transform -rotate-12 opacity-80 z-0 group-hover:scale-105 transition-transform duration-500" />
 
             {/* Content */}
             <div className="relative z-10 flex flex-col items-start gap-6 mt-4">
               {/* Icon */}
               <div className="w-14 h-14 rounded-full bg-primary flex items-center justify-center text-white">
-                <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" /></svg>
+                <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 2m6-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
               </div>
 
               {/* Text */}
-              <div className="mt-10">
+              <div className="mt-6 md:mt-10">
                 <h3 className="text-4xl font-bold text-black tracking-tight leading-tight mb-4">
                   Scale up 2x faster
                 </h3>
                 <p className="text-gray-500 text-lg font-medium">
-                  Unlock brilliance—build your website the smart way.
+                  Stop reinventing the wheel. Use our pre-built components to launch products in days, not months.
                 </p>
               </div>
             </div>
@@ -81,7 +81,7 @@ const FeaturesGrid = () => {
 
 
           {/* CARD 3: Blue Card (Checklist) */}
-          <div className="bg-primary rounded-[2.5rem] p-8 md:p-10 flex flex-col justify-between relative overflow-hidden h-[500px] group hover:shadow-xl transition-all duration-300 shadow-lg shadow-blue-500/20">
+          <div className="bg-primary rounded-[2.5rem] p-8 md:p-10 flex flex-col justify-between relative overflow-hidden min-h-[450px] h-auto group hover:shadow-xl transition-all duration-300 shadow-lg shadow-blue-500/20">
 
             {/* Subtle Gradient Overlay */}
             <div className="absolute top-0 right-0 w-80 h-80 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
@@ -99,10 +99,10 @@ const FeaturesGrid = () => {
               {/* Text */}
               <div className="mt-4">
                 <h3 className="text-4xl font-bold text-white tracking-tight leading-tight mb-4">
-                  Never leave Framer
+                  Next-Gen Stacks
                 </h3>
                 <p className="text-blue-100 text-lg font-medium">
-                  Unlock brilliance — build
+                  Always up-to-date with React, Next.js, and modern CSS frameworks.
                 </p>
               </div>
             </div>

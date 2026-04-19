@@ -1,17 +1,19 @@
 import React, { useContext } from 'react';
-import { Link } from 'react-router-dom';
-import { templates as allTemplates } from '../data/templates';
+import { Link, useNavigate } from 'react-router-dom';
 import WishlistContext from '../context/WishlistContext';
 import CartContext from '../context/CartContext';
+import AuthContext from '../context/AuthContext';
 import StarRating from './ui/StarRating';
 import { useToast } from '../context/ToastContext';
 import { normalizeProduct } from '../utils/normalizers';
 
 const TemplateGrid = ({ items, limit }) => {
-  let templates = (items || allTemplates).map(normalizeProduct);
+  let templates = (items || []).map(normalizeProduct);
   const { addToWishlist, removeFromWishlist, isInWishlist } = useContext(WishlistContext);
-  const { addToCart } = useContext(CartContext);
+  const { addToCart, clearCart } = useContext(CartContext);
+  const { purchasedProductIds } = useContext(AuthContext);
   const { success } = useToast();
+  const navigate = useNavigate();
 
   if (limit) {
     templates = templates.slice(0, limit);
@@ -35,6 +37,14 @@ const TemplateGrid = ({ items, limit }) => {
     e.stopPropagation();
     addToCart(template);
     success(`${template.title} added to cart!`);
+  };
+  const handleDirectBuy = (e, template) => {
+    e.preventDefault();
+    e.stopPropagation();
+    clearCart();
+    addToCart(template);
+    success(`Initiating ${template.title} purchase...`);
+    navigate('/subscription-checkout', { state: { plan: template } });
   };
 
   // Tech stack icon mapping
@@ -64,8 +74,11 @@ const TemplateGrid = ({ items, limit }) => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {templates.map((template) => (
-            <Link to={`/templates/${template.id}`} key={template.id} className="group flex flex-col gap-4 cursor-pointer relative">
-
+            <div
+              onClick={() => navigate(`/templates/${template.id}`)}
+              key={template.id}
+              className="group flex flex-col gap-4 cursor-pointer relative"
+            >
               <div className="w-full aspect-[4/3] rounded-2xl overflow-hidden bg-gray-200 relative shadow-sm transition-all duration-300 group-hover:shadow-xl group-hover:-translate-y-1">
                 <img
                   src={template.image}
@@ -76,6 +89,11 @@ const TemplateGrid = ({ items, limit }) => {
 
                 {/* Status Badges */}
                 <div className="absolute top-4 left-4 flex flex-col gap-2 z-10">
+                  {template.requiresSubscription && (
+                    <span className="bg-amber-400 text-black px-3 py-1 rounded-full text-[10px] font-black shadow-lg border border-white/20">
+                      💎 PRO
+                    </span>
+                  )}
                   {template.isFree && (
                     <span className="bg-green-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg">
                       FREE
@@ -159,12 +177,35 @@ const TemplateGrid = ({ items, limit }) => {
                 {/* Product Type & Actions */}
                 <div className="flex justify-between items-center mt-auto pt-2">
                   <div className="flex items-center gap-2">
-                    <button
-                      onClick={(e) => handleAddToCart(e, template)}
-                      className="bg-black hover:bg-gray-800 text-white px-4 py-2 rounded-full text-xs font-bold transition-colors"
-                    >
-                      Add to Cart
-                    </button>
+                    {purchasedProductIds.includes(template.id) ? (
+                      <button
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); navigate('/profile'); }}
+                        className="bg-green-100 text-green-700 px-4 py-2 rounded-full text-xs font-bold transition-colors hover:bg-green-200"
+                      >
+                        ✓ Purchased
+                      </button>
+                    ) : (
+                      <button
+                        onClick={(e) => template.productType === 'subscription' ? handleDirectBuy(e, template) : handleAddToCart(e, template)}
+                        className="bg-black hover:bg-gray-800 text-white px-4 py-2 rounded-full text-xs font-bold transition-colors"
+                      >
+                        {template.productType === 'subscription' ? 'Buy Now' : 'Add to Cart'}
+                      </button>
+                    )}
+                    {template.previewUrl && (
+                      <a
+                        href={template.previewUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="bg-white border border-gray-200 text-black px-4 py-2 rounded-full text-xs font-bold transition-all hover:bg-gray-50 flex items-center gap-1.5"
+                      >
+                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        </svg>
+                        Live Demo
+                      </a>
+                    )}
                   </div>
 
                   <div className="flex flex-col items-end gap-1">
@@ -180,7 +221,7 @@ const TemplateGrid = ({ items, limit }) => {
                 </div>
               </div>
 
-            </Link>
+            </div>
           ))}
         </div>
 
