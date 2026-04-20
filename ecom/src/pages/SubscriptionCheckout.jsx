@@ -1,10 +1,11 @@
-import React, { useContext, useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import React, { useContext, useEffect, useMemo, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import AuthContext from '../context/AuthContext';
 import ConfigContext from '../context/ConfigContext';
 import api from '../services/api';
 import { useToast } from '../context/ToastContext';
-import { formatCurrency } from '../utils/normalizers';
+import { formatCurrency, normalizeProduct } from '../utils/normalizers';
+import { Tag, Ticket, X, Loader2, Zap, ShieldCheck } from 'lucide-react';
 
 const loadRazorpayScript = () => {
     return new Promise((resolve) => {
@@ -18,214 +19,284 @@ const loadRazorpayScript = () => {
 
 const SubscriptionCheckout = () => {
     const { config } = useContext(ConfigContext);
-    const { user } = useContext(AuthContext);
-    const { success, error: toastError } = useToast();
+    const { user, refreshUser } = useContext(AuthContext);
+    const { success, error: toastError, info } = useToast();
     const navigate = useNavigate();
     const location = useLocation();
-    
+
     const [loading, setLoading] = useState(false);
-    const [plan, setPlan] = useState(location.state?.plan || null);
+    const [selectedPlan, setSelectedPlan] = useState(location.state?.plan || null);
+    
+    // Coupon State
+    const [couponCode, setCouponCode] = useState('');
+    const [isValidating, setIsValidating] = useState(false);
+    const [appliedCoupon, setAppliedCoupon] = useState(null);
+    const [discountAmount, setDiscountAmount] = useState(0);
+
+    const fallbackPlan = useMemo(
+        () => config?.memberPlans?.find((item) => item.isPrimary || item.name?.toLowerCase().includes('pro')) || null,
+        [config?.memberPlans],
+    );
+
+    const resolvedPlan = useMemo(() => {
+        const source = selectedPlan || fallbackPlan;
+        if (!source) return null;
+
+        return {
+            name: source.name || source.title || fallbackPlan?.name || 'Membership',
+            period: source.period || fallbackPlan?.period || 'month',
+            price: Number(source.price ?? fallbackPlan?.price ?? 0),
+            features: Array.isArray(source.features) && source.features.length > 0
+                ? source.features
+                : Array.isArray(fallbackPlan?.features)
+                    ? fallbackPlan.features
+                    : [],
+        };
+    }, [fallbackPlan, selectedPlan]);
 
     useEffect(() => {
         if (!user) {
-            navigate('/login?redirect=subscription-checkout', { state: { plan } });
+            navigate('/login?redirect=subscription-checkout', { state: { plan: selectedPlan } });
             return;
         }
-        
-        // If no plan in state, try to find the Pro plan from the config
-        if (!plan) {
-            const pro = config?.memberPlans?.find(p => p.isPrimary || p.name.toLowerCase().includes('pro'));
-            if (pro) {
-                setPlan(pro);
-            } else {
-                toastError('No subscription plan selected');
-                navigate('/pricing');
-            }
+        if (!selectedPlan && fallbackPlan) {
+            setSelectedPlan(fallbackPlan);
+            return;
         }
-    }, [user, plan, config, navigate, toastError]);
+        if (!selectedPlan && !fallbackPlan) {
+            toastError('No membership plan is available right now.');
+            navigate('/pricing');
+        }
+    }, [fallbackPlan, navigate, selectedPlan, toastError, user]);
+
+    const handleApplyCoupon = async () => {
+        if (!couponCode.trim()) return;
+        setIsValidating(true);
+        try {
+            const data = await api.get(`/marketing/validate?code=${couponCode}&totalAmount=${resolvedPlan.price}&scope=membership`);
+            setAppliedCoupon(data);
+            setDiscountAmount(data.discount);
+            success(`Protocol Activated: ${couponCode} Applied.`);
+        } catch (err) {
+            toastError(err.response?.data?.error || "Invalid or expired protocol code.");
+            setAppliedCoupon(null);
+            setDiscountAmount(0);
+        } finally {
+            setIsValidating(false);
+        }
+    };
+
+    const removeCoupon = () => {
+        setAppliedCoupon(null);
+        setDiscountAmount(0);
+        setCouponCode('');
+        info("Protocol code removed.");
+    };
+
+    const finalPrice = Math.max(0, (resolvedPlan?.price || 0) - discountAmount);
 
     const handlePayment = async () => {
+        if (!resolvedPlan) return;
+
         setLoading(true);
         const scriptLoaded = await loadRazorpayScript();
-        
+
         if (!scriptLoaded) {
-            toastError('Razorpay SDK failed to load');
+            toastError('Unable to load the payment form.');
             setLoading(false);
             return;
         }
 
         try {
-            // We find the 'pro-membership' product in the DB for the payment
-            // In a real app, you'd match the plan Name to a product ID
-            const res = await api.get('/products');
-            const proProduct = res.find(p => p.slug === 'pro-membership');
+            // Fetch products with the specific slug to be more reliable
+            const products = await api.get('/products?keyword=pro-membership');
+            const membershipProduct = (Array.isArray(products) ? products.map(normalizeProduct) : []).find(
+                (product) => product.slug === 'pro-membership' || (product.productType === 'subscription' && product.slug.includes('pro'))
+            );
 
-            if (!proProduct) {
-                throw new Error('Subscription product not found in marketplace');
+            if (!membershipProduct) {
+                // Fallback attempt to get all and find
+                const allProducts = await api.get('/products');
+                const fallbackProduct = (Array.isArray(allProducts) ? allProducts.map(normalizeProduct) : []).find(
+                    (p) => p.slug === 'pro-membership' || p.productType === 'subscription'
+                );
+                
+                if (!fallbackProduct) {
+                    throw new Error('Pro Membership protocol not found in the asset matrix.');
+                }
+                return await proceedWithOrder(fallbackProduct);
             }
+            
+            return await proceedWithOrder(membershipProduct);
+        } catch (err) {
+            toastError(err.message || 'Unable to start membership checkout.');
+        } finally {
+            setLoading(false);
+        }
+    };
 
-            const orderRes = await api.post('/payments/create-order', {
-                items: [{ productId: proProduct.id, quantity: 1 }]
+    const proceedWithOrder = async (membershipProduct) => {
+        try {
+            const order = await api.post('/payments/create-order', {
+                items: [{ productId: membershipProduct.id, quantity: 1 }],
+                couponCode: appliedCoupon?.code || ""
             });
 
-            const { orderId, amount, currency, keyId } = orderRes;
-
             const options = {
-                key: keyId,
-                amount,
-                currency,
-                name: "DigitalStudio Pro",
-                description: `Upgrade to ${plan.name} Membership`,
-                order_id: orderId,
+                key: order.keyId,
+                amount: order.amount,
+                currency: order.currency,
+                name: 'DigitalStudio Membership',
+                description: `Membership payment for ${resolvedPlan.name}`,
+                order_id: order.orderId,
                 prefill: {
                     name: user.name,
                     email: user.email,
                 },
-                theme: { color: "#F59E0B" }, // Gold Theme for Pro
-                handler: async function (response) {
+                theme: { color: '#0f172a' },
+                handler: async (response) => {
                     try {
                         await api.post('/payments/verify', {
                             razorpayOrderId: response.razorpay_order_id,
                             razorpayPaymentId: response.razorpay_payment_id,
                             razorpaySignature: response.razorpay_signature,
                         });
-                        success('Welcome to Pro Elite! 💎');
-                        navigate('/profile');
-                    } catch (err) {
-                        toastError('Verification failed but payment was made. Contact support.');
+                        if (refreshUser) await refreshUser();
+                        success('Membership activated.');
+                        navigate('/account');
+                    } catch (_err) {
+                        toastError('Payment was received, but verification did not finish. Please contact support.');
                     }
-                }
+                },
             };
 
-            const rzp = new window.Razorpay(options);
-            rzp.open();
+            const razorpay = new window.Razorpay(options);
+            razorpay.open();
         } catch (err) {
-            toastError(err.message || 'Failed to initiate subscription');
+            toastError(err.message || 'Unable to start membership checkout.');
         } finally {
             setLoading(false);
         }
     };
 
-    if (!plan) return null;
+    if (!resolvedPlan) return null;
 
     return (
-        <div className="min-h-screen bg-[#F8FAFC] pt-32 pb-20 px-6 font-sans selection:bg-amber-100 italic:selection:bg-amber-200">
-            <div className="max-w-5xl mx-auto">
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 items-center">
-                    
-                    {/* Visual/Social Proof Side */}
-                    <div className="lg:col-span-7 space-y-12">
-                        <div>
-                            <div className="flex items-center gap-3 mb-6">
-                                <span className="w-8 h-8 rounded-full bg-amber-400 flex items-center justify-center text-xs shadow-lg shadow-amber-500/20 text-white">💎</span>
-                                <span className="text-amber-600 font-bold uppercase text-[10px] tracking-[0.4em] block">Secure Account Upgrade</span>
+        <div className="min-h-screen bg-slate-50 pt-28 pb-16 px-6">
+            <div className="max-w-5xl mx-auto grid gap-10 lg:grid-cols-[1fr,380px]">
+                
+                {/* Left: Plan Details */}
+                <section className="space-y-8 animate-in fade-in duration-700">
+                    <div>
+                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900 text-white text-[10px] font-black uppercase tracking-[0.2em] mb-4">
+                            <Zap size={10} fill="currentColor" className="text-amber-400" /> Secure Checkout
+                        </div>
+                        <h1 className="text-4xl font-black text-slate-900 tracking-tight mb-4">
+                            Finalize your <span className="text-slate-500">Membership.</span>
+                        </h1>
+                        <p className="text-slate-500 text-sm leading-relaxed max-w-xl font-medium">
+                            Unlock unrestricted community access, private negotiations, and priority technical deployments for your workspace.
+                        </p>
+                    </div>
+
+                    <div className="bg-white rounded-3xl border border-slate-200 p-8 shadow-sm">
+                        <div className="flex items-center justify-between mb-8 pb-6 border-b border-slate-100">
+                            <div>
+                                <h2 className="text-lg font-black text-slate-900 uppercase tracking-tight">{resolvedPlan.name}</h2>
+                                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Institutional Access Level</p>
                             </div>
-                            <h1 className="text-6xl md:text-7xl font-black text-slate-900 tracking-tighter leading-[0.95] mb-8">
-                                Refine your <br /> <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-500 to-amber-700">Production.</span>
-                            </h1>
-                            <p className="text-slate-500 text-xl font-medium leading-relaxed max-w-xl">
-                                You're one step away from joining our exclusive circle of high-performance engineers. 
-                                Unlock every document, every template, and every AI recommendation instantly.
-                            </p>
+                            <div className="text-right">
+                                <p className="text-2xl font-black text-slate-900 tracking-tight">{formatCurrency(resolvedPlan.price)}</p>
+                                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">per {resolvedPlan.period}</p>
+                            </div>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            {(plan.features || []).slice(0, 4).map((feature, i) => (
-                                <div key={i} className="flex items-start gap-4 p-5 bg-white rounded-3xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
-                                    <div className="w-10 h-10 rounded-2xl bg-amber-50 border border-amber-100 flex items-center justify-center shrink-0">
-                                        <span className="text-amber-600 text-sm">✓</span>
-                                    </div>
-                                    <div>
-                                        <p className="text-slate-900 font-bold text-sm leading-tight">{feature}</p>
-                                        <p className="text-slate-400 text-[10px] uppercase font-bold tracking-widest mt-1">Included</p>
-                                    </div>
+                        <div className="grid md:grid-cols-2 gap-x-8 gap-y-4">
+                            {resolvedPlan.features.map((feature) => (
+                                <div key={feature} className="flex items-start gap-3">
+                                    <ShieldCheck size={16} className="text-slate-900 shrink-0 mt-0.5" />
+                                    <span className="text-[12px] font-bold text-slate-600 leading-tight">{feature}</span>
                                 </div>
                             ))}
                         </div>
-
-                        <div className="pt-10 border-t border-slate-200">
-                             <div className="flex items-center gap-6">
-                                <div className="flex -space-x-3">
-                                    {[1, 2, 3, 4].map(i => (
-                                        <div key={i} className="w-12 h-12 rounded-full border-4 border-[#F8FAFC] bg-slate-200 overflow-hidden shadow-sm">
-                                            <img src={`https://i.pravatar.cc/100?img=${i+10}`} alt="User" className="w-full h-full object-cover" />
-                                        </div>
-                                    ))}
-                                </div>
-                                <div>
-                                    <p className="text-slate-900 font-black text-sm tracking-tight">Trusted by 12,000+ Scalers</p>
-                                    <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest mt-1">Join the elite development community</p>
-                                </div>
-                             </div>
-                        </div>
                     </div>
+                </section>
 
-                    {/* Checkout Card */}
-                    <div className="lg:col-span-5">
-                        <div className="bg-white rounded-[4rem] p-12 shadow-[0_40px_80px_-15px_rgba(0,0,0,0.08)] border border-slate-100 relative overflow-hidden group">
-                            <div className="absolute top-0 right-0 w-40 h-40 bg-amber-50/50 rounded-bl-full translate-x-12 -translate-y-12 transition-transform group-hover:scale-110"></div>
-                            
-                            <div className="relative z-10">
-                                <div className="flex justify-between items-start mb-12">
-                                    <div>
-                                        <h2 className="text-3xl font-black text-slate-900 tracking-tight">{plan.name}</h2>
-                                        <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest mt-2 flex items-center gap-2">
-                                            <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
-                                            Priority Access Tier
-                                        </p>
+                {/* Right: Order Summary & Coupon */}
+                <aside className="space-y-6">
+                    <div className="bg-white rounded-[2rem] border border-slate-200 p-8 shadow-2xl shadow-slate-200/50 sticky top-32">
+                        <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-8">Order Logistics</h3>
+                        
+                        <div className="space-y-6">
+                            <div className="flex justify-between text-sm">
+                                <span className="text-slate-500 font-bold uppercase tracking-widest text-[10px]">Subtotal</span>
+                                <span className="text-slate-900 font-black tracking-tight">{formatCurrency(resolvedPlan.price)}</span>
+                            </div>
+
+                            {/* Discount Input */}
+                            {!appliedCoupon ? (
+                                <div className="space-y-3">
+                                    <div className="flex items-center gap-2 text-[10px] text-slate-400 font-bold uppercase tracking-widest">
+                                        <Ticket size={12} /> Have a promo code?
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <input 
+                                            type="text"
+                                            value={couponCode}
+                                            onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                                            placeholder="CODE"
+                                            className="flex-grow bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-black tracking-widest transition-all focus:border-slate-900 outline-none"
+                                        />
+                                        <button 
+                                            onClick={handleApplyCoupon}
+                                            disabled={isValidating || !couponCode.trim()}
+                                            className="px-4 py-2.5 bg-slate-100 text-slate-900 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-200 transition-all disabled:opacity-30"
+                                        >
+                                            {isValidating ? <Loader2 size={12} className="animate-spin" /> : 'Apply'}
+                                        </button>
                                     </div>
                                 </div>
-
-                                <div className="space-y-6 mb-12 py-8 border-y border-slate-50">
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Subscription Period</span>
-                                        <span className="text-slate-900 font-black uppercase text-xs tracking-widest">{plan.period}</span>
-                                    </div>
-                                    <div className="flex justify-between items-end">
+                            ) : (
+                                <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-4 flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <div className="h-8 w-8 bg-emerald-600 text-white rounded-lg flex items-center justify-center">
+                                            <Tag size={14} />
+                                        </div>
                                         <div>
-                                            <p className="text-slate-900 font-black text-xs uppercase tracking-tighter">Total Due Today</p>
-                                            <p className="text-slate-400 text-[9px] font-bold uppercase tracking-widest mt-1">Automatic Billing cycle</p>
-                                        </div>
-                                        <div className="text-right">
-                                            <p className="text-5xl font-black text-slate-900 tracking-tighter">{formatCurrency(plan.price)}</p>
+                                            <p className="text-[10px] font-black text-emerald-900 uppercase tracking-widest">{appliedCoupon.code}</p>
+                                            <p className="text-[10px] text-emerald-600 font-medium">-{formatCurrency(discountAmount)} applied</p>
                                         </div>
                                     </div>
+                                    <button onClick={removeCoupon} className="p-2 hover:bg-emerald-100 rounded-md text-emerald-900 transition-all">
+                                        <X size={14} />
+                                    </button>
                                 </div>
+                            )}
 
-                                <button
-                                    onClick={handlePayment}
-                                    disabled={loading}
-                                    className="w-full py-7 bg-slate-900 text-white rounded-[2rem] font-black uppercase text-[12px] tracking-[0.25em] shadow-2xl shadow-slate-900/20 hover:bg-slate-800 hover:-translate-y-1 active:scale-95 transition-all flex items-center justify-center gap-4 disabled:opacity-50 disabled:grayscale"
-                                >
-                                {loading ? 'Processing...' : (
-                                    <span className="flex items-center gap-2">
-                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                                        </svg>
-                                        Activate Pro Membership
-                                    </span>
-                                )}
-                                {!loading && <span className="text-xl">⚡</span>}
-                                </button>
+                            <div className="h-px bg-slate-100" />
+                            
+                            <div className="flex justify-between items-end">
+                                <span className="text-slate-900 font-black uppercase tracking-widest text-[10px]">Total Due Today</span>
+                                <span className="text-3xl font-black text-slate-900 tracking-tighter">{formatCurrency(finalPrice)}</span>
+                            </div>
 
-                                <div className="mt-10 flex flex-col items-center gap-4">
-                                    <div className="flex items-center gap-4 grayscale opacity-40">
-                                        <img src="https://img.icons8.com/color/48/000000/visa.png" className="h-6 object-contain" alt="Visa" />
-                                        <img src="https://img.icons8.com/color/48/000000/mastercard.png" className="h-6 object-contain" alt="Mastercard" />
-                                        <img src="https://img.icons8.com/color/48/000000/razorpay.png" className="h-6 object-contain" alt="Razorpay" />
-                                    </div>
-                                    <div className="flex items-center gap-2 text-slate-400 font-bold uppercase text-[9px] tracking-widest">
-                                        <svg className="w-4 h-4 text-emerald-500" fill="currentColor" viewBox="0 0 24 24">
-                                            <path d="M12 2a10 10 0 100 20 10 10 0 000-20zm3 12H9v-2h6v2zm0-4H9V8h6v2z" />
-                                        </svg>
-                                        256-Bit SSL Secure Payment
-                                    </div>
-                                </div>
+                            <button 
+                                type="button" 
+                                onClick={handlePayment} 
+                                disabled={loading}
+                                className="w-full py-5 bg-slate-900 text-white rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] shadow-xl shadow-slate-900/10 hover:shadow-2xl hover:shadow-slate-900/20 active:scale-95 transition-all disabled:opacity-50"
+                            >
+                                {loading ? 'Initializing Secure Uplink...' : 'Finalize Payment'}
+                            </button>
+                            
+                            <div className="flex flex-col items-center gap-4 pt-4">
+                                <p className="text-[8px] text-slate-400 font-bold uppercase tracking-widest text-center">
+                                    Encrypted Transactions Processed via Razorpay
+                                </p>
                             </div>
                         </div>
                     </div>
-
-                </div>
+                </aside>
             </div>
         </div>
     );

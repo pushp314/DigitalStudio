@@ -1,28 +1,23 @@
 import React from 'react';
 
 const BuildSitesHeader = ({
-  title = "Easily build sites with our",
-  highlight = "templates",
-  description = "No more website woes—just powerful solutions at your fingertips"
+    title = 'Build faster with our',
+    highlight = 'templates',
+    description = 'Browse practical products built for teams that want a clean starting point and a faster launch path.',
 }) => {
-  return (
-    <div className="w-full bg-[#F5F5F7] px-6 py-12 md:py-20 font-sans">
-      <div className="max-w-[1400px] mx-auto flex flex-col lg:flex-row lg:items-end justify-between gap-10">
-
-        {/* Left: Heading */}
-        <h2 className="max-w-4xl text-5xl md:text-6xl lg:text-[4.5rem] font-bold text-black tracking-tight leading-[0.95]">
-          {title} <br className="hidden md:block" />
-          <span className="text-primary">{highlight}</span>
-        </h2>
-
-        {/* Right: Description */}
-        <p className="max-w-xs text-gray-500 text-lg md:text-l font-medium leading-relaxed pb-2">
-          {description}
-        </p>
-
-      </div>
-    </div>
-  );
+    return (
+        <section className="ds-page px-6 py-12 md:py-16">
+            <div className="ds-shell flex flex-col gap-6">
+                <p className="ds-eyebrow">DigitalStudio</p>
+                <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr),320px] lg:items-end">
+                    <h1 className="text-4xl font-bold tracking-tight text-slate-900 md:text-5xl">
+                        {title} <span className="text-slate-500">{highlight}</span>
+                    </h1>
+                    <p className="text-base leading-7 text-slate-600">{description}</p>
+                </div>
+            </div>
+        </section>
+    );
 };
 
 export default BuildSitesHeader;

@@ -12,8 +12,12 @@ import productService from '../services/productService';
 import { normalizeProduct } from '../utils/normalizers';
 
 import Meta from '../components/common/Meta';
+import CarouselStack from '../components/CarouselStack';
+import ConfigContext from '../context/ConfigContext';
+import { useContext } from 'react';
 
 const Home = () => {
+    const { config } = useContext(ConfigContext);
     const { data, isLoading, error } = useQuery({
         queryKey: ['products', 'featured-home'],
         queryFn: () => productService.getAll({ featured: true, limit: 3 }),
@@ -27,10 +31,17 @@ const Home = () => {
     return (
         <>
             <Meta 
-                title="Premium Developer Templates & Code Assets"
-                description="Discover and acquire the best React templates, SaaS boilerplates, and developer tools."
+                title="Developer Templates, Docs, and Code Assets"
+                description="Browse developer templates, documentation, and code assets for teams shipping product work."
             />
             <HeroSection />
+            
+            {config?.carouselStack?.length > 0 && (
+                <div className="bg-[#f5f5f7]">
+                    <CarouselStack items={config.carouselStack} />
+                </div>
+            )}
+
             <FeaturedHeader />
             {isLoading ? (
                 <LoadingSkeleton count={3} />

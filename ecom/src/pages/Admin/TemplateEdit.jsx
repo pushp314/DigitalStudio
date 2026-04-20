@@ -29,7 +29,7 @@ const emptyForm = {
     ogImage: '',
 };
 
-const ProductEdit = () => {
+const TemplateEdit = () => {
     const { id } = useParams();
     const navigate = useNavigate();
     const { success, error } = useToast();
@@ -65,7 +65,7 @@ const ProductEdit = () => {
                 });
             } catch (err) {
                 error(err.message || 'Error fetching template details');
-                navigate('/admin/inventory');
+                navigate('/admin/templates');
             } finally {
                 setLoading(false);
             }
@@ -113,6 +113,9 @@ const ProductEdit = () => {
         }
     };
 
+    const isAdminPath = window.location.pathname.startsWith('/admin');
+    const backPath = isAdminPath ? '/admin/templates' : '/account?tab=studio';
+
     const handleSubmit = async (event) => {
         if (event) event.preventDefault();
         const payload = {
@@ -129,14 +132,14 @@ const ProductEdit = () => {
         try {
             if (isCreateMode) {
                 await productService.create(payload);
-                success('Template created successfully');
+                success(isAdminPath ? 'Template created successfully' : 'Template submitted for administrative review.');
             } else {
                 await productService.update(id, payload);
-                success('Template updated');
+                success(isAdminPath ? 'Template updated' : 'Draft updated. Re-review might be required.');
             }
-            navigate('/admin/inventory');
+            navigate(backPath);
         } catch (err) {
-            error('Failed to save template');
+            error('Protocol failure: Could not transmit template data.');
         }
     };
 
@@ -155,12 +158,12 @@ const ProductEdit = () => {
                 {/* Header */}
                 <div className="flex justify-between items-center mb-12">
                     <div>
-                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.3em] mb-2">Template Master</p>
-                        <h1 className="text-4xl font-bold text-black tracking-tight">{pageTitle}</h1>
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.3em] mb-2">{isAdminPath ? 'Template Master' : 'Creator Studio'}</p>
+                        <h1 className="text-4xl font-bold text-black tracking-tight">{isAdminPath ? pageTitle : (isCreateMode ? 'Submit Template' : 'Edit Submission')}</h1>
                     </div>
                     <div className="flex gap-4">
-                        <button onClick={() => navigate('/admin/inventory')} className="text-xs font-bold text-gray-400 uppercase tracking-widest hover:text-black transition-all">Cancel</button>
-                        <button onClick={handleSubmit} className="px-10 py-4 bg-black text-white rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-gray-800 transition-all shadow-xl shadow-black/10 active:scale-95">Save Changes</button>
+                        <button onClick={() => navigate(backPath)} className="text-xs font-bold text-gray-400 uppercase tracking-widest hover:text-black transition-all">Cancel</button>
+                        <button onClick={handleSubmit} className="px-10 py-4 bg-black text-white rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-gray-800 transition-all shadow-xl shadow-black/10 active:scale-95">{isAdminPath ? 'Save Changes' : (isCreateMode ? 'Submit for Review' : 'Update Template')}</button>
                     </div>
                 </div>
 
@@ -318,4 +321,4 @@ const Field = ({ label, children }) => (
     </div>
 );
 
-export default ProductEdit;
+export default TemplateEdit;

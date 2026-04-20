@@ -2,7 +2,7 @@ import React, { useRef, useEffect } from 'react';
 import MessageItem from './MessageItem';
 import { Terminal, Search } from 'lucide-react';
 
-const MessageList = ({ messages, user, historyLoading, searchQuery, typingUsers = {} }) => {
+const MessageList = ({ messages, user, historyLoading, searchQuery, typingUsers = {}, onDelete, onEdit, onReply, isSelectionMode, onToggleSelection, selectedIds }) => {
     const scrollRef = useRef(null);
     const lastMessageRef = useRef(null);
 
@@ -49,18 +49,44 @@ const MessageList = ({ messages, user, historyLoading, searchQuery, typingUsers 
         );
     }
 
+    if (messages.length === 0) {
+        return (
+            <div className="flex-1 flex flex-col items-center justify-center text-center p-10 animate-in fade-in zoom-in-95 duration-700">
+                <div className="w-32 h-32 relative mb-10 group">
+                    <div className="absolute inset-0 bg-blue-100/30 rounded-[2.5rem] rotate-6 group-hover:rotate-12 transition-transform duration-500"></div>
+                    <div className="absolute inset-0 bg-slate-900 text-white rounded-[2.5rem] flex items-center justify-center shadow-2xl relative z-10">
+                        <Terminal size={48} strokeWidth={1.5} />
+                    </div>
+                </div>
+                <h3 className="text-md font-black text-slate-900 tracking-tight mb-2">Protocol Stream Empty</h3>
+                <p className="text-xs text-slate-400 font-medium max-w-[240px] leading-relaxed mx-auto uppercase tracking-widest">
+                    Initialize the community matrix by transmitting your first data packet below.
+                </p>
+            </div>
+        );
+    }
+
     return (
         <div 
             ref={scrollRef}
-            className="flex-1 overflow-y-auto px-6 md:px-12 py-10 space-y-8 scroll-smooth bg-white"
+            className="flex-1 overflow-y-auto px-6 md:px-12 py-10 space-y-2 scroll-smooth bg-white"
         >
             {filteredMessages.map((msg, i) => (
-                <MessageItem 
+                <div 
                     key={msg.id ? `db-${msg.id}` : `opt-${msg.cid || i}`} 
-                    msg={msg} 
-                    isMe={msg.userId === user?.id} 
-                    user={user}
-                />
+                    id={`msg-${msg.id}`}
+                    onClick={() => isSelectionMode && onToggleSelection(msg.id)}
+                    className={`${isSelectionMode ? 'cursor-pointer' : ''} ${selectedIds?.includes(msg.id) ? 'bg-blue-50/50 ring-1 ring-blue-500/20' : ''} rounded-2xl transition-all`}
+                >
+                    <MessageItem 
+                        msg={msg} 
+                        isMe={msg.userId === user?.id} 
+                        user={user}
+                        onDelete={onDelete}
+                        onEdit={onEdit}
+                        onReply={onReply}
+                    />
+                </div>
             ))}
 
             {/* Typing Indicator */}

@@ -6,10 +6,10 @@ const ConfigContext = createContext();
 
 export const ConfigProvider = ({ children }) => {
     const [config, setConfig] = useState({
-        heroTitle: "Build premium products for developers",
+        heroTitle: 'Build faster with products for developers',
         announcements: [],
         showAnnouncement: false,
-        supportEmail: "",
+        supportEmail: '',
         features: {
             docs: true,
             reviews: true,
@@ -51,7 +51,7 @@ export const ConfigProvider = ({ children }) => {
             const data = await configService.getPublic();
             setConfig(normalizeSiteConfig(data));
         } catch (error) {
-            console.error("Failed to fetch site config", error);
+            console.error('Failed to fetch site config', error);
         } finally {
             setLoading(false);
         }
@@ -65,12 +65,15 @@ export const ConfigProvider = ({ children }) => {
         setConfig(normalizeSiteConfig(newConfig));
     };
 
-    const value = React.useMemo(() => ({ 
-        config, 
-        updateContextConfig, 
-        loading, 
-        fetchConfig 
-    }), [config, loading]);
+    const value = React.useMemo(
+        () => ({
+            config,
+            updateContextConfig,
+            loading,
+            fetchConfig,
+        }),
+        [config, loading],
+    );
 
     return (
         <ConfigContext.Provider value={value}>

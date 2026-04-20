@@ -111,7 +111,18 @@ export const AuthProvider = ({ children }) => {
     }, []);
 
     return (
-        <AuthContext.Provider value={{ user, login, register, logout, loading, completeOAuth, purchasedProductIds, refreshPurchases: fetchPurchasedProducts }}>
+        <AuthContext.Provider value={{ 
+            user, 
+            setUser, 
+            login, 
+            register, 
+            logout, 
+            loading, 
+            completeOAuth, 
+            purchasedProductIds, 
+            refreshPurchases: fetchPurchasedProducts,
+            refreshUser: checkUserLoggedIn 
+        }}>
             {children}
         </AuthContext.Provider>
     );

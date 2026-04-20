@@ -1,15 +1,17 @@
 package handlers
 
 import (
+	"log"
 	"net/http"
+	"strconv"
 	"strings"
-
+	"time"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/pushp314/digitalstudio/go-server/config"
 	"github.com/pushp314/digitalstudio/go-server/models"
 	"github.com/pushp314/digitalstudio/go-server/services"
 	"golang.org/x/crypto/bcrypt"
-	"strconv"
 )
 
 type UpdateUserReq struct {
@@ -155,4 +157,208 @@ func ResetUserPassword(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Password reset successfully"})
+}
+
+// GetPublicProfile returns sanitized user data for community discovery
+func GetPublicProfile(c *gin.Context) {
+	idOrUsername := c.Param("id")
+	var user models.User
+
+	// Try numeric ID first, then username
+	if id, err := strconv.ParseUint(idOrUsername, 10, 32); err == nil {
+		if err := config.DB.First(&user, id).Error; err != nil {
+			config.DB.Where("username = ?", idOrUsername).First(&user)
+		}
+	} else {
+		config.DB.Where("username = ?", idOrUsername).First(&user)
+	}
+
+	if user.ID == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		return
+	}
+
+	// Trigger GitHub Sync if linked and not synced in last hour
+	if user.Github != "" {
+		shouldSync := user.LastGithubSync == nil || time.Since(*user.LastGithubSync) > time.Hour
+		if shouldSync {
+			if stats, err := services.FetchGithubStats(user.Github); err == nil {
+				user.TotalCommits = stats.Commits
+				user.TotalStars = stats.Stars
+				user.TotalFollowers = stats.Followers
+				user.TotalGists = stats.Gists
+				user.GithubAccountAge = stats.AccountAge
+				now := time.Now()
+				user.LastGithubSync = &now
+				config.DB.Save(&user)
+			}
+		}
+	}
+
+	// Fetch user's approved products
+	var products []models.Product
+	config.DB.Where("author_id = ? AND moderation_status = ?", user.ID, models.ModStatusApproved).Order("created_at desc").Limit(6).Find(&products)
+
+	// Fetch user's approved showcases
+	var showcases []models.DeploymentSubmission
+	config.DB.Where("user_id = ? AND status = ?", user.ID, "approved").Order("created_at desc").Limit(4).Find(&showcases)
+
+	// Sanitize output
+	sanitized := gin.H{
+		"id":               user.ID,
+		"username":         user.Username,
+		"name":             user.Name,
+		"role":             user.Role,
+		"subscriptionPlan": user.SubscriptionPlan,
+		"createdAt":        user.CreatedAt,
+		"bio":              user.Bio,
+		"website":          user.Website,
+		"github":           user.Github,
+		"twitter":          user.Twitter,
+		"xp":               user.XP,
+		"rank":             user.Rank,
+		"commits":          user.TotalCommits,
+		"stars":            user.TotalStars,
+		"followers":        user.TotalFollowers,
+		"gists":            user.TotalGists,
+		"accountAge":       user.GithubAccountAge,
+		"deployments":      user.TotalDeployments,
+		"avatarUrl":        user.AvatarURL,
+		"products":         products,
+		"showcases":        showcases,
+	}
+
+	c.JSON(http.StatusOK, sanitized)
+}
+
+// UpdateMyProfile allows a user to update their own profile fields
+func UpdateMyProfile(c *gin.Context) {
+	// 1. Sync schema to ensure new fields are present
+	if err := config.DB.AutoMigrate(&models.User{}); err != nil {
+		log.Printf("AutoMigrate failed: %v", err)
+	}
+
+	// 2. Hotfix: Clean up partner_code conflicts (convert "" to NULL)
+	// This resolves the unique constraint violation for legacy users
+	config.DB.Exec("UPDATE users SET partner_code = NULL WHERE partner_code = ''")
+
+	userID, _ := c.Get("userID")
+	var user models.User
+	if err := config.DB.First(&user, userID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		return
+	}
+
+	var req struct {
+		Name         string `json:"name"`
+		Username     string `json:"username"`
+		Bio          string `json:"bio"`
+		Website      string `json:"website"`
+		Github       string `json:"github"`
+		Twitter      string `json:"twitter"`
+		ChatSettings string `json:"chatSettings"`
+		AvatarURL    string `json:"avatarUrl"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if req.Username != "" && (user.Username == nil || req.Username != *user.Username) {
+		// 30-Day Restriction Logic
+		if user.LastUsernameChangeAt != nil {
+			nextAvailable := user.LastUsernameChangeAt.Add(30 * 24 * time.Hour)
+			if time.Now().Before(nextAvailable) {
+				daysLeft := int(time.Until(nextAvailable).Hours() / 24)
+				if daysLeft < 1 {
+					respondError(c, http.StatusForbidden, "Identity locked. You can update your handle again in less than a day.")
+				} else {
+					respondError(c, http.StatusForbidden, fmt.Sprintf("Identity locked. You can update your handle again in %d days.", daysLeft))
+				}
+				return
+			}
+		}
+
+		var existing models.User
+		if err := config.DB.Where("username = ?", req.Username).First(&existing).Error; err == nil {
+			c.JSON(http.StatusConflict, gin.H{"error": "Username already taken"})
+			return
+		}
+		uname := strings.ToLower(req.Username)
+		user.Username = &uname
+		now := time.Now()
+		user.LastUsernameChangeAt = &now
+	}
+
+	if req.Name != "" {
+		user.Name = req.Name
+	}
+	user.Bio = req.Bio
+	user.Website = req.Website
+	user.Github = req.Github
+	user.Twitter = req.Twitter
+	if req.ChatSettings != "" {
+		user.ChatSettings = req.ChatSettings
+	}
+	if req.AvatarURL != "" {
+		user.AvatarURL = req.AvatarURL
+	}
+	if req.Username != "" {
+		// Basic validation: alphanumeric + underscores only
+		cleanUsername := strings.TrimLeft(strings.TrimSpace(req.Username), "@")
+		user.Username = &cleanUsername
+	}
+
+	if err := config.DB.Save(&user).Error; err != nil {
+		log.Printf("Profile update failed for user %d: %v", userID, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Update failed: " + err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, user)
+}
+
+// ReportUser logs a violation for a specific user profile
+func ReportUser(c *gin.Context) {
+	idOrUsername := c.Param("id")
+	var user models.User
+	// Try numeric ID first, then username
+	if id, err := strconv.ParseUint(idOrUsername, 10, 32); err == nil {
+		if err := config.DB.First(&user, id).Error; err != nil {
+			config.DB.Where("username = ?", idOrUsername).First(&user)
+		}
+	} else {
+		config.DB.Where("username = ?", idOrUsername).First(&user)
+	}
+
+	if user.ID == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		return
+	}
+
+	var req struct {
+		Reason string `json:"reason" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Reason is required"})
+		return
+	}
+
+	actorID, _ := c.Get("userID")
+	actor := actorID.(uint)
+	resourceID := user.ID
+	services.WriteAuditLog(nil, services.AuditEvent{
+		RequestID:    requestIDFromContext(c),
+		ActorUserID:  &actor,
+		EventType:    "user.profile_reported",
+		ResourceType: "user",
+		ResourceID:   &resourceID,
+		Message:      fmt.Sprintf("User @%s reported: %s", *user.Username, req.Reason),
+		Metadata: map[string]interface{}{
+			"reason": req.Reason,
+		},
+	})
+
+	c.JSON(http.StatusOK, gin.H{"status": "Violation logged for administrative review"})
 }

@@ -1,27 +1,20 @@
 import React, { useEffect } from 'react';
 
-/**
- * Meta component for dynamic SEO management.
- * Updates document title and meta tags.
- */
 const Meta = ({ title, description, image, url, type = 'website' }) => {
     const siteName = 'DigitalStudio';
     const fullTitle = title ? `${title} | ${siteName}` : siteName;
-    const defaultDescription = 'DigitalStudio offers premium developer templates, UI kits, and code assets.';
+    const defaultDescription = 'DigitalStudio offers developer templates, documentation, and code assets for product teams.';
     const defaultImage = 'https://digitalstudio.dev/og-image.png';
     const defaultUrl = window.location.href;
 
     useEffect(() => {
-        // Update Title
         document.title = fullTitle;
 
-        // Update Description
         const metaDescription = document.querySelector('meta[name="description"]');
         if (metaDescription) {
             metaDescription.setAttribute('content', description || defaultDescription);
         }
 
-        // OG Tags
         const ogTitle = document.querySelector('meta[property="og:title"]');
         if (ogTitle) ogTitle.setAttribute('content', fullTitle);
 
@@ -37,7 +30,6 @@ const Meta = ({ title, description, image, url, type = 'website' }) => {
         const ogType = document.querySelector('meta[property="og:type"]');
         if (ogType) ogType.setAttribute('content', type);
 
-        // Twitter Tags
         const twitterTitle = document.querySelector('meta[property="twitter:title"]');
         if (twitterTitle) twitterTitle.setAttribute('content', fullTitle);
 
@@ -46,8 +38,7 @@ const Meta = ({ title, description, image, url, type = 'website' }) => {
 
         const twitterImage = document.querySelector('meta[property="twitter:image"]');
         if (twitterImage) twitterImage.setAttribute('content', image || defaultImage);
-
-    }, [title, description, image, url, type]);
+    }, [title, description, image, url, type, fullTitle]);
 
     return null;
 };

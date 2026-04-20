@@ -111,6 +111,7 @@ type CreateProductReq struct {
 	PreviewImages        []models.ProductPreview `json:"previewImages"`
 	Features             []string                `json:"features"`
 	Pages                []string                `json:"pages"`
+	ModerationStatus     models.ModerationStatus `json:"moderationStatus"`
 }
 
 type reviewMetric struct {
@@ -186,13 +187,17 @@ func GetOwnedProducts(c *gin.Context) {
 		return
 	}
 
-	var productIDs []uint
-	config.DB.Table("order_items").
+	var products []models.Product
+	config.DB.Model(&models.Product{}).
+		Select("products.*").
+		Joins("JOIN order_items ON order_items.product_id = products.id").
 		Joins("JOIN orders ON orders.id = order_items.order_id").
 		Where("orders.user_id = ? AND (orders.payment_status = ? OR orders.status = ?)", userID, "paid", "paid").
-		Pluck("DISTINCT product_id", &productIDs)
+		Group("products.id").
+		Find(&products)
 
-	c.JSON(http.StatusOK, productIDs)
+	enrichProducts(&products)
+	c.JSON(http.StatusOK, products)
 }
 
 func GetProduct(c *gin.Context) {
@@ -212,6 +217,10 @@ func GetProduct(c *gin.Context) {
 }
 
 func CreateProduct(c *gin.Context) {
+	userID, _ := c.Get("userID")
+	userRole, _ := c.Get("userRole")
+	isAdmin := userRole == models.RoleAdmin
+
 	var req CreateProductReq
 	if err := c.ShouldBindJSON(&req); err != nil {
 		respondError(c, http.StatusBadRequest, err.Error())
@@ -224,6 +233,7 @@ func CreateProduct(c *gin.Context) {
 	}
 
 	product := models.Product{
+		AuthorID:             userID.(uint),
 		Title:                req.Title,
 		Slug:                 productSlug,
 		Description:          req.Description,
@@ -253,8 +263,17 @@ func CreateProduct(c *gin.Context) {
 	if product.Type == "" {
 		product.Type = models.ProductTypeTemplate
 	}
-	if strings.TrimSpace(product.StatusFlags) == "" {
-		product.StatusFlags = "active"
+	
+	// Governance: Non-admins are forced into Pending status
+	if !isAdmin {
+		product.ModerationStatus = models.ModStatusPending
+		product.StatusFlags = "active" // Default start
+		product.RevenueShare = 0      // Must be set by admin
+	} else {
+		product.ModerationStatus = models.ModStatusApproved // Admins bypass
+		if strings.TrimSpace(product.StatusFlags) == "" {
+			product.StatusFlags = "active"
+		}
 	}
 
 	applyProductTags(&product, req.Tags)
@@ -263,6 +282,7 @@ func CreateProduct(c *gin.Context) {
 		respondError(c, http.StatusInternalServerError, err.Error())
 		return
 	}
+	
 	if len(product.Tags) > 0 {
 		if err := config.DB.Model(&product).Association("Tags").Replace(product.Tags); err != nil {
 			respondError(c, http.StatusInternalServerError, err.Error())
@@ -276,9 +296,19 @@ func CreateProduct(c *gin.Context) {
 
 func UpdateProduct(c *gin.Context) {
 	id := c.Param("id")
+	userID, _ := c.Get("userID")
+	userRole, _ := c.Get("userRole")
+	isAdmin := userRole == models.RoleAdmin
+
 	var product models.Product
 	if err := config.DB.Preload("Tags").First(&product, id).Error; err != nil {
 		respondError(c, http.StatusNotFound, "Product not found")
+		return
+	}
+
+	// Governance: Only Author or Admin can update
+	if product.AuthorID != userID.(uint) && !isAdmin {
+		respondError(c, http.StatusForbidden, "You do not have authorization to modify this digital asset.")
 		return
 	}
 
@@ -327,6 +357,16 @@ func UpdateProduct(c *gin.Context) {
 	if req.Version != "" {
 		product.Version = req.Version
 	}
+	
+	// Governance: Authors can unpublish (set to pending), but only admins can approve
+	if req.ModerationStatus != "" {
+		if isAdmin {
+			product.ModerationStatus = req.ModerationStatus
+		} else if req.ModerationStatus == models.ModStatusPending {
+			product.ModerationStatus = models.ModStatusPending
+		}
+	}
+
 	product.RequiresSubscription = req.RequiresSubscription
 	product.VideoURL = req.VideoURL
 	product.CourseOutline = req.CourseOutline
@@ -360,11 +400,27 @@ func UpdateProduct(c *gin.Context) {
 
 func DeleteProduct(c *gin.Context) {
 	id := c.Param("id")
-	if err := config.DB.Delete(&models.Product{}, id).Error; err != nil {
+	userID, _ := c.Get("userID")
+	userRole, _ := c.Get("userRole")
+	isAdmin := userRole == models.RoleAdmin
+
+	var product models.Product
+	if err := config.DB.First(&product, id).Error; err != nil {
+		respondError(c, http.StatusNotFound, "Product not found")
+		return
+	}
+
+	// Governance: Only Author or Admin can delete
+	if product.AuthorID != userID.(uint) && !isAdmin {
+		respondError(c, http.StatusForbidden, "Unauthorized deletion attempt. Logged.")
+		return
+	}
+
+	if err := config.DB.Delete(&product).Error; err != nil {
 		respondError(c, http.StatusInternalServerError, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "Product deleted successfully"})
+	c.JSON(http.StatusOK, gin.H{"message": "Product record purged successfully"})
 }
 
 func applyProductTags(product *models.Product, tagNames []string) {

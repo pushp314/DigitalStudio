@@ -28,34 +28,38 @@ const OAuthCallback = () => {
             const result = await completeOAuth({ token, user });
 
             if (result.success) {
-                navigate('/profile', { replace: true });
-            } else {
-                setError(result.error || 'OAuth login failed');
+                navigate('/account', { replace: true });
+                return;
             }
+
+            setError(result.error || 'OAuth sign-in failed.');
         };
 
         finishOAuth();
     }, [completeOAuth, navigate, searchParams]);
 
     return (
-        <div className="min-h-screen bg-[#F5F5F7] flex items-center justify-center px-6">
-            <div className="max-w-md w-full bg-white rounded-3xl p-8 md:p-12 shadow-[0_20px_40px_-10px_rgba(0,0,0,0.1)] border border-gray-100 text-center">
+        <div className="ds-page flex min-h-screen items-center justify-center px-6 pt-20">
+            <div className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-sm md:p-10">
                 {error ? (
                     <>
-                        <h1 className="text-2xl font-black text-black mb-3">OAuth Sign-In Failed</h1>
-                        <p className="text-gray-500 mb-6">{error}</p>
+                        <p className="ds-eyebrow">Sign-in error</p>
+                        <h1 className="mt-2 text-2xl font-semibold tracking-tight text-slate-900">Unable to complete sign-in</h1>
+                        <p className="mt-3 text-sm text-slate-600">{error}</p>
                         <button
+                            type="button"
                             onClick={() => navigate('/login', { replace: true })}
-                            className="bg-primary text-white px-6 py-3 rounded-full font-bold hover:bg-blue-600 transition-colors"
+                            className="ds-button-primary mt-6"
                         >
-                            Back to Login
+                            Back to sign in
                         </button>
                     </>
                 ) : (
                     <>
-                        <div className="w-10 h-10 border-4 border-gray-200 border-t-primary rounded-full animate-spin mx-auto mb-6"></div>
-                        <h1 className="text-2xl font-black text-black mb-3">Signing you in</h1>
-                        <p className="text-gray-500">Finalizing your OAuth session and loading your account.</p>
+                        <div className="mx-auto mb-6 h-10 w-10 animate-spin rounded-full border-2 border-slate-200 border-t-slate-900" />
+                        <p className="ds-eyebrow">Signing in</p>
+                        <h1 className="mt-2 text-2xl font-semibold tracking-tight text-slate-900">Finalizing your account</h1>
+                        <p className="mt-3 text-sm text-slate-600">Please wait while we finish your sign-in.</p>
                     </>
                 )}
             </div>

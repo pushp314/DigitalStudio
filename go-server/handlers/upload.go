@@ -33,3 +33,21 @@ func UploadFile(c *gin.Context) {
 
 	c.JSON(http.StatusOK, result)
 }
+
+func UploadProfileAvatar(c *gin.Context) {
+	file, header, err := c.Request.FormFile("file")
+	if err != nil {
+		respondError(c, http.StatusBadRequest, "Failed to get file from request")
+		return
+	}
+	defer file.Close()
+
+	// Hardcode scope to PublicImage for profile avatars
+	result, err := services.UploadValidatedFile(c.Request.Context(), file, header, services.UploadScopePublicImage)
+	if err != nil {
+		respondError(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
+}

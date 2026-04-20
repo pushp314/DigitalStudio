@@ -4,14 +4,14 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 // Components
 import Navbar from "./components/layout/Navbar";
-import BottomNav from "./components/layout/BottomNav";
 import Footer from "./components/layout/Footer";
 
 // Context Providers
 import { AuthProvider } from "./context/AuthContext";
 import { CartProvider } from "./context/CartContext";
 import { WishlistProvider } from "./context/WishlistContext";
-import { ToastProvider } from "./context/ToastContext";
+import { RealtimeProvider, useRealtime } from './context/RealtimeContext';
+import ToastProvider, { ToastContext } from './context/ToastContext';
 import ConfigContext, { ConfigProvider } from './context/ConfigContext';
 import ErrorBoundary from './components/ErrorBoundary';
 import MaintenancePage from "./pages/MaintenancePage";
@@ -41,7 +41,7 @@ const Login = lazy(() => import("./pages/Auth/Login"));
 const Register = lazy(() => import("./pages/Auth/Register"));
 const OAuthCallback = lazy(() => import("./pages/Auth/OAuthCallback"));
 const AdminDashboard = lazy(() => import("./pages/admin/Dashboard"));
-const ProductEdit = lazy(() => import("./pages/admin/ProductEdit"));
+const TemplateEdit = lazy(() => import("./pages/admin/TemplateEdit"));
 const DocEdit = lazy(() => import("./pages/admin/DocEdit"));
 const Cart = lazy(() => import("./pages/Cart"));
 const Checkout = lazy(() => import("./pages/Checkout"));
@@ -50,8 +50,12 @@ const Profile = lazy(() => import("./pages/Profile"));
 const Docs = lazy(() => import('./pages/Docs'));
 const DocViewer = lazy(() => import('./pages/DocViewer'));
 const DevChat = lazy(() => import('./pages/DevChat'));
+const PublicProfile = lazy(() => import('./pages/PublicProfile'));
 const Pricing = lazy(() => import('./pages/PricingPlan'));
 const SubscriptionCheckout = lazy(() => import('./pages/SubscriptionCheckout'));
+const Legal = lazy(() => import('./pages/Legal'));
+const EliteHub = lazy(() => import('./pages/elite/EliteHub'));
+const EliteChat = lazy(() => import('./pages/elite/EliteChat'));
 import SearchPalette from "./components/ui/SearchPalette";
 import FlashBanner from "./components/growth/FlashBanner";
 
@@ -60,6 +64,8 @@ const AppShell = () => {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [platformDown, setPlatformDown] = useState(false);
   const [maintenanceMsg, setMaintenanceMsg] = useState('');
+  const { toast } = useContext(ToastContext);
+  const { events } = useRealtime();
   const location = useLocation();
   const isAdminPath = location.pathname.startsWith('/admin');
   const features = config?.features ?? {};
@@ -101,6 +107,17 @@ const AppShell = () => {
     return () => window.removeEventListener('platform_maintenance', handleMaintenance);
   }, [location.search]);
 
+  // Real-time System Notifications Listener
+  useEffect(() => {
+    if (events?.type === 'notification') {
+      const { title, message, style } = events.data;
+      toast(message, { 
+          title: title || "System Alert", 
+          type: style || 'info' 
+      });
+    }
+  }, [events, toast]);
+
   if (loading) {
     return <div className="h-screen w-full flex items-center justify-center bg-[#F5F5F7] text-black font-bold">Starting DigitalStudio...</div>;
   }
@@ -116,7 +133,13 @@ const AppShell = () => {
   }
 
   const isChatPath = location.pathname.startsWith('/chat');
-  const hideLayout = isAdminPath || isChatPath;
+  const isSupportPath = location.pathname.startsWith('/support');
+  const isAccountPath = location.pathname.startsWith('/account');
+  const excludedRoutes = ['templates', 'features', 'faq', 'contact', 'chat', 'docs', 'pricing', 'cart', 'checkout', 'login', 'register', 'account', 'wishlist', 'admin', 'support'];
+  const isProfilePath = location.pathname.startsWith('/@') || location.pathname.startsWith('/profile') || (location.pathname.split('/').length === 2 && location.pathname !== '/' && !excludedRoutes.includes(location.pathname.substring(1)));
+  const hideLayout = isAdminPath || isSupportPath || isChatPath || isProfilePath || isAccountPath || isAuthPath;
+  const hideFooter = hideLayout || location.pathname.startsWith('/cart') || location.pathname.startsWith('/checkout');
+
 
   const mainPadding = hideLayout
     ? 'pt-0' 
@@ -130,7 +153,6 @@ const AppShell = () => {
           {!hideLayout && <Navbar onSearchClick={() => setIsSearchOpen(true)} />}
           <SearchPalette isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
           {!hideLayout && <FlashBanner />}
-          {!hideLayout && <BottomNav />}
           <main className={`flex-grow transition-all duration-300 ${!hideLayout ? 'pb-32 md:pb-0' : ''} ${mainPadding}`}>
             <Routes>
               <Route path="/" element={<Home />} />
@@ -140,7 +162,11 @@ const AppShell = () => {
               {features.testimonials && <Route path="/testimonials" element={<Testimonials />} />}
               <Route path="/faq" element={<FAQ />} />
               <Route path="/contact" element={<Contact />} />
+              <Route path="/terms" element={<Legal type="terms" />} />
+              <Route path="/privacy" element={<Legal type="privacy" />} />
               <Route path="/chat" element={<ProtectedRoute><DevChat /></ProtectedRoute>} />
+              <Route path="/support" element={<ProtectedRoute><EliteHub /></ProtectedRoute>} />
+              <Route path="/support/chat/:id" element={<ProtectedRoute><EliteChat /></ProtectedRoute>} />
 
               {features.docs && (
                 <>
@@ -162,37 +188,28 @@ const AppShell = () => {
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
               <Route path="/auth/callback" element={<OAuthCallback />} />
-              <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+              <Route path="/account" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+              <Route path="/account/submit" element={<ProtectedRoute><TemplateEdit /></ProtectedRoute>} />
+              <Route path="/account/templates/:id/edit" element={<ProtectedRoute><TemplateEdit /></ProtectedRoute>} />
               <Route path="/wishlist" element={<Wishlist />} />
+              <Route path="/@:username" element={<PublicProfile />} />
+              <Route path="/profile/:username" element={<PublicProfile />} />
+              <Route path="/:username" element={<PublicProfile />} />
 
-               {/* Robust Admin Routes - Fixes 404 issues */}
+               {/* Unified Admin Namespace */}
               <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
-              <Route path="/admin/dashboard" element={<AdminRoute><AdminDashboard defaultTab="analytics" /></AdminRoute>} />
-              <Route path="/admin/analytics" element={<AdminRoute><AdminDashboard defaultTab="analytics" /></AdminRoute>} />
-              <Route path="/admin/inventory" element={<AdminRoute><AdminDashboard defaultTab="inventory" /></AdminRoute>} />
-              <Route path="/admin/docs" element={<AdminRoute><AdminDashboard defaultTab="docs" /></AdminRoute>} />
-              <Route path="/admin/config" element={<AdminRoute><AdminDashboard defaultTab="config" /></AdminRoute>} />
-              <Route path="/admin/maintenance" element={<AdminRoute><AdminDashboard defaultTab="maintenance" /></AdminRoute>} />
-              <Route path="/admin/orders" element={<AdminRoute><AdminDashboard defaultTab="orders" /></AdminRoute>} />
-              <Route path="/admin/licenses" element={<AdminRoute><AdminDashboard defaultTab="licenses" /></AdminRoute>} />
-              <Route path="/admin/subscriptions" element={<AdminRoute><AdminDashboard defaultTab="subscriptions" /></AdminRoute>} />
-              <Route path="/admin/users" element={<AdminRoute><AdminDashboard defaultTab="users" /></AdminRoute>} />
-              <Route path="/admin/marketing" element={<AdminRoute><AdminDashboard defaultTab="marketing" /></AdminRoute>} />
-              <Route path="/admin/testimonials" element={<AdminRoute><AdminDashboard defaultTab="testimonials" /></AdminRoute>} />
-              <Route path="/admin/showcase" element={<AdminRoute><AdminDashboard defaultTab="showcase" /></AdminRoute>} />
-              <Route path="/admin/messages" element={<AdminRoute><AdminDashboard defaultTab="messages" /></AdminRoute>} />
-              <Route path="/admin/settings" element={<AdminRoute><AdminDashboard defaultTab="settings" /></AdminRoute>} />
+              <Route path="/admin/:tab" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
               
               {/* Specialized Admin Pages */}
-              <Route path="/admin/product/new" element={<AdminRoute><ProductEdit /></AdminRoute>} />
-              <Route path="/admin/product/:id/edit" element={<AdminRoute><ProductEdit /></AdminRoute>} />
+              <Route path="/admin/templates/new" element={<AdminRoute><TemplateEdit /></AdminRoute>} />
+              <Route path="/admin/templates/:id/edit" element={<AdminRoute><TemplateEdit /></AdminRoute>} />
               <Route path="/admin/doc/new" element={<AdminRoute><DocEdit /></AdminRoute>} />
               <Route path="/admin/doc/:id/edit" element={<AdminRoute><DocEdit /></AdminRoute>} />
 
               <Route path="*" element={<NotFound />} />
             </Routes>
           </main>
-          {!hideLayout && <Footer />}
+          {!hideFooter && <Footer />}
         </div>
       </ErrorBoundary>
     </Suspense>
@@ -203,15 +220,17 @@ function App() {
   return (
     <AuthProvider>
       <ConfigProvider>
-        <CartProvider>
-          <WishlistProvider>
-            <ToastProvider>
-              <QueryClientProvider client={queryClient}>
-                <AppShell />
-              </QueryClientProvider>
-            </ToastProvider>
-          </WishlistProvider>
-        </CartProvider>
+        <RealtimeProvider>
+          <CartProvider>
+            <WishlistProvider>
+              <ToastProvider>
+                <QueryClientProvider client={queryClient}>
+                  <AppShell />
+                </QueryClientProvider>
+              </ToastProvider>
+            </WishlistProvider>
+          </CartProvider>
+        </RealtimeProvider>
       </ConfigProvider>
     </AuthProvider>
   );

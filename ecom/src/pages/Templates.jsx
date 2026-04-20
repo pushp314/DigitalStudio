@@ -1,4 +1,4 @@
-import React, { useState, useContext } from 'react';
+import React, { useContext, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import productService from '../services/productService';
@@ -10,199 +10,193 @@ import { FEATURES } from '../config/features';
 import { normalizeProduct } from '../utils/normalizers';
 import ConfigContext from '../context/ConfigContext';
 
+const PRODUCT_TYPES = [
+    { value: 'all', label: 'All products' },
+    { value: 'fullstack', label: 'Full-stack' },
+    { value: 'api', label: 'API' },
+    { value: 'component', label: 'Components' },
+    { value: 'mobile', label: 'Mobile' },
+    { value: 'template', label: 'Templates' },
+    { value: 'tool', label: 'Tools' },
+];
+
 const Templates = () => {
     const { config } = useContext(ConfigContext);
     const [searchParams, setSearchParams] = useSearchParams();
     const keyword = searchParams.get('search') || '';
     const [isAIModalOpen, setIsAIModalOpen] = useState(false);
-
-    // Filter states
     const [selectedCategory, setSelectedCategory] = useState('all');
     const [selectedProductType, setSelectedProductType] = useState('all');
-    const [showProOnly, setShowProOnly] = useState(false);
+    const [showMembersOnly, setShowMembersOnly] = useState(false);
     const [sortBy, setSortBy] = useState('newest');
 
-    const { data: rawTemplates, isLoading: loading, error: queryError, refetch } = useQuery({
+    const { data: rawTemplates, isLoading, error, refetch } = useQuery({
         queryKey: ['templates', keyword],
         queryFn: () => productService.getAll(keyword),
     });
 
-    const error = queryError?.message;
-    const templates = Array.isArray(rawTemplates) ? rawTemplates.map(normalizeProduct) : [];
+    const templates = useMemo(
+        () => (Array.isArray(rawTemplates) ? rawTemplates.map(normalizeProduct) : []),
+        [rawTemplates],
+    );
 
-    // Client-side filtering
-    const filteredTemplates = templates.filter(template => {
-        if (selectedCategory !== 'all' && template.category !== selectedCategory) {
-            return false;
-        }
-        if (selectedProductType !== 'all' && template.productType !== selectedProductType) {
-            return false;
-        }
-        if (showProOnly && !template.requiresSubscription) {
-            return false;
-        }
-        return true;
-    });
+    const categories = useMemo(
+        () => ['all', ...new Set(templates.map((template) => template.category).filter(Boolean))],
+        [templates],
+    );
 
-    // Sorting
-    const sortedTemplates = [...filteredTemplates].sort((a, b) => {
-        switch (sortBy) {
-            case 'price-low':
-                return a.price - b.price;
-            case 'price-high':
-                return b.price - a.price;
-            case 'rating':
-                return (b.rating || 0) - (a.rating || 0);
-            case 'popular':
-                return (b.numSales || 0) - (a.numSales || 0);
-            case 'newest':
-            default:
-                return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
-        }
-    });
+    const sortedTemplates = useMemo(() => {
+        const filtered = templates.filter((template) => {
+            if (selectedCategory !== 'all' && template.category !== selectedCategory) {
+                return false;
+            }
+            if (selectedProductType !== 'all' && template.productType !== selectedProductType) {
+                return false;
+            }
+            if (showMembersOnly && !template.requiresSubscription) {
+                return false;
+            }
+            return true;
+        });
 
-    // Get unique categories and types
-    const categories = ['all', ...new Set(templates.map(t => t.category))];
-    const productTypes = [
-        { value: 'all', label: 'All Products' },
-        { value: 'fullstack', label: 'Full-Stack Projects' },
-        { value: 'api', label: 'API Collections' },
-        { value: 'component', label: 'Component Libraries' },
-        { value: 'mobile', label: 'Mobile Apps' },
-        { value: 'template', label: 'Templates' },
-        { value: 'tool', label: 'Developer Tools' }
-    ];
+        return [...filtered].sort((left, right) => {
+            switch (sortBy) {
+                case 'price-low':
+                    return left.price - right.price;
+                case 'price-high':
+                    return right.price - left.price;
+                case 'rating':
+                    return (right.rating || 0) - (left.rating || 0);
+                case 'popular':
+                    return (right.numSales || 0) - (left.numSales || 0);
+                case 'newest':
+                default:
+                    return new Date(right.createdAt || 0) - new Date(left.createdAt || 0);
+            }
+        });
+    }, [selectedCategory, selectedProductType, showMembersOnly, sortBy, templates]);
+
+    const clearFilters = () => {
+        setSelectedCategory('all');
+        setSelectedProductType('all');
+        setShowMembersOnly(false);
+        setSortBy('newest');
+        setSearchParams({});
+    };
 
     return (
         <>
             <BuildSitesHeader
-                title="Explore our professional"
-                highlight="marketplace"
-                description="Production-ready code, full-stack projects, APIs, and components built for developers."
+                title="Browse practical"
+                highlight="products"
+                description="Find templates, components, and tools with clear pricing, clean previews, and product details that match what you receive."
             />
 
-            {/* Filter Bar */}
-            <div className={`w-full bg-white border-b border-gray-200 sticky z-40 transition-all duration-300 ${config?.showAnnouncement && config?.announcements?.length > 0 ? 'top-[88px] md:top-[112px]' : 'top-[64px] md:top-[88px]'}`}>
-                <div className="max-w-[1400px] mx-auto px-6 py-4">
-                    <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
-                        {/* Left: Filters */}
-                        <div className="flex flex-wrap gap-3">
-                            {/* Product Type Filter */}
-                            <select
-                                value={selectedProductType}
-                                onChange={(e) => setSelectedProductType(e.target.value)}
-                                className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            >
-                                {productTypes.map(type => (
-                                    <option key={type.value} value={type.value}>{type.label}</option>
-                                ))}
-                            </select>
-
-                            {/* Category Pills */}
-                            <div className="flex gap-2 flex-wrap">
-                                {categories.slice(0, 5).map(category => (
-                                    <button
-                                        key={category}
-                                        onClick={() => setSelectedCategory(category)}
-                                        className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${selectedCategory === category
-                                                ? 'bg-black text-white'
-                                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                            }`}
+            <section
+                className={`sticky z-40 border-y border-slate-200 bg-[#F5F5F7]/95 px-6 py-4 backdrop-blur ${
+                    config?.showAnnouncement && config?.announcements?.length > 0 ? 'top-[88px] md:top-[112px]' : 'top-[64px] md:top-[88px]'
+                }`}
+            >
+                <div className="ds-shell">
+                    <div className="ds-card p-4">
+                        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr),auto] lg:items-center">
+                            <div className="flex flex-col gap-3">
+                                <div className="grid gap-3 md:grid-cols-3">
+                                    <select
+                                        value={selectedProductType}
+                                        onChange={(event) => setSelectedProductType(event.target.value)}
+                                        className="ds-select"
                                     >
-                                        {category === 'all' ? 'All' : category}
-                                    </button>
-                                ))}
+                                        {PRODUCT_TYPES.map((type) => (
+                                            <option key={type.value} value={type.value}>
+                                                {type.label}
+                                            </option>
+                                        ))}
+                                    </select>
 
-                                <button
-                                    onClick={() => setShowProOnly(!showProOnly)}
-                                    className={`px-4 py-2 rounded-full text-sm font-bold transition-all flex items-center gap-2 border-2 ${showProOnly
-                                            ? 'bg-amber-400 border-amber-500 text-black shadow-lg shadow-amber-500/20'
-                                            : 'bg-white border-amber-100 text-amber-600 hover:bg-amber-50'
-                                        }`}
-                                >
-                                    <span className="text-xs">💎</span>
-                                    Pro Members only
+                                    <select
+                                        value={sortBy}
+                                        onChange={(event) => setSortBy(event.target.value)}
+                                        className="ds-select"
+                                    >
+                                        <option value="newest">Newest</option>
+                                        <option value="popular">Most popular</option>
+                                        <option value="rating">Highest rated</option>
+                                        <option value="price-low">Price: low to high</option>
+                                        <option value="price-high">Price: high to low</option>
+                                    </select>
+
+
+                                </div>
+
+                                <div className="flex flex-wrap gap-2">
+                                    {categories.slice(0, 6).map((category) => (
+                                        <button
+                                            key={category}
+                                            type="button"
+                                            onClick={() => setSelectedCategory(category)}
+                                            className={selectedCategory === category ? 'ds-button-primary' : 'ds-button-secondary'}
+                                        >
+                                            {category === 'all' ? 'All categories' : category}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="flex flex-wrap items-center gap-3 lg:justify-end">
+                                <span className="text-sm text-slate-500" aria-live="polite">
+                                    {sortedTemplates.length} {sortedTemplates.length === 1 ? 'product' : 'products'}
+                                </span>
+                                <button type="button" onClick={clearFilters} className="ds-button-ghost">
+                                    Clear filters
                                 </button>
+                                {FEATURES.ai && (
+                                    <button type="button" onClick={() => setIsAIModalOpen(true)} className="ds-button-secondary">
+                                        Ask AI
+                                    </button>
+                                )}
                             </div>
                         </div>
-
-                        {/* Right: Sort & Count */}
-                        <div className="flex items-center gap-4">
-                            <span className="text-sm text-gray-500" aria-live="polite">
-                                {sortedTemplates.length} {sortedTemplates.length === 1 ? 'product' : 'products'}
-                            </span>
-                            <select
-                                value={sortBy}
-                                onChange={(e) => setSortBy(e.target.value)}
-                                className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            >
-                                <option value="newest">Newest</option>
-                                <option value="popular">Most Popular</option>
-                                <option value="rating">Highest Rated</option>
-                                <option value="price-low">Price: Low to High</option>
-                                <option value="price-high">Price: High to Low</option>
-                            </select>
-                            
-                            {FEATURES.ai && (
-                                <button
-                                    onClick={() => setIsAIModalOpen(true)}
-                                    className="hidden md:flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg font-bold text-sm shadow-md hover:bg-blue-600 hover:shadow-lg transition-all"
-                                >
-                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
-                                    Ask AI
-                                </button>
-                            )}
-                        </div>
                     </div>
                 </div>
-            </div>
+            </section>
 
-            {/* Main Content */}
-            {loading ? (
+            {isLoading ? (
                 <LoadingSkeleton count={6} />
             ) : error ? (
-                <div className="min-h-[40vh] flex flex-col items-center justify-center p-6">
-                    <div className="text-center max-w-md">
-                        <svg className="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        <h3 className="text-2xl font-bold text-gray-900 mb-2">Something went wrong</h3>
-                        <p className="text-gray-500 mb-6">{error}</p>
-                        <button
-                            onClick={() => refetch()}
-                            className="bg-primary text-white px-6 py-3 rounded-full font-bold hover:bg-blue-600 transition-colors"
-                        >
-                            Try Again
-                        </button>
+                <section className="ds-page px-6 py-16">
+                    <div className="ds-shell">
+                        <div className="ds-card p-8 text-center">
+                            <h2 className="text-2xl font-semibold tracking-tight text-slate-900">Products are temporarily unavailable</h2>
+                            <p className="mt-3 text-sm leading-6 text-slate-600">
+                                We could not load the catalog from the API. Please try again.
+                            </p>
+                            <button type="button" onClick={() => refetch()} className="ds-button-primary mt-6">
+                                Try again
+                            </button>
+                        </div>
                     </div>
-                </div>
+                </section>
             ) : sortedTemplates.length === 0 ? (
-                <div className="min-h-[40vh] flex flex-col items-center justify-center p-6">
-                    <div className="text-center max-w-md">
-                        <svg className="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-                        </svg>
-                        <h3 className="text-2xl font-bold text-gray-900 mb-2">No products found</h3>
-                        <p className="text-gray-500 mb-6">Try adjusting your filters or search terms</p>
-                        <button
-                            onClick={() => {
-                                setSelectedCategory('all');
-                                setSelectedProductType('all');
-                                setSearchParams({});
-                            }}
-                            className="bg-primary text-white px-6 py-3 rounded-full font-bold hover:bg-blue-600 transition-colors"
-                        >
-                            Clear Filters
-                        </button>
+                <section className="ds-page px-6 py-16">
+                    <div className="ds-shell">
+                        <div className="ds-card p-8 text-center">
+                            <h2 className="text-2xl font-semibold tracking-tight text-slate-900">No matching products</h2>
+                            <p className="mt-3 text-sm leading-6 text-slate-600">
+                                Adjust your filters or search terms to see more results.
+                            </p>
+                            <button type="button" onClick={clearFilters} className="ds-button-primary mt-6">
+                                Reset filters
+                            </button>
+                        </div>
                     </div>
-                </div>
+                </section>
             ) : (
                 <div className="mt-8 md:mt-12">
                     <TemplateGrid items={sortedTemplates} />
                 </div>
             )}
 
-            {/* AI Agent Recommendations */}
             {FEATURES.ai && (
                 <AIRecommendationModal
                     isOpen={isAIModalOpen}

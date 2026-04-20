@@ -2,6 +2,8 @@ package models
 
 import (
 	"time"
+
+	"gorm.io/gorm"
 )
 
 type ProductType string
@@ -80,8 +82,9 @@ type Product struct {
 	NumSales   int64   `gorm:"-" json:"numSales"`
 	Revenue    float64 `gorm:"-" json:"revenue"`
 
-	CreatedAt time.Time `json:"createdAt"`
-	UpdatedAt time.Time `json:"updatedAt"`
+	CreatedAt time.Time      `json:"createdAt"`
+	UpdatedAt time.Time      `json:"updatedAt"`
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 }
 
 type Tag struct {

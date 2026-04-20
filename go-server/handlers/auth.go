@@ -40,7 +40,7 @@ func Register(c *gin.Context) {
 		Password:         string(hashedPassword),
 		Role:             models.RoleUser,
 		SubscriptionPlan: "free",
-		PartnerCode:      utils.GeneratePartnerCode(req.Name),
+		PartnerCode:      func(s string) *string { return &s }(utils.GeneratePartnerCode(req.Name)),
 	}
 
 	// Link Referrer if provided
@@ -148,4 +148,46 @@ func AdminUpdateUser(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, user)
+}
+
+func ChangePassword(c *gin.Context) {
+	val, _ := c.Get("userID")
+	uid := val.(uint)
+
+	var req struct {
+		OldPassword string `json:"oldPassword" binding:"required"`
+		NewPassword string `json:"newPassword" binding:"required,min=6"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		respondError(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	var user models.User
+	if err := config.DB.First(&user, uid).Error; err != nil {
+		respondError(c, http.StatusNotFound, "User not found")
+		return
+	}
+
+	// Verify old password
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.OldPassword)); err != nil {
+		respondError(c, http.StatusUnauthorized, "Incorrect current password")
+		return
+	}
+
+	// Hash new password
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.NewPassword), bcrypt.DefaultCost)
+	if err != nil {
+		respondError(c, http.StatusInternalServerError, "Failed to hash new password")
+		return
+	}
+
+	user.Password = string(hashedPassword)
+	if err := config.DB.Save(&user).Error; err != nil {
+		respondError(c, http.StatusInternalServerError, "Failed to save new password")
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Password changed successfully"})
 }

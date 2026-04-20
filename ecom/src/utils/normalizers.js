@@ -26,6 +26,7 @@ export const normalizeUser = (user = {}) => ({
     email: toString(user.email),
     role: toString(user.role, 'user'),
     subscriptionPlan: toString(user.subscriptionPlan ?? user.subscription_plan, 'free'),
+    isPro: Boolean(user.isPro ?? user.is_pro ?? (user.subscriptionPlan === 'pro' || user.subscription_plan === 'pro') ?? false),
     provider: toString(user.provider, 'local'),
     providerId: toString(user.providerId ?? user.provider_id),
     suspended: Boolean(user.suspended ?? false),
@@ -194,6 +195,11 @@ export const normalizeSiteConfig = (config = {}) => ({
     announcements: toArray(config.announcements).length > 0 
         ? toArray(config.announcements) 
         : (config.announcementMessage ? [config.announcementMessage] : []),
+    carouselStack: toArray(config.carouselStack).map(item => ({
+        image: toString(item.image),
+        link: toString(item.link),
+        title: toString(item.title)
+    })),
     showAnnouncement: Boolean(config.showAnnouncement),
     supportEmail: config.supportEmail ?? '',
     features: config.features ?? {},

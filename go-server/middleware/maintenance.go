@@ -20,6 +20,7 @@ func MaintenanceMiddleware() gin.HandlerFunc {
 		   strings.HasPrefix(path, "/api/licenses") ||
 		   strings.HasPrefix(path, "/api/analytics") ||
 		   strings.HasPrefix(path, "/api/intelligence") ||
+		   strings.HasPrefix(path, "/api/elite") ||
 		   strings.HasPrefix(path, "/api/docs") ||
 		   strings.HasPrefix(path, "/api/testimonials") ||
 		   path == "/api/upload" ||

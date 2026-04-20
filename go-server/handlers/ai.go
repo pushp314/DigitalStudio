@@ -13,6 +13,142 @@ import (
 	"github.com/pushp314/digitalstudio/go-server/models"
 )
 
+type aiEditorReq struct {
+	Title     string      `json:"title"`
+	TechStack interface{} `json:"techStack"`
+	Content   string      `json:"content"`
+	Category  string      `json:"category"`
+	Features  interface{} `json:"features"`
+}
+
+func GenerateAIDescription(c *gin.Context) {
+	if !aiEnabled() {
+		respondError(c, http.StatusServiceUnavailable, "AI features are currently disabled")
+		return
+	}
+
+	var req aiEditorReq
+	if err := c.ShouldBindJSON(&req); err != nil {
+		respondError(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	title := strings.TrimSpace(req.Title)
+	if title == "" {
+		respondError(c, http.StatusBadRequest, "title is required")
+		return
+	}
+
+	techStack := stringifyAIMixedValue(req.TechStack)
+	prompt := fmt.Sprintf("Write a concise, professional marketplace description for a product titled %q. Tech stack: %s. Return plain text only in 2-4 sentences.", title, techStack)
+	answer, err := requestAIAnswer(prompt)
+	if err != nil || strings.TrimSpace(answer) == "" {
+		answer = fallbackDescription(title, techStack)
+	}
+
+	c.JSON(http.StatusOK, gin.H{"description": strings.TrimSpace(answer)})
+}
+
+func SuggestAITags(c *gin.Context) {
+	if !aiEnabled() {
+		respondError(c, http.StatusServiceUnavailable, "AI features are currently disabled")
+		return
+	}
+
+	var req aiEditorReq
+	if err := c.ShouldBindJSON(&req); err != nil {
+		respondError(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	title := strings.TrimSpace(req.Title)
+	if title == "" {
+		respondError(c, http.StatusBadRequest, "title is required")
+		return
+	}
+
+	prompt := fmt.Sprintf("Suggest 5 concise tags for a digital product titled %q. Context: %s. Return a JSON array of strings.", title, strings.TrimSpace(req.Content))
+	answer, err := requestAIAnswer(prompt)
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{"tags": fallbackTags(title, req.Content)})
+		return
+	}
+
+	var tags []string
+	if err := json.Unmarshal([]byte(strings.TrimSpace(answer)), &tags); err != nil || len(tags) == 0 {
+		tags = fallbackTags(title, req.Content)
+	}
+
+	c.JSON(http.StatusOK, gin.H{"tags": tags})
+}
+
+func RecommendAIPricing(c *gin.Context) {
+	if !aiEnabled() {
+		respondError(c, http.StatusServiceUnavailable, "AI features are currently disabled")
+		return
+	}
+
+	var req aiEditorReq
+	if err := c.ShouldBindJSON(&req); err != nil {
+		respondError(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	prompt := fmt.Sprintf("Recommend a fair INR launch price for a digital product. Category: %s. Features: %s. Return ONLY a whole number.", strings.TrimSpace(req.Category), stringifyAIMixedValue(req.Features))
+	answer, err := requestAIAnswer(prompt)
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{"price": fallbackPrice(req.Category)})
+		return
+	}
+
+	var recommended int
+	if _, err := fmt.Sscanf(strings.TrimSpace(answer), "%d", &recommended); err != nil || recommended <= 0 {
+		recommended = fallbackPrice(req.Category)
+	}
+
+	c.JSON(http.StatusOK, gin.H{"price": recommended})
+}
+
+func SuggestUsernames(c *gin.Context) {
+	if !aiEnabled() {
+		respondError(c, http.StatusServiceUnavailable, "AI features are currently disabled")
+		return
+	}
+
+	var req struct {
+		Name string `json:"name" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		respondError(c, http.StatusBadRequest, "Name is required for synthesis")
+		return
+	}
+
+	prompt := fmt.Sprintf("Suggest 5 unique, developer-centric, tech-inspired usernames for a user named %q. Focus on clean, professional handles using prefixes like 'code', 'dev', 'pixel', 'byte', or technical suffixes. Return ONLY a JSON array of strings.", req.Name)
+	answer, err := requestAIAnswer(prompt)
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{"suggestions": []string{"dev_" + strings.ToLower(strings.Fields(req.Name)[0])}})
+		return
+	}
+
+	// Clean JSON from markdown if necessary
+	cleanJSON := strings.TrimSpace(answer)
+	if strings.HasPrefix(cleanJSON, "```json") {
+		cleanJSON = strings.TrimPrefix(cleanJSON, "```json")
+		cleanJSON = strings.TrimSuffix(cleanJSON, "```")
+	} else if strings.HasPrefix(cleanJSON, "```") {
+		cleanJSON = strings.TrimPrefix(cleanJSON, "```")
+		cleanJSON = strings.TrimSuffix(cleanJSON, "```")
+	}
+
+	var suggestions []string
+	if err := json.Unmarshal([]byte(strings.TrimSpace(cleanJSON)), &suggestions); err != nil {
+		c.JSON(http.StatusOK, gin.H{"suggestions": []string{"dev_" + strings.ToLower(strings.Fields(req.Name)[0])}})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"suggestions": suggestions})
+}
+
 func GetAIRecommendation(c *gin.Context) {
 	if !aiEnabled() {
 		respondError(c, http.StatusServiceUnavailable, "AI features are currently disabled")
@@ -173,4 +309,87 @@ func AnalyzeInquiry(message string) (string, int) {
 	}
 
 	return analysis.Sentiment, analysis.Priority
+}
+
+func requestAIAnswer(prompt string) (string, error) {
+	aiReqBody, _ := json.Marshal(map[string]string{
+		"prompt": prompt,
+		"model":  aiModel(),
+	})
+
+	serviceURL := aiServiceURL()
+	resp, err := http.Post(serviceURL+"/ai/prompt", "application/json", bytes.NewBuffer(aiReqBody))
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	bodyBytes, _ := io.ReadAll(resp.Body)
+	var aiResp struct {
+		Answer string `json:"answer"`
+	}
+	if err := json.Unmarshal(bodyBytes, &aiResp); err != nil {
+		return "", err
+	}
+
+	return aiResp.Answer, nil
+}
+
+func stringifyAIMixedValue(value interface{}) string {
+	switch typed := value.(type) {
+	case []interface{}:
+		parts := make([]string, 0, len(typed))
+		for _, item := range typed {
+			parts = append(parts, stringifyAIMixedValue(item))
+		}
+		return strings.Join(parts, ", ")
+	case []string:
+		return strings.Join(typed, ", ")
+	case string:
+		return typed
+	default:
+		bytes, err := json.Marshal(typed)
+		if err != nil {
+			return ""
+		}
+		return string(bytes)
+	}
+}
+
+func fallbackDescription(title string, techStack string) string {
+	if strings.TrimSpace(techStack) == "" {
+		return fmt.Sprintf("%s is a production-ready digital product built to help teams ship faster with a clean starting point and practical implementation details.", title)
+	}
+	return fmt.Sprintf("%s is a production-ready digital product built with %s. It gives teams a clean starting point for shipping faster with clear structure, practical features, and room to customize.", title, techStack)
+}
+
+func fallbackTags(title string, content interface{}) []string {
+	joined := strings.ToLower(strings.TrimSpace(title + " " + stringifyAIMixedValue(content)))
+	candidates := []string{"react", "nextjs", "saas", "dashboard", "ui", "template", "documentation", "api", "go", "typescript"}
+	tags := make([]string, 0, 5)
+	for _, candidate := range candidates {
+		if strings.Contains(joined, candidate) {
+			tags = append(tags, candidate)
+		}
+		if len(tags) == 5 {
+			break
+		}
+	}
+	if len(tags) == 0 {
+		tags = []string{"template", "web", "starter"}
+	}
+	return tags
+}
+
+func fallbackPrice(category string) int {
+	switch strings.ToLower(strings.TrimSpace(category)) {
+	case "subscription":
+		return 29
+	case "fullstack", "saas", "dashboard":
+		return 79
+	case "component", "ui_kit", "icon_set":
+		return 29
+	default:
+		return 49
+	}
 }

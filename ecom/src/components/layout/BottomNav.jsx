@@ -56,7 +56,7 @@ const BottomNav = () => {
                 </NavLink>
 
                 {/* Profile */}
-                <NavLink to="/profile" className={({ isActive }) => `flex flex-col items-center gap-1 p-2 rounded-2xl transition-all ${isActive ? 'text-primary' : 'text-gray-400'}`}>
+                <NavLink to="/account" className={({ isActive }) => `flex flex-col items-center gap-1 p-2 rounded-2xl transition-all ${isActive ? 'text-primary' : 'text-gray-400'}`}>
                     <div className={`w-6 h-6 rounded-full overflow-hidden flex items-center justify-center border ${user ? 'border-primary bg-primary/20' : 'border-gray-500 bg-gray-500/20'}`}>
                         {user ? (
                             <span className="text-[10px] font-bold text-white">{user.name.charAt(0).toUpperCase()}</span>

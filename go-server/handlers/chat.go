@@ -13,6 +13,7 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/pushp314/digitalstudio/go-server/config"
 	"github.com/pushp314/digitalstudio/go-server/models"
+	"github.com/pushp314/digitalstudio/go-server/services"
 	"strings"
 )
 
@@ -45,7 +46,7 @@ type Hub struct {
 
 func NewHub() *Hub {
 	return &Hub{
-		Broadcast:  make(chan []byte),
+		Broadcast:  make(chan []byte, 1024), // Buffered to handle bursts
 		Register:   make(chan *Client),
 		Unregister: make(chan *Client),
 		Clients:    make(map[*Client]bool),
@@ -68,7 +69,7 @@ func (h *Hub) Run() {
 			
 			// Notify others
 			h.broadcastSystemMsg(fmt.Sprintf("%s joined the stream", client.UserName))
-			h.broadcastOnlineCount()
+			h.broadcastPresence()
 
 		case client := <-h.Unregister:
 			h.mu.Lock()
@@ -79,7 +80,7 @@ func (h *Hub) Run() {
 				
 				// Notify others
 				h.broadcastSystemMsg(fmt.Sprintf("%s disconnected", client.UserName))
-				h.broadcastOnlineCount()
+				h.broadcastPresence()
 			} else {
 				h.mu.Unlock()
 			}
@@ -110,16 +111,26 @@ func (h *Hub) broadcastSystemMsg(content string) {
 	h.Broadcast <- payload
 }
 
-func (h *Hub) broadcastOnlineCount() {
+func (h *Hub) broadcastPresence() {
 	h.mu.Lock()
-	count := len(h.Clients)
+	userList := []gin.H{}
+	unique := make(map[uint]string)
+	for client := range h.Clients {
+		if client.UserID != 0 {
+			unique[client.UserID] = client.UserName
+		}
+	}
 	h.mu.Unlock()
 
+	for id, name := range unique {
+		userList = append(userList, gin.H{"id": id, "name": name})
+	}
+
 	msg := gin.H{
-			"type": "presence",
-			"count": count,
-			"userName": "System",
-			"createdAt": time.Now(),
+		"type":      "presence",
+		"count":     len(userList),
+		"users":     userList,
+		"createdAt": time.Now(),
 	}
 	payload, _ := json.Marshal(msg)
 	h.Broadcast <- payload
@@ -308,32 +319,94 @@ func SendChatMessage(c *gin.Context) {
 	}
 
 	var req struct {
-		Content string `json:"content" binding:"required"`
-		CID     string `json:"cid"`
+		Content        string `json:"content"`
+		CID            string `json:"cid"`
+		ParentID       *uint  `json:"parentId"`
+		ReplyToName    string `json:"replyToName"`
+		ReplyToContent string `json:"replyToContent"`
+		AttachmentURL  string `json:"attachmentUrl"`
+		IsImage        bool   `json:"isImage"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		respondError(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
+	isPro := user.IsPro || user.SubscriptionPlan == "pro" || user.Role == "admin"
+
+	// THE 2-MESSAGE PER DAY LIMITATION FOR NORMAL USERS
+	if !isPro {
+		var count int64
+		today := time.Now().Truncate(24 * time.Hour)
+		config.DB.Model(&models.ChatMessage{}).Where("user_id = ? AND created_at >= ?", user.ID, today).Count(&count)
+		if count >= 2 {
+			c.JSON(http.StatusForbidden, gin.H{
+				"error": "Daily interaction limit (2/2) reached. Acquire Pro Membership for unlimited real-time uplink.",
+				"limitReached": true,
+				"reason": "FREEMIUM_EXHAUSTED",
+			})
+			return
+		}
+		
+		// Text Length Limit (100 chars)
+		if len(req.Content) > 100 {
+			respondError(c, http.StatusForbidden, "Text limit (100 chars) reached. Purchase membership to expand bandwidth.")
+			return
+		}
+
+		// Block Images for Normal Users
+		if req.IsImage || req.AttachmentURL != "" {
+			respondError(c, http.StatusForbidden, "Visual data transmission is exclusive to Pro Members.")
+			return
+		}
+
+        // Block Emojis for Normal Users (Check for non-ASCII or common emoji ranges)
+        for _, r := range req.Content {
+            if r > 127 { // Simple catch-all for non-standard ASCII (emojis etc)
+                respondError(c, http.StatusForbidden, "Emotional payloads (emojis) require Pro Membership protocol.")
+                return
+            }
+        }
+	}
+
+    // --- AI BOT ASSISTANCE FOR PRO USERS ---
+    isBotRequest := strings.HasPrefix(strings.ToLower(strings.TrimSpace(req.Content)), "@bot")
+    if isBotRequest && !isPro {
+        respondError(c, http.StatusForbidden, "Technical Consultant @bot is available only for Pro Membership nodes.")
+        return
+    }
+
 	// Sanitization
 	content := strings.TrimSpace(req.Content)
-	if content == "" || strings.HasPrefix(content, "@") {
+	if content == "" && !req.IsImage {
 		respondError(c, http.StatusBadRequest, "Invalid message content")
 		return
 	}
 
 	dbMsg := models.ChatMessage{
-		UserID:    user.ID,
-		UserName:  user.Name,
-		Content:   content,
-		IsPro:     user.SubscriptionPlan == "pro",
-		Type:      "text",
-		CreatedAt: time.Now(),
-	}
-
-	if len(content) > 3 && content[:3] == "```" {
-		dbMsg.Type = "code"
+		UserID:         user.ID,
+		UserName:       user.Name,
+		UserAvatar:     user.AvatarURL,
+		UserHandle:     func() string {
+			if user.Username != nil {
+				return *user.Username
+			}
+			return fmt.Sprintf("%d", user.ID)
+		}(),
+		Content:        content,
+		IsPro:          isPro,
+		Role:           string(user.Role),
+		Type:           func() string {
+			if req.IsImage { return "image" }
+			if len(content) > 3 && content[:3] == "```" { return "code" }
+			return "text"
+		}(),
+		AttachmentURL:  req.AttachmentURL,
+		IsImage:        req.IsImage,
+		ParentID:       req.ParentID,
+		ReplyToName:    req.ReplyToName,
+		ReplyToContent: req.ReplyToContent,
+		CreatedAt:      time.Now(),
 	}
 
 	// Force migrate just in case
@@ -344,19 +417,243 @@ func SendChatMessage(c *gin.Context) {
 		return
 	}
 
+	// Award XP for contribution
+	services.AwardXP(&user, services.XPMsgSent)
+	config.DB.Save(&user)
+
 	// Immediate Broadcast to all connected clients
-	broadcastMsg := gin.H{
-		"id":        dbMsg.ID,
-		"cid":       req.CID,
-		"userId":    dbMsg.UserID,
-		"userName":  dbMsg.UserName,
-		"content":   dbMsg.Content,
-		"type":      dbMsg.Type,
-		"isPro":     dbMsg.IsPro,
-		"createdAt": dbMsg.CreatedAt,
+	broadcastData := gin.H{
+		"id":             dbMsg.ID,
+		"cid":            req.CID,
+		"userId":         dbMsg.UserID,
+		"userName":       dbMsg.UserName,
+		"username":       dbMsg.UserHandle,
+		"userAvatar":     dbMsg.UserAvatar,
+		"content":        dbMsg.Content,
+		"attachmentUrl":  dbMsg.AttachmentURL,
+		"isImage":        dbMsg.IsImage,
+		"type":           dbMsg.Type,
+		"isPro":          dbMsg.IsPro,
+		"role":           user.Role,
+		"parentId":       dbMsg.ParentID,
+		"replyToName":    dbMsg.ReplyToName,
+		"replyToContent": dbMsg.ReplyToContent,
+		"createdAt":      dbMsg.CreatedAt,
 	}
-	p, _ := json.Marshal(broadcastMsg)
+	p, _ := json.Marshal(broadcastData)
 	GlobalHub.Broadcast <- p
 
-	c.JSON(http.StatusCreated, broadcastMsg)
+	// If it was a bot request, trigger bot reply
+	if isBotRequest {
+		go func() {
+			botPrompt := strings.TrimSpace(strings.TrimPrefix(strings.ToLower(content), "@bot"))
+			if botPrompt == "" {
+				botPrompt = "Hello! I am your Technical Consultant. How can I assist you with your DigitalStudio assets today?"
+			} else {
+				// Augment prompt for technical context
+				botPrompt = "You are a Technical Consultant bot for DigitalStudio, a premium developer marketplace. A Pro Member asks: " + botPrompt + "\n\nProvide a technical, concise, and helpful response (max 100 words)."
+			}
+
+			botAnswer, err := requestAIAnswer(botPrompt)
+			if err != nil {
+				botAnswer = "My internal reasoning circuits are currently offline. Please try again in safe mode."
+			}
+
+			botMsg := models.ChatMessage{
+				UserName:   "DS Consultant @bot",
+				UserHandle: "bot",
+				Content:    botAnswer,
+				IsPro:      true,
+				Role:       "admin",
+				Type:       "text",
+				CreatedAt:  time.Now(),
+			}
+			config.DB.Create(&botMsg)
+
+			botPayload, _ := json.Marshal(gin.H{
+				"id":         botMsg.ID,
+				"userId":     0,
+				"userName":   botMsg.UserName,
+				"username":   botMsg.UserHandle,
+				"content":    botMsg.Content,
+				"type":       "text",
+				"isPro":      true,
+				"role":       "admin",
+				"createdAt":  botMsg.CreatedAt,
+				"isBot":      true,
+			})
+			GlobalHub.Broadcast <- botPayload
+		}()
+	}
+
+	c.JSON(http.StatusCreated, broadcastData)
 }
+
+func UpdateChatMessage(c *gin.Context) {
+	userID, _ := c.Get("userID")
+	msgID := c.Param("id")
+
+	var user models.User
+	config.DB.First(&user, userID)
+	if user.SubscriptionPlan != "pro" && user.Role != "admin" {
+		respondError(c, http.StatusForbidden, "Edit feature is exclusive to Pro users")
+		return
+	}
+
+	var msg models.ChatMessage
+	if err := config.DB.First(&msg, msgID).Error; err != nil {
+		respondError(c, http.StatusNotFound, "Message not found")
+		return
+	}
+
+	if msg.UserID != user.ID && user.Role != "admin" {
+		respondError(c, http.StatusForbidden, "You can only edit your own messages")
+		return
+	}
+
+	var req struct {
+		Content string `json:"content" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		respondError(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	msg.Content = strings.TrimSpace(req.Content)
+	config.DB.Save(&msg)
+
+	// Broadcast the update
+	updateSig := gin.H{
+		"id":      msg.ID,
+		"type":    "edit",
+		"content": msg.Content,
+	}
+	p, _ := json.Marshal(updateSig)
+	GlobalHub.Broadcast <- p
+
+	c.JSON(http.StatusOK, msg)
+}
+
+func DeleteChatMessage(c *gin.Context) {
+	userID, _ := c.Get("userID")
+	msgID := c.Param("id")
+
+	var msg models.ChatMessage
+	if err := config.DB.First(&msg, msgID).Error; err != nil {
+		respondError(c, http.StatusNotFound, "Message not found")
+		return
+	}
+
+	if msg.UserID != userID.(uint) {
+		var user models.User
+		config.DB.First(&user, userID)
+		if user.Role != "admin" {
+			respondError(c, http.StatusForbidden, "Unauthorized to delete this message")
+			return
+		}
+	}
+
+	config.DB.Delete(&msg)
+
+	// Broadcast the deletion signal
+	deleteSig := gin.H{
+		"id":   msg.ID,
+		"type": "delete",
+	}
+	p, _ := json.Marshal(deleteSig)
+	GlobalHub.Broadcast <- p
+
+	c.Status(http.StatusNoContent)
+}
+
+func PinChatMessage(c *gin.Context) {
+	userID, _ := c.Get("userID")
+	msgID := c.Param("id")
+
+	var user models.User
+	config.DB.First(&user, userID)
+	if user.Role != "admin" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Pinning is restricted to administrative nodes"})
+		return
+	}
+
+	var msg models.ChatMessage
+	if err := config.DB.First(&msg, msgID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Protocol node not found"})
+		return
+	}
+
+	msg.IsPinned = !msg.IsPinned
+	config.DB.Save(&msg)
+
+	// Broadcast Pin Signal
+	sig := gin.H{
+		"id":       msg.ID,
+		"type":     "metadata_update",
+		"isPinned": msg.IsPinned,
+	}
+	p, _ := json.Marshal(sig)
+	GlobalHub.Broadcast <- p
+
+	c.JSON(http.StatusOK, msg)
+}
+
+func ReportChatMessage(c *gin.Context) {
+	msgID := c.Param("id")
+
+	var msg models.ChatMessage
+	if err := config.DB.First(&msg, msgID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Protocol node not found"})
+		return
+	}
+
+	msg.ReportCount++
+	config.DB.Save(&msg)
+
+	// We don't broadcast report counts for privacy, just notify admin in real-time if needed
+	if msg.ReportCount >= 5 {
+		// Log critical violation for auditing
+		log.Printf("CRITICAL: Message %d has reached violation threshold (%d reports)", msg.ID, msg.ReportCount)
+	}
+
+	c.JSON(http.StatusOK, gin.H{"status": "Violation logged for administrative review"})
+}
+
+func BulkDeleteMessages(c *gin.Context) {
+	userID, _ := c.Get("userID")
+	var admin models.User
+	config.DB.First(&admin, userID)
+	if admin.Role != "admin" {
+		respondError(c, http.StatusForbidden, "Bulk moderation restricted to administrative nodes")
+		return
+	}
+
+	var req struct {
+		IDs []uint `json:"ids" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		respondError(c, http.StatusBadRequest, "ID array required for bulk purge")
+		return
+	}
+
+	if len(req.IDs) == 0 {
+		c.Status(http.StatusNoContent)
+		return
+	}
+
+	if err := config.DB.Where("id IN ?", req.IDs).Delete(&models.ChatMessage{}).Error; err != nil {
+		respondError(c, http.StatusInternalServerError, "Bulk purge operation failed")
+		return
+	}
+
+	// Broadcast Bulk Deletion Signal
+	sig := gin.H{
+		"ids":  req.IDs,
+		"type": "bulk_delete",
+	}
+	p, _ := json.Marshal(sig)
+	GlobalHub.Broadcast <- p
+
+	c.Status(http.StatusNoContent)
+}
+

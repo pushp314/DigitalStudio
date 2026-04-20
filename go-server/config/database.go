@@ -42,7 +42,11 @@ func ConnectDB() {
 			&models.Showcase{},
 			&models.ContactInquiry{},
 			&models.ChatMessage{},
+			&models.DocChatSession{},
 			&models.AuditLog{},
+			&models.GithubChangeRequest{},
+			&models.EliteChatSession{},
+			&models.EliteChatMessage{},
 		)
 		if err != nil {
 			log.Fatal("Failed to auto-migrate database:", err)

@@ -1,9 +1,12 @@
-import React, { useEffect, useMemo, useState, useContext } from 'react';
+import React, { useContext, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import ProBanner from '../components/ProBanner';
+import CarouselStack from '../components/CarouselStack';
 import docService from '../services/docService';
 import { useToast } from '../context/ToastContext';
 import { normalizeDoc } from '../utils/normalizers';
 import ConfigContext from '../context/ConfigContext';
+import { LayoutGrid, List, Search as SearchIcon, FileText, Lock, Crown, Zap, ShieldCheck, Download, Users } from 'lucide-react';
 
 const Docs = () => {
     const { config } = useContext(ConfigContext);
@@ -12,10 +15,9 @@ const Docs = () => {
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState('all');
     const [searchQuery, setSearchQuery] = useState('');
-    const [viewMode, setViewMode] = useState('list');
+    const [viewMode, setViewMode] = useState('list'); 
     const navigate = useNavigate();
 
-    // Feature Enforcement
     useEffect(() => {
         if (config && config.features && config.features.docs === false) {
             navigate('/');
@@ -28,7 +30,7 @@ const Docs = () => {
                 const data = await docService.getAll();
                 setDocs(Array.isArray(data) ? data.map(normalizeDoc) : []);
             } catch (err) {
-                error(err.message || 'Failed to load docs');
+                error(err.message || 'Failed to load docs.');
             } finally {
                 setLoading(false);
             }
@@ -38,192 +40,228 @@ const Docs = () => {
     }, [error]);
 
     const categories = useMemo(() => ['all', ...new Set(docs.map((doc) => doc.category).filter(Boolean))], [docs]);
-    
+
     const filteredDocs = useMemo(() => {
         return docs.filter((doc) => {
             const matchesFilter = filter === 'all' || doc.category === filter;
-            const matchesSearch = doc.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                                doc.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                                doc.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()));
+            const matchesSearch = doc.title.toLowerCase().includes(searchQuery.toLowerCase())
+                || doc.description?.toLowerCase().includes(searchQuery.toLowerCase())
+                || doc.tags.some((tag) => tag.toLowerCase().includes(searchQuery.toLowerCase()));
             return matchesFilter && matchesSearch;
         });
     }, [docs, filter, searchQuery]);
 
+    const membershipPerks = [
+        { icon: <Crown size={14} />, label: "Premium Templates" },
+        { icon: <ShieldCheck size={14} />, label: "Verified Technical Notes" },
+        { icon: <Zap size={14} />, label: "Implementation Guides" },
+        { icon: <Download size={14} />, label: "Source Asset Library" },
+        { icon: <Users size={14} />, label: "Private Member Support" },
+        { icon: <Lock size={14} />, label: "Encrypted Documentation" }
+    ];
+
+    // Double for infinite scroll
+    const scrollingPerks = [...membershipPerks, ...membershipPerks, ...membershipPerks];
+
     if (loading) {
         return (
             <div className="min-h-screen bg-[#F5F5F7] flex items-center justify-center">
-                <div className="w-8 h-8 border-4 border-gray-200 border-t-primary rounded-full animate-spin"></div>
+                <div className="h-10 w-10 animate-spin rounded-full border-2 border-slate-200 border-t-slate-900" />
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-[#F5F5F7] px-4 md:px-6 lg:px-8 py-24 md:py-32 font-sans">
-            <div className="max-w-[1400px] mx-auto">
-                {/* Search & Filter Bar */}
-                <div className="bg-white rounded-3xl p-4 shadow-xl shadow-gray-200/50 mb-12 border border-gray-100 flex flex-col md:flex-row gap-4 items-center">
-                    <div className="relative flex-1 w-full">
-                        <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                        </svg>
-                        <input 
-                            type="text" 
-                            placeholder="Search guides, tags, or topics..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full pl-12 pr-4 py-4 bg-gray-50 rounded-2xl focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all font-medium text-black placeholder:text-gray-400"
-                        />
+        <div className="min-h-screen bg-[#F5F5F7] px-6 pb-40 pt-16 antialiased font-sans transition-colors duration-500">
+            {/* 3D Visual Asset Highlights - THE HOOK */}
+            {config?.carouselStack?.length > 0 && (
+                <div className="mb-24">
+                    <div className="text-center mb-10">
+                        <span className="px-4 py-1.5 bg-blue-600 text-white text-[10px] font-black uppercase tracking-[0.3em] rounded-full shadow-lg shadow-blue-600/20">Featured Templates</span>
                     </div>
-                    <div className="flex items-center gap-4 w-full md:w-auto">
-                        <div className="flex gap-2 overflow-x-auto pb-2 md:pb-0 px-2 border-r border-gray-100 pr-4">
-                            {categories.map((category) => (
-                                <button
-                                    key={category}
-                                    onClick={() => setFilter(category)}
-                                    className={`px-6 py-3 rounded-2xl font-bold text-sm whitespace-nowrap transition-all ${filter === category
-                                        ? 'bg-black text-white shadow-lg'
-                                        : 'bg-white text-gray-500 hover:bg-gray-50 border border-transparent'
-                                        }`}
-                                >
-                                    {category === 'all' ? 'All Guides' : category}
-                                </button>
-                            ))}
-                        </div>
-                        <div className="flex bg-gray-100 p-1 rounded-2xl">
-                            <button 
-                                onClick={() => setViewMode('grid')}
-                                className={`p-2 rounded-xl transition-all ${viewMode === 'grid' ? 'bg-white text-black shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
-                            >
-                                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-                                </svg>
-                            </button>
-                            <button 
-                                onClick={() => setViewMode('list')}
-                                className={`p-2 rounded-xl transition-all ${viewMode === 'list' ? 'bg-white text-black shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
-                            >
-                                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                                </svg>
-                            </button>
-                        </div>
+                    <CarouselStack items={config.carouselStack} />
+                </div>
+            )}
+
+            <style>
+                {`
+                @keyframes perkScroll {
+                    0% { transform: translateX(0); }
+                    100% { transform: translateX(-33.33%); }
+                }
+                .animate-perks {
+                    animation: perkScroll 25s linear infinite;
+                }
+                `}
+            </style>
+
+            <div className="max-w-4xl mx-auto">
+                {/* Header Module - THE CONTEXT */}
+                <div className="mb-12 border-b border-slate-200 pb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
+                    <div className="space-y-2">
+                        <h1 className="text-5xl font-black tracking-tight text-slate-900 md:text-6xl uppercase leading-none">Library</h1>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] bg-slate-50 border border-slate-100 px-4 py-2 rounded-xl inline-block">Technical Intelligence Portal</p>
+                    </div>
+                    
+                    <div className="flex bg-slate-100/50 p-1.5 rounded-2xl border border-slate-200/50 shadow-inner">
+                        <button 
+                            onClick={() => setViewMode('grid')}
+                            className={`p-2.5 rounded-xl transition-all ${viewMode === 'grid' ? 'bg-white text-slate-900 shadow-xl' : 'text-slate-400 hover:text-slate-600'}`}
+                            title="Grid View"
+                        >
+                            <LayoutGrid size={20} />
+                        </button>
+                        <button 
+                            onClick={() => setViewMode('list')}
+                            className={`p-2.5 rounded-xl transition-all ${viewMode === 'list' ? 'bg-white text-slate-900 shadow-xl' : 'text-slate-400 hover:text-slate-600'}`}
+                            title="Editorial View"
+                        >
+                            <List size={20} />
+                        </button>
                     </div>
                 </div>
 
-                {viewMode === 'grid' ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
-                        {filteredDocs.map((doc) => (
-                            <Link 
-                                to={`/docs/${doc.id}`} 
-                                key={doc.id} 
-                                className="group flex flex-col bg-white rounded-[2rem] border border-gray-100 shadow-sm hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 relative overflow-hidden h-full"
+                {/* Tactical Search & Filter */}
+                <div className="flex flex-col md:flex-row items-center gap-6 mb-12">
+                     <div className="relative flex-1 w-full">
+                        <div className="absolute left-0 top-1/2 -translate-y-1/2 text-slate-400">
+                            <SearchIcon size={18} />
+                        </div>
+                        <input
+                            type="text"
+                            placeholder="Find documentation..."
+                            value={searchQuery}
+                            onChange={(event) => setSearchQuery(event.target.value)}
+                            className="w-full bg-transparent border-none rounded-none pl-8 pr-4 py-2 text-sm font-bold text-slate-900 placeholder:text-slate-400 focus:outline-none transition-all"
+                        />
+                    </div>
+                    <div className="flex flex-wrap gap-2 w-full md:w-auto">
+                        {categories.map((category) => (
+                            <button
+                                key={category}
+                                onClick={() => setFilter(category)}
+                                className={`px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all ${
+                                    filter === category 
+                                    ? 'bg-slate-900 text-white shadow-lg' 
+                                    : 'bg-white border border-slate-200 text-slate-500 hover:bg-slate-50'
+                                }`}
                             >
-                                {/* Thumbnail Image */}
-                                <div className="relative h-48 overflow-hidden">
-                                    {doc.image ? (
-                                        <img 
-                                            src={doc.image} 
-                                            alt={doc.title} 
-                                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                                        />
-                                    ) : (
-                                        <div className="w-full h-full bg-gray-50 flex items-center justify-center text-4xl">
-                                            {doc.icon || '📄'}
-                                        </div>
-                                    )}
-                                    <div className="absolute top-4 left-4 flex flex-col gap-2">
-                                        {doc.isPremium ? (
-                                            <span className="px-4 py-1.5 bg-black/60 backdrop-blur-md text-white text-[10px] font-black uppercase tracking-widest rounded-full border border-white/20">Premium</span>
-                                        ) : (
-                                            <span className="px-4 py-1.5 bg-green-500 text-white text-[10px] font-black uppercase tracking-widest rounded-full shadow-lg shadow-green-500/20">Free</span>
-                                        )}
-                                    </div>
-                                    <div className="absolute top-4 right-4 bg-white/90 backdrop-blur shadow-sm px-3 py-1 rounded-full text-[10px] font-bold text-gray-900 uppercase tracking-wider">
-                                        {doc.category}
-                                    </div>
-                                </div>
-
-                                <div className="p-8 flex flex-col flex-1 relative">
-                                    <h3 className="text-2xl font-black text-black mb-3 leading-tight group-hover:text-primary transition-colors line-clamp-2">{doc.title}</h3>
-                                    <p className="text-gray-500 text-sm leading-relaxed mb-6 line-clamp-2 flex-1">{doc.description || doc.previewContent}</p>
-                                    
-                                    <div className="flex items-center justify-between pt-6 border-t border-gray-50">
-                                        <div>
-                                            <p className="text-[10px] text-gray-400 font-bold uppercase mb-1">Pass Required</p>
-                                            <div className="text-sm font-black text-black">
-                                                {doc.isPremium ? '💎 DigitalStudio Pro' : '✅ Free Content'}
-                                            </div>
-                                        </div>
-                                        <div className="w-12 h-12 bg-black text-white rounded-full flex items-center justify-center group-hover:bg-primary group-hover:scale-110 transition-all shadow-lg">
-                                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                                            </svg>
-                                        </div>
-                                    </div>
-                                </div>
-                            </Link>
+                                {category === 'all' ? 'All' : category}
+                            </button>
                         ))}
                     </div>
+                </div>
+
+                {filteredDocs.length === 0 ? (
+                    <div className="py-24 text-center border-t border-slate-200">
+                        <FileText size={48} className="mx-auto text-slate-200 mb-6" />
+                        <h2 className="text-xl font-bold tracking-tight text-slate-900 uppercase">No Manuals Located</h2>
+                        <p className="mt-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest">Adjust your search parameters to find the doc.</p>
+                    </div>
                 ) : (
-                    <div className="flex flex-col gap-4 mb-16">
+                    <div className={viewMode === 'grid' 
+                        ? "grid gap-12 md:grid-cols-2" 
+                        : "space-y-12"
+                    }>
                         {filteredDocs.map((doc) => (
                             <Link 
-                                to={`/docs/${doc.id}`} 
                                 key={doc.id} 
-                                className="group flex items-center bg-white rounded-3xl p-4 border border-gray-100 shadow-sm hover:shadow-xl hover:border-gray-200 transition-all gap-6"
+                                to={`/docs/${doc.id}`} 
+                                className="group block"
                             >
-                                <div className="w-24 h-24 rounded-2xl overflow-hidden flex-shrink-0 relative shadow-inner">
-                                    {doc.image ? (
-                                        <img src={doc.image} alt={doc.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-                                    ) : (
-                                        <div className="w-full h-full bg-gray-50 flex items-center justify-center text-3xl">
-                                            {doc.icon || '📄'}
+                                {viewMode === 'grid' ? (
+                                    <div className="space-y-4">
+                                        <div className="aspect-[16/10] bg-white border border-slate-200 rounded-3xl relative overflow-hidden shadow-sm hover:shadow-md transition-all">
+                                            {doc.image ? (
+                                                <img src={doc.image} alt={doc.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                                            ) : (
+                                                <div className="flex w-full h-full items-center justify-center text-slate-100">
+                                                     <FileText size={48} strokeWidth={1} />
+                                                </div>
+                                            )}
                                         </div>
-                                    )}
-                                </div>
-                                <div className="flex-1">
-                                    <div className="flex items-center gap-3 mb-1">
-                                        <h3 className="text-xl font-black text-black group-hover:text-primary transition-colors">{doc.title}</h3>
-                                        <span className="px-3 py-0.5 bg-gray-100 text-gray-500 text-[9px] font-black uppercase rounded-full">
-                                            {doc.category}
-                                        </span>
+                                        <div className="space-y-2 px-2">
+                                            <h2 className="text-xl font-bold tracking-tight text-slate-900 group-hover:text-blue-600 transition-colors uppercase">{doc.title}</h2>
+                                            <p className="text-sm font-medium text-slate-500 line-clamp-2 leading-relaxed">{doc.description || doc.previewContent}</p>
+                                        </div>
                                     </div>
-                                    <p className="text-gray-500 text-sm line-clamp-1">{doc.description || doc.previewContent}</p>
-                                    <div className="flex items-center gap-4 mt-2">
-                                        {doc.isPremium ? (
-                                            <span className="text-[10px] font-black text-amber-500 uppercase flex items-center gap-1">
-                                                <span className="text-xs">💎</span> Pro Membership
-                                            </span>
-                                        ) : (
-                                            <span className="text-[10px] font-black text-green-500 uppercase flex items-center gap-1">
-                                                <span className="text-xs">✅</span> Free Access
-                                            </span>
-                                        )}
+                                ) : (
+                                    /* THE EDITORIAL LIST VIEW */
+                                    <div className="flex items-start justify-between gap-12 border-b border-slate-200 pb-12 transition-all group-hover:border-slate-900/10">
+                                        <div className="flex-1 space-y-3">
+                                            <div className="flex items-center gap-3 mb-2">
+                                                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-600">{doc.category || 'Documentation'}</span>
+                                                {doc.isPremium && <Lock size={12} className="text-slate-400" />}
+                                            </div>
+                                            <h2 className="text-2xl font-bold tracking-tight text-slate-900 leading-snug group-hover:text-blue-600 transition-colors uppercase">
+                                                {doc.title}
+                                            </h2>
+                                            <p className="text-base text-slate-500 leading-relaxed line-clamp-3 font-medium">
+                                                {doc.description || doc.previewContent}
+                                            </p>
+                                            <div className="flex items-center gap-4 pt-4 text-xs font-bold text-slate-400 uppercase tracking-widest">
+                                                <span>{new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                                                <span className="w-1 h-1 bg-slate-300 rounded-full"></span>
+                                                <span className={`px-2 py-0.5 rounded font-black ${doc.isPremium ? 'text-blue-600 bg-blue-50/50' : 'text-slate-400 bg-slate-200/50'}`}>
+                                                    {doc.isPremium ? 'Premium' : 'Public'}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="hidden sm:block w-32 h-32 md:w-40 md:h-28 bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden shrink-0 self-center group-hover:shadow-md transition-shadow">
+                                            {doc.image ? (
+                                                <img src={doc.image} alt={doc.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                                            ) : (
+                                                <div className="flex w-full h-full items-center justify-center text-slate-100">
+                                                     <FileText size={32} />
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
-                                </div>
-                                <div className="w-12 h-12 bg-gray-50 text-gray-400 rounded-full flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all mr-4">
-                                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                    </svg>
-                                </div>
+                                )}
                             </Link>
                         ))}
                     </div>
                 )}
 
-                <div className="bg-gradient-to-r from-primary to-blue-600 rounded-2xl p-8 md:p-12 text-center text-white">
-                    <h2 className="text-3xl md:text-4xl font-black mb-4">Need More Premium Access?</h2>
-                    <p className="text-lg mb-6 opacity-90">
-                        Unlock premium guides and tutorials with a DigitalStudio Pro membership. Access exclusive resources to boost your workflow.
-                    </p>
-                    <Link
-                        to="/profile"
-                        className="inline-block bg-white text-primary px-8 py-3 rounded-full font-bold hover:bg-gray-100 transition-colors"
-                    >
-                        View Account
-                    </Link>
+                {/* Sub-Header Integration Node - Moved to bottom for value-first flow */}
+                <div className="mt-24">
+                    <ProBanner className="shadow-2xl rounded-[3rem] overflow-hidden border border-white/10" />
                 </div>
             </div>
+
+            {/* Persistent Infinite Membership Bar */}
+            {config?.features?.subscriptions && (
+                <div className="fixed bottom-0 left-0 right-0 z-50 bg-slate-900 border-t border-white/10 shadow-2xl backdrop-blur-xl">
+                    <div className="max-w-7xl mx-auto flex items-center justify-between px-6 py-4">
+                        <div className="flex-1 overflow-hidden relative mr-12 hidden md:block">
+                            <div className="absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-slate-900 to-transparent z-10" />
+                            <div className="absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-slate-900 to-transparent z-10" />
+                            <div className="flex whitespace-nowrap animate-perks">
+                                {scrollingPerks.map((perk, idx) => (
+                                    <div key={idx} className="flex items-center gap-2 mx-10 text-[10px] font-bold text-white uppercase tracking-[0.2em] opacity-60">
+                                        <span className="text-blue-500">{perk.icon}</span>
+                                        {perk.label}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="flex items-center gap-6 shrink-0 w-full md:w-auto justify-between md:justify-end">
+                            <div className="flex flex-col md:text-right">
+                                <p className="text-[10px] font-black text-white uppercase tracking-widest leading-none">Unlock Nexus-Pro Access</p>
+                                <p className="text-[9px] text-blue-400 font-bold uppercase tracking-[0.2em] mt-1">Starting from ₹499/mo</p>
+                            </div>
+                            <Link 
+                                to="/pricing" 
+                                className="px-6 py-3 bg-white text-slate-900 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-50 transition-all shadow-xl hover:-translate-y-0.5 active:translate-y-0"
+                            >
+                                View Plans
+                            </Link>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

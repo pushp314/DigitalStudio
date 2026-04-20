@@ -92,11 +92,20 @@ func GithubLogin(c *gin.Context) {
 func GithubCallback(c *gin.Context) {
 	session := sessions.Default(c)
 	expectedState := session.Get("oauthState")
-	if expectedState != c.Query("state") {
+	stateReceived := c.Query("state")
+	
+	if expectedState != stateReceived {
 		respondError(c, http.StatusBadRequest, "Invalid state")
 		return
 	}
+	
+	// Determine if this is a connect request
+	isConnect := session.Get("oauthMode") == "connect"
+	connectedUID := session.Get("oauthUID")
+	
 	session.Delete("oauthState")
+	session.Delete("oauthMode")
+	session.Delete("oauthUID")
 	_ = session.Save()
 
 	code := c.Query("code")
@@ -114,14 +123,67 @@ func GithubCallback(c *gin.Context) {
 	}
 	defer resp.Body.Close()
 
-	var userInfo struct {
-		ID    int    `json:"id"`
-		Name  string `json:"name"`
-		Email string `json:"email"`
+	var ghUser struct {
+		ID        int    `json:"id"`
+		Login     string `json:"login"`
+		Name      string `json:"name"`
+		Email     string `json:"email"`
+		Repos     int    `json:"public_repos"`
+		Followers int    `json:"followers"`
+		Gists     int    `json:"public_gists"`
 	}
-	json.NewDecoder(resp.Body).Decode(&userInfo)
+	if err := json.NewDecoder(resp.Body).Decode(&ghUser); err != nil {
+		respondError(c, http.StatusInternalServerError, "Failed to decode user info")
+		return
+	}
 
-	if userInfo.Email == "" {
+	ghIDStr := fmt.Sprintf("%d", ghUser.ID)
+
+	if isConnect && connectedUID != nil {
+		uid := connectedUID.(uint)
+		var user models.User
+		if err := config.DB.First(&user, uid).Error; err != nil {
+			respondError(c, http.StatusNotFound, "User not found")
+			return
+		}
+
+		// Identity Lock Check: If user already has a DIFFERENT GitHub ID linked, block it
+		if user.GithubID != "" && user.GithubID != ghIDStr {
+			frontendURL := os.Getenv("FRONTEND_URL")
+			if frontendURL == "" {
+				frontendURL = "http://localhost:5173"
+			}
+			c.Redirect(http.StatusTemporaryRedirect, frontendURL+"/account?tab=settings&github=error_mismatch")
+			return
+		}
+
+		// Duplicate Account Check: If this GitHub ID is already linked to ANOTHER DigitalStudio account
+		var existingUser models.User
+		if err := config.DB.Where("github_id = ? AND id != ?", ghIDStr, user.ID).First(&existingUser).Error; err == nil {
+			frontendURL := os.Getenv("FRONTEND_URL")
+			if frontendURL == "" {
+				frontendURL = "http://localhost:5173"
+			}
+			c.Redirect(http.StatusTemporaryRedirect, frontendURL+"/account?tab=settings&github=error_duplicate")
+			return
+		}
+		
+		user.Github = ghUser.Login
+		user.GithubID = ghIDStr
+		user.TotalFollowers = ghUser.Followers
+		user.TotalGists = ghUser.Gists
+		
+		config.DB.Save(&user)
+		
+		frontendURL := os.Getenv("FRONTEND_URL")
+		if frontendURL == "" {
+			frontendURL = "http://localhost:5173"
+		}
+		c.Redirect(http.StatusTemporaryRedirect, frontendURL+"/account?tab=settings&github=connected")
+		return
+	}
+
+	if ghUser.Email == "" {
 		emailResp, err := client.Get("https://api.github.com/user/emails")
 		if err == nil {
 			var emails []struct {
@@ -132,14 +194,34 @@ func GithubCallback(c *gin.Context) {
 			emailResp.Body.Close()
 			for _, e := range emails {
 				if e.Primary {
-					userInfo.Email = e.Email
+					ghUser.Email = e.Email
 					break
 				}
 			}
 		}
 	}
 
-	handleOAuthUser(c, "github", fmt.Sprintf("%d", userInfo.ID), userInfo.Name, userInfo.Email)
+	handleOAuthUser(c, "github", fmt.Sprintf("%d", ghUser.ID), ghUser.Name, ghUser.Email)
+}
+
+func GithubConnect(c *gin.Context) {
+	// Identify user from context (AuthMiddleware should have run)
+	val, exists := c.Get("userID")
+	if !exists {
+		respondError(c, http.StatusUnauthorized, "Authentication required")
+		return
+	}
+	uid := val.(uint)
+
+	state := uuid.New().String()
+	session := sessions.Default(c)
+	session.Set("oauthState", state)
+	session.Set("oauthMode", "connect")
+	session.Set("oauthUID", uid)
+	session.Save()
+	
+	url := getGithubOAuthConfig().AuthCodeURL(state)
+	c.Redirect(http.StatusTemporaryRedirect, url)
 }
 
 func handleOAuthUser(c *gin.Context, provider, providerID, name, email string) {

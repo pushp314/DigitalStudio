@@ -19,9 +19,7 @@ func Run() {
 	}
 	log.Println("Seeder started...")
 	
-	// Clear existing configuration and docs to ensure fresh state with new schema
-	config.DB.Exec("DELETE FROM premium_docs")
-	config.DB.Exec("DELETE FROM site_configs")
+	// Ensure site configuration exists before proceeding
 
 	var admin models.User
 	config.DB.Where("email = ?", "admin@codestudio.com").First(&admin)
@@ -174,13 +172,26 @@ func Run() {
 			Title: "DigitalStudio Pro Pass",
 			Slug: "pro-membership",
 			Category: "Membership",
-			Price: 1999,
+			Price: 29,
 			Image: "https://images.unsplash.com/photo-1579389083078-4e7018379f7e?q=80&w=800",
 			Description: "Unlimited access to all documents and premium template unlocks.",
 			Type: models.ProductTypeSubscription,
 			StatusFlags: "featured",
 			RequiresSubscription: false,
 			TechStacks: []string{"All-Access"},
+		},
+		{
+			AuthorID: admin.ID,
+			Title: "DigitalStudio Elite Pass",
+			Slug: "institutional-membership",
+			Category: "Institutional",
+			Price: 59,
+			Image: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=800",
+			Description: "Institutional grade access for teams with dedicated CTO support.",
+			Type: models.ProductTypeSubscription,
+			StatusFlags: "premium",
+			RequiresSubscription: false,
+			TechStacks: []string{"Enterprise"},
 		},
 	}
 

@@ -93,3 +93,37 @@ func MyInquiries(c *gin.Context) {
 
 	c.JSON(http.StatusOK, inquiries)
 }
+
+func UserReplyToInquiry(c *gin.Context) {
+	user, err := optionalAuthenticatedUser(c)
+	if err != nil || user == nil {
+		respondError(c, http.StatusUnauthorized, "Unauthorized")
+		return
+	}
+
+	id := c.Param("id")
+	var inquiry models.ContactInquiry
+	if err := config.DB.Where("id = ? AND user_id = ?", id, user.ID).First(&inquiry).Error; err != nil {
+		respondError(c, http.StatusNotFound, "Inquiry not found or access denied")
+		return
+	}
+
+	var req struct {
+		Message string `json:"message" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		respondError(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	// Append to message thread logic
+	inquiry.Message = inquiry.Message + "\n\nUser Reply: " + req.Message
+	inquiry.Status = "pending" // Set back to pending so admin sees it
+
+	if err := config.DB.Save(&inquiry).Error; err != nil {
+		respondError(c, http.StatusInternalServerError, "Failed to save reply")
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Reply sent to support", "inquiry": inquiry})
+}

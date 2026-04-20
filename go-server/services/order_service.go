@@ -298,11 +298,22 @@ func FinalizePaidOrder(ctx context.Context, input SettleOrderInput) (*SettleOrde
 			return err
 		}
 
+		if err := ensureEliteSupportAccess(tx, &order); err != nil {
+			return err
+		}
+
 		issuedCount, err := EnsureOrderLicenses(tx, &order, input.RequestID)
 		if err != nil {
 			return err
 		}
 		result.LicensesIssued = issuedCount
+
+		// Award purchase XP
+		var user models.User
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&user, order.UserID).Error; err == nil {
+			AwardXP(&user, XPPurchase)
+			tx.Save(&user)
+		}
 
 		order.Entitled = true
 		result.Order = order
@@ -373,8 +384,8 @@ func priceOrder(tx *gorm.DB, items []DraftOrderItemInput, couponCode string, res
 			}
 			return nil, err
 		}
-		if !coupon.IsValid(priced.subtotal) {
-			if coupon.UsageLimit > 0 && coupon.UsageCount >= coupon.UsageLimit {
+		if !coupon.IsValid(priced.subtotal, "all") {
+			if coupon.UsageLimit > 0 && coupon.UsedCount >= coupon.UsageLimit {
 				return nil, ErrCouponUsageExceeded
 			}
 			return nil, ErrCouponInvalid
@@ -383,7 +394,7 @@ func priceOrder(tx *gorm.DB, items []DraftOrderItemInput, couponCode string, res
 		priced.coupon = &coupon
 		priced.discount = roundCurrency(coupon.CalculateDiscount(priced.subtotal))
 		if reserveCoupon {
-			coupon.UsageCount++
+			coupon.UsedCount++
 			if err := tx.Save(&coupon).Error; err != nil {
 				return nil, err
 			}
@@ -413,8 +424,8 @@ func releaseCouponReservation(tx *gorm.DB, order *models.Order) error {
 		return err
 	}
 
-	if coupon.UsageCount > 0 {
-		coupon.UsageCount--
+	if coupon.UsedCount > 0 {
+		coupon.UsedCount--
 		if err := tx.Save(&coupon).Error; err != nil {
 			return err
 		}
@@ -531,6 +542,47 @@ func ensurePartnerReward(tx *gorm.DB, order *models.Order, requestID string) (bo
 	})
 
 	return true, nil
+}
+
+func ensureEliteSupportAccess(tx *gorm.DB, order *models.Order) error {
+	if tx == nil || order == nil {
+		return nil
+	}
+
+	// For every product that is NOT a membership, grant 30 days of support chat
+	for _, item := range order.OrderItems {
+		var product models.Product
+		if err := tx.First(&product, item.ProductID).Error; err != nil {
+			continue
+		}
+
+		if product.Type != models.ProductTypeSubscription {
+			// Check if a session already exists for this user+product from this order
+			var count int64
+			tx.Model(&models.EliteChatSession{}).
+				Where("user_id = ? AND product_id = ? AND payment_id = ?", order.UserID, product.ID, order.ID).
+				Count(&count)
+			if count > 0 {
+				continue // Already created
+			}
+
+			orderID := order.ID
+			session := models.EliteChatSession{
+				UserID:    order.UserID,
+				ProductID: product.ID,
+				Title:     "Purchase Support: " + product.Title,
+				Status:    "active",
+				Source:    "purchase",
+				PaymentID: &orderID,
+				ExpiresAt: time.Now().Add(30 * 24 * time.Hour),
+			}
+			if err := tx.Create(&session).Error; err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
 }
 
 func resolveMembershipDuration(product models.Product) time.Duration {

@@ -13,6 +13,68 @@
   }
 }
 
+@layer components {
+  .ds-page {
+    @apply bg-[#F5F5F7];
+  }
+
+  .ds-section {
+    @apply px-6 py-16 md:py-20;
+  }
+
+  .ds-shell {
+    @apply mx-auto max-w-7xl;
+  }
+
+  .ds-card {
+    @apply rounded-2xl border border-slate-200 bg-white shadow-sm;
+  }
+
+  .ds-card-muted {
+    @apply rounded-xl border border-slate-200 bg-slate-50;
+  }
+
+  .ds-panel {
+    @apply rounded-3xl border border-slate-200 bg-white shadow-sm;
+  }
+
+  .ds-eyebrow {
+    @apply text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500;
+  }
+
+  .ds-heading {
+    @apply text-4xl font-bold tracking-tight text-slate-900 md:text-5xl;
+  }
+
+  .ds-subheading {
+    @apply text-base leading-7 text-slate-600 md:text-lg;
+  }
+
+  .ds-chip {
+    @apply inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-[11px] font-semibold text-slate-600;
+  }
+
+  .ds-input {
+    @apply w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-sm text-slate-900 outline-none transition-all placeholder:text-slate-400 focus:border-slate-900 focus:bg-white focus:ring-0;
+  }
+
+  .ds-select {
+    @apply rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 outline-none transition-all focus:border-slate-900;
+  }
+
+  .ds-button-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-slate-800;
+  }
+
+  .ds-button-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50;
+  }
+
+  .ds-button-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900;
+  }
+}
+
 @layer utilities {
   @keyframes scroll {
     0% {
@@ -58,6 +120,14 @@
 
   .delay-300 {
     animation-delay: 300ms;
+  }
+  @keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+  }
+
+  .animate-shimmer {
+    animation: shimmer 2s infinite linear;
   }
 }
 

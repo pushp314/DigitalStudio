@@ -1,583 +1,1155 @@
-import React, { useState, useEffect, useContext } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import React, { useState, useContext, useRef, useEffect, useMemo } from 'react';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import AuthContext from '../context/AuthContext';
-import ConfigContext from '../context/ConfigContext';
-import orderService from '../services/orderService';
-import ConfirmModal from '../components/ui/ConfirmModal';
+import api, { API_URL } from '../services/api';
+import { 
+    Settings, Shield, CreditCard, Github, 
+    Globe, Twitter, ExternalLink, LogOut, 
+    LayoutDashboard, Bell, Package,
+    Edit3, Check, ShieldCheck, Crown, Zap, History,
+     ArrowUpRight, MessageSquare,
+    Home, HelpCircle, User, Camera, 
+    Download, ShoppingBag, Share2, Eye, Trash2,
+    Settings2, AtSign, Lock, AlertCircle, Send, RefreshCw,
+    Wallet, Users, QrCode, Link as LinkIcon, X
+} from 'lucide-react';
 import { useToast } from '../context/ToastContext';
-import { normalizeOrder, formatCurrency } from '../utils/normalizers';
-import api from '../services/api';
-import WishlistContext from '../context/WishlistContext';
-import aiService from '../services/aiService';
-import licenseService from '../services/licenseService';
+import OAuthButton from '../components/ui/OAuthButton';
+import AvatarCropModal from '../components/ui/AvatarCropModal';
+import ConfirmationModal from '../components/ui/ConfirmationModal';
 
 const Profile = () => {
-    const { user, logout } = useContext(AuthContext);
-    const { success, error: toastError } = useToast();
+    const { user, setUser, logout } = useContext(AuthContext);
     const navigate = useNavigate();
-    const [activeTab, setActiveTab] = useState('overview');
-    const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
-    const [downloadingId, setDownloadingId] = useState(null);
-    const { wishlistItems } = useContext(WishlistContext);
-    const { data: rawOrders, isLoading: loading } = useQuery({
-        queryKey: ['orders', 'my'],
-        queryFn: () => orderService.getMyOrders(),
-        enabled: !!user,
-        select: (data) => (Array.isArray(data) ? data.map(normalizeOrder) : []),
+    const location = useLocation();
+    const queryClient = useQueryClient();
+    const { success, error: toastError, info } = useToast();
+    const fileInputRef = useRef(null);
+
+    const [cropModal, setCropModal] = useState({ isOpen: false, image: null });
+    const [confirmModal, setConfirmModal] = useState({ 
+        isOpen: false, 
+        title: '', 
+        message: '', 
+        confirmText: '',
+        onConfirm: () => {}, 
+        type: 'warning' 
     });
+    const queryParams = new URLSearchParams(location.search);
+    const activeTab = queryParams.get('tab') || 'overview';
 
-    const { data: licenses, isLoading: loadingLicenses } = useQuery({
-        queryKey: ['licenses', 'my'],
-        queryFn: () => licenseService.getMyLicenses(),
-        enabled: !!user,
-        select: (data) => (Array.isArray(data) ? data : []),
-    });
-
-    const { data: inquiries, isLoading: loadingInquiries } = useQuery({
-        queryKey: ['inquiries', 'my'],
-        queryFn: () => api.get('/my-inquiries').then(res => Array.isArray(res) ? res : []),
-        enabled: !!user,
-    });
-
-    const orders = rawOrders || [];
-
-    const { data: roadmapData, isLoading: loadingRoadmap } = useQuery({
-        queryKey: ['ai-roadmap', user?.id],
-        queryFn: () => aiService.getUserRoadmap((wishlistItems || []).map(i => i.id)),
-        enabled: !!user && activeTab === 'overview',
-        staleTime: 1000 * 60 * 60,
-    });
-
-    const { data: aiOffer, isLoading: loadingOffer } = useQuery({
-        queryKey: ['ai-offer', user?.id],
-        queryFn: () => api.post('/marketing/personalized-offers', { wishlistIds: (wishlistItems || []).map(i => i.id) }),
-        enabled: !!user && activeTab === 'overview',
-        staleTime: 1000 * 60 * 30,
+    const [isEditing, setIsEditing] = useState(false);
+    const [isUploading, setIsUploading] = useState(false);
+    const [formData, setFormData] = useState({
+        name: user?.name || '',
+        username: user?.username || '',
+        bio: user?.bio || '',
+        website: user?.website || '',
+        twitter: user?.twitter || '',
+        github: user?.github || '',
+        avatarUrl: user?.avatarUrl || ''
     });
 
     useEffect(() => {
-        if (!user) {
-            navigate('/login');
+        if (user) {
+            setFormData({
+                name: user.name || '',
+                username: user.username || '',
+                bio: user.bio || '',
+                website: user.website || '',
+                twitter: user.twitter || '',
+                github: user.github || '',
+                avatarUrl: user.avatarUrl || ''
+            });
         }
-    }, [user, navigate]);
+    }, [user]);
+
+    const [isSuggesting, setIsSuggesting] = useState(false);
+    const [suggestions, setSuggestions] = useState([]);
+    const [selectedOrderForInvoice, setSelectedOrderForInvoice] = useState(null);
+    
+    // Data Queries
+    const { data: ownedAssets } = useQuery({
+        queryKey: ['owned-assets'],
+        queryFn: () => api.get('/products/owned'),
+        enabled: activeTab === 'assets' || activeTab === 'overview'
+    });
+
+    const { data: orders } = useQuery({
+        queryKey: ['my-orders'],
+        queryFn: () => api.get('/orders/myorders'),
+        enabled: activeTab === 'billing'
+    });
+
+    const { data: inquiries, refetch: refetchInquiries } = useQuery({
+        queryKey: ['my-inquiries'],
+        queryFn: () => api.get('/profile/inquiries'),
+        enabled: activeTab === 'messages'
+    });
+
+    const updateProfile = useMutation({
+        mutationFn: (data) => api.put('/profile', data),
+        onSuccess: (updatedUser) => {
+            setUser(updatedUser);
+            queryClient.invalidateQueries(['me']);
+            success('Profile updated');
+            setIsEditing(false);
+        },
+        onError: (err) => toastError(err.message || 'Update failed')
+    });
+
+    const handleAvatarUpload = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        if (file.size > 2 * 1024 * 1024) {
+            toastError("Image exceeds 2MB limit");
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = () => {
+            setCropModal({ isOpen: true, image: reader.result });
+        };
+        reader.readAsDataURL(file);
+    };
+
+    const finalizeAvatarUpload = async (blob) => {
+        setCropModal({ isOpen: false, image: null });
+        setIsUploading(true);
+        const fileName = `avatar-${user.id}-${Date.now()}.webp`;
+        const file = new File([blob], fileName, { type: 'image/webp' });
+        
+        const uploadData = new FormData();
+        uploadData.append('file', file);
+        try {
+            const res = await api.post('/profile/upload-avatar', uploadData);
+            if (res.url) {
+                const newAvatarUrl = res.url;
+                setFormData(prev => ({ ...prev, avatarUrl: newAvatarUrl }));
+                await updateProfile.mutateAsync({ ...formData, avatarUrl: newAvatarUrl });
+                success("Profile picture updated");
+            }
+        } catch (err) {
+            toastError("Upload failed: " + err.message);
+        } finally {
+            setIsUploading(false);
+        }
+    };
+
+    const handleAIsuggestUsername = async () => {
+        if (!formData.name) {
+            info("Identity synthesis requires a legal name.");
+            return;
+        }
+        setIsSuggesting(true);
+        try {
+            const res = await api.post('/ai/suggest-usernames', { name: formData.name });
+            if (res.suggestions) setSuggestions(res.suggestions);
+            success("Identity variants synthesized.");
+        } catch (err) {
+            toastError("Matrix synthesis failed.");
+        } finally {
+            setIsSuggesting(false);
+        }
+    };
 
     const handleLogout = () => {
         logout();
-        success("Successfully logged out");
-        navigate('/');
+        navigate('/login');
     };
 
-    const handleCopyRef = () => {
-        const url = `${window.location.origin}/register?ref=${user.partnerCode}`;
-        navigator.clipboard.writeText(url);
-        success("Referral link copied to clipboard");
-    };
+    const setTab = (tab) => navigate(`/account?tab=${tab}`);
 
-    const handleSecureDownload = async (productId, title) => {
-        setDownloadingId(productId);
-        try {
-            const res = await api.get(`/products/${productId}/download`);
-            const link = document.createElement('a');
-            link.href = res.downloadUrl;
-            link.setAttribute('download', `${title.replace(/\s+/g, '_')}_DigitalStudio_Premium.zip`);
-            document.body.appendChild(link);
-            link.click();
-            link.remove();
-            success(`Preparing download for ${title}`);
-        } catch (err) {
-            toastError("Download error: Purchase required or link expired");
-        } finally {
-            setDownloadingId(null);
-        }
-    };
+    // --- Tab Components ---
 
-    if (!user) return null;
+    const { data: authoredAssets, refetch: refetchAuthored } = useQuery({
+        queryKey: ['authored-assets'],
+        queryFn: () => api.get(`/profile/${user.username}`),
+        select: (data) => data.products || [],
+        enabled: activeTab === 'studio'
+    });
 
-    const { config } = useContext(ConfigContext);
-    const tabs = [
-        { id: 'overview', label: 'Profile', icon: '👤' },
-        { id: 'orders', label: 'Downloads', icon: '📚' },
-        { id: 'partner', label: 'Referral Program', icon: '🤝' },
-        { id: 'inquiries', label: 'My Enquiries', icon: '✉️' },
-        ...(config?.features?.subscriptions ? [{ id: 'subscription', label: 'My Subscription', icon: '💎' }] : []),
-        { id: 'settings', label: 'Account Settings', icon: '⚙️' },
-    ];
+    const unpublishTemplate = useMutation({
+        mutationFn: (id) => api.put(`/products/${id}`, { moderationStatus: 'pending' }),
+        onSuccess: () => {
+            success("Template unpublished and moved to pending for review.");
+            refetchAuthored();
+        },
+        onError: (err) => toastError(err.message || "Failed to unpublish template.")
+    });
 
-    return (
-        <div className="min-h-screen bg-white pt-32 pb-20 px-4 md:px-8 font-sans" style={{ fontFamily: "'Inter', sans-serif" }}>
-            <div className="max-w-[1300px] mx-auto grid grid-cols-1 lg:grid-cols-4 gap-12">
+    const deleteTemplate = useMutation({
+        mutationFn: (id) => api.delete(`/products/${id}`),
+        onSuccess: () => {
+            success("Template record purged from ledger.");
+            refetchAuthored();
+        },
+        onError: (err) => toastError(err.message || "Failed to delete template.")
+    });
 
-                {/* Left Navigation */}
-                <div className="lg:col-span-1">
-                    <div className="bg-white rounded-[2.5rem] p-10 border border-gray-100 shadow-2xl shadow-gray-100/50 sticky top-32">
-                        <div className="flex flex-col items-center mb-10">
-                            <div className={`p-[3px] rounded-[2.2rem] transition-all duration-700 ${user.subscriptionPlan === 'pro' ? 'bg-gradient-to-tr from-yellow-400 via-amber-500 to-yellow-600 shadow-[0_20px_40px_rgba(251,191,36,0.15)] scale-105' : 'bg-gray-100'}`}>
-                                <div className="w-24 h-24 bg-black rounded-[2rem] flex items-center justify-center text-white text-4xl font-black shadow-xl ring-2 ring-white/5 uppercase relative overflow-hidden">
-                                    {user.name.charAt(0)}
-                                    {user.subscriptionPlan === 'pro' && (
-                                        <div className="absolute inset-0 bg-gradient-to-tr from-yellow-400/10 to-transparent"></div>
-                                    )}
+    const OverviewTab = () => (
+        <div className="space-y-8 animate-in fade-in duration-500 pb-20">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <StatCard label="Account Level" value={user?.rank || 'Member'} change="Active" sub={`Member ID: ${user?.id}`} icon={<Crown size={18} />} color="text-slate-900" />
+                <StatCard label="Reward Points" value={(user?.xp || 0).toLocaleString()} change="+5%" sub="Community Experience" icon={<Zap size={18} />} color="text-blue-600" />
+                <StatCard label="Owned Items" value={ownedAssets?.length || 0} change="Verified" sub="Purchased Templates" icon={<Package size={18} />} color="text-emerald-500" />
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div className="lg:col-span-2 space-y-8">
+                    <div className="bg-white p-10 rounded-3xl border border-slate-200 shadow-sm relative overflow-hidden group">
+                        <div className="flex items-center justify-between mb-8">
+                            <div className="flex items-center gap-6">
+                                <div className="w-20 h-20 rounded-2xl bg-slate-50 border-2 border-white ring-1 ring-slate-100 shadow-xl overflow-hidden flex-shrink-0">
+                                     {user?.avatarUrl ? <img src={user.avatarUrl} alt="User" className="w-full h-full object-cover" /> : <User className="w-full h-full p-4 text-slate-200" />}
+                                </div>
+                                <div className="min-w-0">
+                                    <h3 className="text-2xl font-bold text-slate-900 tracking-tight mb-2">{user?.name}</h3>
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest bg-slate-50 border border-slate-100 px-3 py-1 rounded-lg inline-block">@{user?.username}</p>
                                 </div>
                             </div>
-                            <div className="mt-8 text-center">
-                                <h2 className="text-xl font-black text-black tracking-tight">{user.name}</h2>
-                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-2">{user.email}</p>
+                            <button onClick={() => setTab('settings')} className="p-3 bg-slate-50 text-slate-400 rounded-xl hover:bg-slate-900 hover:text-white transition-all shadow-sm">
+                                <Settings2 size={20} />
+                            </button>
+                        </div>
+                        <p className="text-sm font-medium text-slate-500 leading-relaxed max-w-xl">
+                            {user?.bio || "No bio established yet. Update your profile settings to share more about yourself."}
+                        </p>
+                    </div>
+
+                    <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm">
+                        <h3 className="text-[11px] font-bold text-slate-900 uppercase tracking-widest mb-8 flex items-center gap-2">
+                             <Shield size={16} className="text-blue-600" /> Security Status
+                        </h3>
+                        <div className="space-y-4">
+                            <div className="flex items-center justify-between p-4 bg-slate-50/50 rounded-2xl border border-slate-100 group">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-10 h-10 bg-white border border-slate-100 rounded-xl flex items-center justify-center text-slate-400 group-hover:text-blue-600 transition-all shadow-sm">
+                                        <Lock size={18} />
+                                    </div>
+                                    <div>
+                                        <p className="text-xs font-bold text-slate-900">Account Security</p>
+                                        <p className="text-[10px] text-slate-400 font-medium">Password last updated recently</p>
+                                    </div>
+                                </div>
+                                <button onClick={() => setTab('security')} className="text-[10px] font-bold text-blue-600 hover:underline uppercase tracking-widest">Manage</button>
+                            </div>
+                            <div className="flex items-center justify-between p-4 bg-slate-50/50 rounded-2xl border border-slate-100 group">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-10 h-10 bg-white border border-slate-100 rounded-xl flex items-center justify-center text-slate-400 group-hover:text-slate-900 transition-all shadow-sm">
+                                        <History size={18} />
+                                    </div>
+                                    <div>
+                                        <p className="text-xs font-bold text-slate-900">Recent Activity</p>
+                                        <p className="text-[10px] text-slate-400 font-medium">Logged in from current device</p>
+                                    </div>
+                                </div>
+                                <button className="text-[10px] font-bold text-slate-400 hover:text-slate-900 uppercase tracking-widest">View Logs</button>
                             </div>
                         </div>
-
-                        <nav className="space-y-2">
-                            {tabs.map((tab) => (
-                                <button
-                                    key={tab.id}
-                                    onClick={() => setActiveTab(tab.id)}
-                                    className={`w-full flex items-center gap-4 px-6 py-4 rounded-3xl transition-all font-bold text-xs uppercase tracking-widest ${activeTab === tab.id
-                                            ? 'bg-black text-white shadow-xl translate-x-1'
-                                            : 'text-gray-400 hover:text-black hover:bg-gray-50'
-                                        }`}
-                                >
-                                    <span className="text-lg opacity-80">{tab.icon}</span>
-                                    {tab.label}
-                                </button>
-                            ))}
-                            <div className="h-px bg-gray-50 my-6 mx-4"></div>
-                            <button
-                                onClick={() => setIsLogoutModalOpen(true)}
-                                className="w-full flex items-center gap-4 px-6 py-4 rounded-3xl transition-all font-bold text-xs uppercase tracking-widest text-red-500 hover:bg-red-50"
-                            >
-                                <span className="text-lg">🚪</span>
-                                Logout
-                            </button>
-                        </nav>
                     </div>
                 </div>
 
-                {/* Right Content Area */}
-                <div className="lg:col-span-3">
-                    <div className="bg-white rounded-[3rem] p-12 border border-gray-100 shadow-sm min-h-[700px] relative overflow-hidden">
-                        
-                        {/* Status Accents */}
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-gray-50/50 rounded-bl-full -translate-y-4 translate-x-4"></div>
-
-                        <div className="relative z-10">
-                            <div className="mb-12">
-                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.3em] mb-2">User Dashboard</p>
-                                <h1 className="text-4xl font-black text-black tracking-tighter capitalize">{activeTab.replace('-', ' ')}</h1>
-                            </div>
-
-                            {activeTab === 'overview' && (
-                                <div className="space-y-12 animate-in fade-in slide-in-from-right-8 duration-500">
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                                        <StatCard label="Orders" value={orders.length} sub="Total Purchases" />
-                                        <StatCard label="Joined" value={new Date(user.createdAt || Date.now()).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })} sub="Member Since" />
-                                        <StatCard 
-                                            label="Account Plan" 
-                                            value={user.subscriptionPlan === 'pro' ? 'Elite Insight' : 'Standard'} 
-                                            sub="Subscription Tier" 
-                                            isPro={user.subscriptionPlan === 'pro'}
-                                        />
-                                    </div>
-                                    
-                                    <div className={`p-10 rounded-[2.5rem] relative overflow-hidden group ${user.subscriptionPlan === 'pro' ? 'bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-100' : 'bg-black text-white'}`}>
-                                        <div className="relative z-10 flex flex-col md:flex-row justify-between items-center gap-8">
-                                            <div className="max-w-md">
-                                                <h3 className="text-2xl font-black mb-3">{user.subscriptionPlan === 'pro' ? '✨ Pro Plan Active' : 'Upgrade to Pro Account'}</h3>
-                                                <p className={`text-sm font-medium leading-relaxed ${user.subscriptionPlan === 'pro' ? 'text-emerald-700' : 'text-gray-400'}`}>
-                                                    {user.subscriptionPlan === 'pro' 
-                                                        ? `Your Pro subscription is active. You have full access to all templates, documentation, and priority features.` 
-                                                        : 'Unlock the full power of DigitalStudio. Unlimited downloads, AI-tools, and premium support.'}
-                                                </p>
-                                            </div>
-                                            {user.subscriptionPlan !== 'pro' && (
-                                                <button onClick={() => navigate('/pricing')} className="px-10 py-5 bg-white text-black rounded-[2rem] font-black uppercase text-[10px] tracking-widest hover:scale-105 active:scale-95 transition-all shadow-2xl shadow-black/20">
-                                                    Upgrade Now
-                                                </button>
-                                            )}
-                                        </div>
-                                        <div className="absolute -bottom-10 -right-10 w-48 h-48 bg-white/10 rounded-full group-hover:scale-110 transition-all duration-700"></div>
-                                    </div>
-
-                                    {user.subscriptionPlan === 'pro' && (
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                            <div className="p-8 border border-amber-100 bg-amber-50/30 rounded-[2.5rem]">
-                                                <h4 className="text-[10px] font-black text-amber-600 uppercase tracking-widest mb-4">Pro Perk</h4>
-                                                <h5 className="text-xl font-bold text-black mb-2">Unlimited Template Unlocks</h5>
-                                                <p className="text-xs text-gray-500 leading-relaxed">As a Pro member, any template marked with a diamond icon is yours to unlock for free.</p>
-                                            </div>
-                                            <div className="p-8 border border-blue-100 bg-blue-50/30 rounded-[2.5rem]">
-                                                <h4 className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-4">Priority Support</h4>
-                                                <h5 className="text-xl font-bold text-black mb-2">Technical Guidance</h5>
-                                                <p className="text-xs text-gray-500 leading-relaxed">Direct access to our engineering team for roadmap help and technical implementation questions.</p>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* AI Negotiated Deal */}
-                                    {aiOffer && (
-                                        <div className="p-10 rounded-[3rem] bg-gradient-to-br from-amber-500 to-amber-700 text-white relative overflow-hidden group shadow-2xl shadow-amber-500/20">
-                                            <div className="absolute top-0 right-0 p-8 text-4xl opacity-10 blur-sm group-hover:scale-125 transition-transform duration-1000">🤝</div>
-                                            <div className="relative z-10">
-                                                <div className="flex justify-between items-start mb-8">
-                                                    <div>
-                                                        <span className="px-3 py-1 bg-white/20 text-[9px] font-black rounded-lg uppercase tracking-widest backdrop-blur-md">Negotiated by AI</span>
-                                                        <h3 className="text-3xl font-black mt-4 tracking-tight">{aiOffer.offerTitle}</h3>
-                                                        <p className="text-xs font-bold text-amber-100 opacity-90 mt-2 italic">“{aiOffer.pitch}”</p>
-                                                    </div>
-                                                    <div className="text-right">
-                                                        <div className="text-5xl font-black tracking-tighter">{aiOffer.discount}%<span className="text-lg opacity-60 ml-1">OFF</span></div>
-                                                        <p className="text-[9px] font-black uppercase tracking-[0.2em] opacity-60">Limited Opportunity</p>
-                                                    </div>
-                                                </div>
-
-                                                <div className="flex flex-col md:flex-row gap-6 items-center">
-                                                    <div className="flex-1 w-full bg-white/10 backdrop-blur-xl border border-white/20 p-6 rounded-3xl flex justify-between items-center px-8 group/code cursor-copy active:scale-95 transition-all" onClick={() => {
-                                                        navigator.clipboard.writeText(aiOffer.code);
-                                                        success(`Promo code ${aiOffer.code} copied!`);
-                                                    }}>
-                                                        <div>
-                                                            <p className="text-[8px] font-black uppercase tracking-widest opacity-60 mb-1">Exclusive Voucher Code</p>
-                                                            <p className="text-2xl font-black tracking-widest font-mono">{aiOffer.code}</p>
-                                                        </div>
-                                                        <div className="text-xl group-hover/code:translate-x-1 transition-transform">📋</div>
-                                                    </div>
-                                                    
-                                                    <div className="shrink-0 text-center md:text-left">
-                                                        <p className="text-[9px] font-black uppercase tracking-[0.2em] mb-2 opacity-60">Expires In</p>
-                                                        <div className="flex gap-3 text-xl font-black tabular-nums">
-                                                            <div className="bg-black/20 px-3 py-2 rounded-xl border border-white/10">{aiOffer.expiryHours}h</div>
-                                                            <div className="bg-black/20 px-3 py-2 rounded-xl border border-white/10">00m</div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            
-                                            {/* Decorative Animation */}
-                                            <div className="absolute -bottom-10 -left-10 w-48 h-48 bg-white/5 rounded-full blur-[60px] group-hover:scale-150 transition-all duration-1000"></div>
-                                        </div>
-                                    )}
-
-                                    {/* AI Strategic Trajectory */}
-                                    <div className="p-10 rounded-[3rem] border border-gray-100 bg-white shadow-2xl shadow-emerald-500/5 relative overflow-hidden group">
-                                        <div className="absolute top-0 right-0 p-8 opacity-5 grayscale group-hover:grayscale-0 group-hover:opacity-10 transition-all duration-700">🧠</div>
-                                        <div className="relative z-10">
-                                            <div className="flex items-center gap-3 mb-6">
-                                                <span className="px-3 py-1 bg-emerald-50 text-emerald-600 text-[9px] font-black rounded-lg uppercase tracking-widest">AI Strategic Trajectory</span>
-                                                <div className="flex gap-1">
-                                                    <div className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse"></div>
-                                                    <div className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse delay-75"></div>
-                                                    <div className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse delay-150"></div>
-                                                </div>
-                                            </div>
-                                            
-                                            {loadingRoadmap ? (
-                                                <div className="space-y-4">
-                                                    <div className="h-4 bg-gray-50 rounded-full w-3/4 animate-pulse"></div>
-                                                    <div className="h-4 bg-gray-50 rounded-full w-full animate-pulse"></div>
-                                                    <div className="h-4 bg-gray-50 rounded-full w-2/3 animate-pulse"></div>
-                                                </div>
-                                            ) : roadmapData?.roadmap ? (
-                                                <div className="prose prose-sm max-w-none">
-                                                    <p className="text-sm font-bold text-gray-800 leading-relaxed whitespace-pre-wrap italic">
-                                                        "{roadmapData.roadmap}"
-                                                    </p>
-                                                </div>
-                                            ) : (
-                                                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest italic">Analyzing behavioral vectors to generate roadmap...</p>
-                                            )}
-
-                                            <div className="mt-8 pt-6 border-t border-gray-50 flex justify-between items-center text-[9px] font-black text-gray-300 uppercase tracking-[0.3em]">
-                                                <span>Proprietary Intel</span>
-                                                <span className="flex items-center gap-2">
-                                                    <span className="w-1.5 h-1.5 rounded-full bg-gray-200"></span>
-                                                    Live Analysis
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-
-                            {activeTab === 'partner' && (
-                                <div className="space-y-12 animate-in fade-in slide-in-from-right-8 duration-500">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                        <div className="p-12 bg-black text-white rounded-[3rem] relative overflow-hidden group">
-                                            <div className="relative z-10">
-                                                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-6 text-emerald-500">Partner Earnings</p>
-                                                <h2 className="text-6xl font-black tracking-tighter mb-2">{formatCurrency(user.partnerBalance || 0)}</h2>
-                                                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Available Credits</p>
-                                            </div>
-                                            <div className="absolute top-0 right-0 p-10 opacity-10 blur-xl group-hover:opacity-20 transition-all">💰</div>
-                                        </div>
-                                        <div className="p-12 bg-gray-50/50 border border-gray-100 rounded-[3rem] flex flex-col justify-between">
-                                            <div>
-                                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-4">Unique Partner Code</p>
-                                                <h3 className="text-3xl font-black text-black tracking-tighter font-mono">{user.partnerCode || 'STUDIO-XXX'}</h3>
-                                            </div>
-                                            <button 
-                                                onClick={handleCopyRef}
-                                                className="w-full mt-8 py-5 bg-white border border-gray-100 text-black rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all flex items-center justify-center gap-3"
-                                            >
-                                                <span>🔗</span> Clone Partner Link
-                                            </button>
-                                        </div>
-                                    </div>
-
-                                    <div className="p-12 border border-gray-100 rounded-[3rem] bg-white">
-                                        <div className="flex items-center gap-4 mb-10">
-                                            <div className="w-12 h-12 bg-emerald-50 text-emerald-500 rounded-2xl flex items-center justify-center text-xl">✨</div>
-                                            <div>
-                                                <h4 className="text-xl font-black text-black tracking-tight">Referral Program</h4>
-                                                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">How our affiliate system works</p>
-                                            </div>
-                                        </div>
-                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
-                                            <div className="space-y-4">
-                                                <div className="text-2xl">📡</div>
-                                                <h5 className="font-black text-black text-sm uppercase">Share Link</h5>
-                                                <p className="text-xs text-gray-400 font-medium leading-relaxed italic">Share your unique link with other creators and designers.</p>
-                                            </div>
-                                            <div className="space-y-4">
-                                                <div className="text-2xl">👤</div>
-                                                <h5 className="font-black text-black text-sm uppercase">Referrals</h5>
-                                                <p className="text-xs text-gray-400 font-medium leading-relaxed italic">When someone signs up using your link, they become your referral.</p>
-                                            </div>
-                                            <div className="space-y-4">
-                                                <div className="text-2xl">💸</div>
-                                                <h5 className="font-black text-black text-sm uppercase">Earn Credits</h5>
-                                                <p className="text-xs text-gray-400 font-medium leading-relaxed italic">Get ₹100 for every purchase your referrals make, forever.</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-
-                            {activeTab === 'orders' && (
-                                <div className="space-y-8 animate-in fade-in slide-in-from-right-8 duration-500">
-                                    {loading ? (
-                                        <div className="p-20 text-center animate-pulse text-[10px] font-bold text-gray-400 uppercase tracking-widest">Accessing downloads...</div>
-                                    ) : orders.length === 0 && !user.isPro ? (
-                                        <div className="text-center py-40 border-2 border-dashed border-gray-100 rounded-[3rem] bg-gray-50/30">
-                                            <div className="text-5xl mb-6 grayscale">📦</div>
-                                            <h3 className="text-2xl font-black text-black mb-2 tracking-tight">No downloads yet</h3>
-                                            <p className="text-sm text-gray-400 font-medium mb-10 uppercase tracking-widest">Your purchased products will appear here</p>
-                                            <button onClick={() => navigate('/templates')} className="px-12 py-5 bg-black text-white rounded-[2rem] font-black uppercase text-[10px] tracking-widest shadow-xl shadow-black/10 hover:bg-gray-800 transition-all">
-                                                Browse Marketplace
-                                            </button>
-                                        </div>
-                                    ) : (
-                                        <div className="grid gap-6">
-                                            {orders.map(order => {
-                                                const items = order.orderItems || [];
-                                                return items.map(item => {
-                                                    const product = item.product;
-                                                    const isDownloading = downloadingId === product?.id;
-                                                    return (
-                                                        <div key={`${order.id}-${product?.id}`} className="group bg-white border border-gray-50 rounded-[2.5rem] p-8 hover:shadow-2xl hover:shadow-gray-100 hover:-translate-y-1 transition-all duration-500 flex flex-col md:flex-row items-center gap-8 relative overflow-hidden">
-                                                            <div className="w-32 h-32 rounded-[2rem] border border-gray-50 overflow-hidden shadow-sm shrink-0 bg-gray-50 group-hover:scale-105 transition-transform duration-500">
-                                                                {product?.image && <img src={product.image} alt="" className="w-full h-full object-cover" />}
-                                                            </div>
-                                                            <div className="flex-1 min-w-0 text-center md:text-left">
-                                                                <h4 className="text-xl font-black text-black tracking-tight mb-2 truncate">{product?.title || 'Unknown Product'}</h4>
-                                                                <div className="flex flex-wrap justify-center md:justify-start gap-4 items-center">
-                                                                    <span className="text-[9px] font-black text-gray-300 uppercase tracking-widest">Order ID: {order.id}</span>
-                                                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                                                                    <span className="text-[9px] font-black text-emerald-500 uppercase tracking-widest">Verified Purchase</span>
-                                                                    <span className="px-2.5 py-1 bg-gray-100 text-[8px] font-black text-gray-500 rounded uppercase">{product?.category}</span>
-                                                                </div>
-                                                                
-                                                                {/* License Details */}
-                                                                <div className="mt-6 flex flex-col gap-2">
-                                                                     <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Serial Key</p>
-                                                                     <div className="bg-gray-50/50 border border-gray-100 px-6 py-3 rounded-2xl font-mono text-[10px] font-bold text-black border-dashed break-all select-all hover:bg-gray-100 transition-colors">
-                                                                         {(licenses || []).find(l => l.productId === product?.id && l.orderId === order.id)?.licenseKey || `DS-${order.id}-${String(product?.id).padStart(4, '0')}-KEY`}
-                                                                     </div>
-                                                                </div>
-                                                            </div>
-                                                            <div className="flex flex-col gap-3 w-full md:w-auto shrink-0">
-                                                                <button 
-                                                                    onClick={() => handleSecureDownload(product?.id, product?.title)}
-                                                                    disabled={isDownloading}
-                                                                    className={`px-8 py-4 bg-black text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl shadow-black/10 transition-all active:scale-95 ${isDownloading ? 'bg-gray-300 cursor-wait' : 'hover:bg-gray-800'}`}
-                                                                >
-                                                                    {isDownloading ? 'Downloading...' : 'Download Files'}
-                                                                </button>
-                                                                <button 
-                                                                    onClick={() => {
-                                                                        const url = prompt("Share your site: Please provide your live deployment URL for ₹50 reward:");
-                                                                        if (url) {
-                                                                            api.post('/showcase', { productId: product.id, liveUrl: url })
-                                                                                .then(() => success("Link received! Thank you for sharing your work."))
-                                                                                .catch(() => toastError("Failed to send link"));
-                                                                        }
-                                                                    }}
-                                                                    className="px-8 py-4 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border border-emerald-100 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all"
-                                                                >
-                                                                    Submit for Reward ✨
-                                                                </button>
-                                                                <button className="px-8 py-4 bg-gray-50 text-gray-400 hover:text-black border border-gray-100 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all">
-                                                                    Receipt 🧾
-                                                                </button>
-                                                            </div>
-                                                        </div>
-                                                    );
-                                                });
-                                            })}
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-
-                            {activeTab === 'subscription' && (
-                                <div className="space-y-12 animate-in fade-in slide-in-from-right-8 duration-500">
-                                    <div className="bg-black text-white p-12 rounded-[3.5rem] relative overflow-hidden">
-                                        <div className="relative z-10">
-                                            <h3 className="text-3xl font-black mb-6 tracking-tight">Subscription Plan</h3>
-                                            <div className="flex items-baseline gap-4 mb-10">
-                                                <span className="text-7xl font-black tracking-tighter capitalize">{user.subscriptionPlan}</span>
-                                                <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Current Plan</span>
-                                            </div>
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                                <div className="p-6 bg-white/5 rounded-3xl border border-white/10">
-                                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Benefit</p>
-                                                    <p className="text-sm font-bold">Lifetime Commercial License</p>
-                                                </div>
-                                                <div className="p-6 bg-white/5 rounded-3xl border border-white/10">
-                                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Status</p>
-                                                    <p className="text-sm font-bold text-emerald-400">Active</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2"></div>
-                                    </div>
-                                    
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                        <div className="p-10 border border-gray-100 rounded-[3rem] bg-gray-50/20">
-                                            <h4 className="font-bold text-black mb-6 uppercase tracking-widest text-xs">Account Details</h4>
-                                            <div className="space-y-4">
-                                                <MetadataRow label="User ID" value={user.id} />
-                                                <MetadataRow label="Provider" value={user.provider || 'DigitalStudio'} />
-                                                <MetadataRow label="Expires" value={user.proExpiresAt ? new Date(user.proExpiresAt).toDateString() : 'Never'} />
-                                            </div>
-                                        </div>
-                                        <div className="p-10 border border-gray-100 rounded-[3rem] bg-gray-50/20">
-                                            <h4 className="font-bold text-black mb-6 uppercase tracking-widest text-xs">Billing</h4>
-                                            <p className="text-xs text-gray-400 font-medium leading-loose">
-                                                Your subscription is managed through our secure billing system. For billing inquiries or support, please contact our help team.
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-
-                            {activeTab === 'inquiries' && (
-                                <div className="space-y-8 animate-in fade-in slide-in-from-right-8 duration-500">
-                                    {loadingInquiries ? (
-                                        <div className="p-20 text-center animate-pulse text-[10px] font-bold text-gray-400 uppercase tracking-widest">Loading conversations...</div>
-                                    ) : (inquiries || []).length === 0 ? (
-                                        <div className="text-center py-40 border-2 border-dashed border-gray-100 rounded-[3rem] bg-gray-50/30">
-                                            <div className="text-5xl mb-6 grayscale">✉️</div>
-                                            <h3 className="text-2xl font-black text-black mb-2 tracking-tight">No enquiries yet</h3>
-                                            <p className="text-sm text-gray-400 font-medium mb-10 uppercase tracking-widest">Need help? Send us a message through the contact page.</p>
-                                            <button onClick={() => navigate('/contact')} className="px-12 py-5 bg-black text-white rounded-[2rem] font-black uppercase text-[10px] tracking-widest shadow-xl shadow-black/10 hover:bg-gray-800 transition-all">
-                                                Contact Support
-                                            </button>
-                                        </div>
-                                    ) : (
-                                        <div className="grid gap-6">
-                                            {inquiries.map(inq => (
-                                                <div key={inq.id} className="bg-white border border-gray-100 rounded-[2.5rem] p-10 hover:shadow-xl transition-all">
-                                                    <div className="flex justify-between items-start gap-4 mb-6">
-                                                        <div>
-                                                            <h4 className="text-xl font-black text-black tracking-tight mb-2">{inq.subject}</h4>
-                                                            <div className="flex items-center gap-3">
-                                                                <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${
-                                                                    inq.status === 'replied' ? 'bg-green-50 text-green-600' : 'bg-amber-50 text-amber-600'
-                                                                }`}>
-                                                                    {inq.status}
-                                                                </span>
-                                                                <span className="text-[10px] font-bold text-gray-300 uppercase tracking-widest">
-                                                                    {new Date(inq.createdAt).toLocaleDateString()}
-                                                                </span>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    <div className="bg-gray-50/50 p-6 rounded-2xl mb-6">
-                                                        <p className="text-sm text-gray-600 font-medium leading-relaxed">{inq.message}</p>
-                                                    </div>
-                                                    {inq.reply && (
-                                                        <div className="border-t border-gray-100 pt-6">
-                                                            <p className="text-[10px] font-black text-primary uppercase tracking-widest mb-3 flex items-center gap-2">
-                                                                <span className="w-5 h-5 bg-primary text-white rounded-lg flex items-center justify-center text-[10px]">✨</span>
-                                                                Official Support Response
-                                                            </p>
-                                                            <div className="bg-primary/5 border border-primary/10 p-6 rounded-2xl">
-                                                                <p className="text-sm text-gray-600 font-bold leading-relaxed">{inq.reply}</p>
-                                                            </div>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-
-                            {activeTab === 'settings' && (
-                                <div className="max-w-xl animate-in fade-in slide-in-from-right-8 duration-500">
-                                    <div className="space-y-10">
-                                        <Field label="Full Name">
-                                            <input type="text" className="w-full bg-gray-50 border border-gray-100 rounded-2xl px-8 py-5 outline-none focus:border-black font-bold text-sm tracking-tight" defaultValue={user.name} />
-                                        </Field>
-                                        <Field label="Registered Email">
-                                            <input type="email" className="w-full bg-gray-50/50 border border-gray-100 rounded-2xl px-8 py-5 outline-none font-bold text-sm text-gray-400" defaultValue={user.email} disabled />
-                                        </Field>
-                                        <div className="pt-8 border-t border-gray-50">
-                                            <button className="px-12 py-5 bg-black text-white rounded-[2rem] font-black uppercase text-[10px] tracking-widest shadow-xl shadow-black/10 active:scale-95 transition-all">Save Changes</button>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-
+                <div className="space-y-6">
+                    <div className="bg-slate-900 p-8 rounded-3xl text-white relative overflow-hidden group shadow-2xl shadow-slate-900/40">
+                         <div className="absolute -top-10 -right-10 p-6 opacity-10 group-hover:scale-110 transition-transform duration-700">
+                            <Zap size={180} />
                         </div>
+                        <div className="relative z-10">
+                            <p className="text-[10px] font-bold text-blue-400 uppercase tracking-widest mb-4">Pro Membership</p>
+                            <h4 className="text-xl font-bold tracking-tight mb-8 leading-tight">Get unlimited access to all platform templates.</h4>
+                            <Link to="/pricing" className="block w-full py-4 bg-white text-slate-900 rounded-2xl text-[10px] font-bold text-center uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-xl">Upgrade Now</Link>
+                        </div>
+                    </div>
+                    
+                    <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm text-center group">
+                        <div className="w-12 h-12 bg-slate-50 border border-slate-100 rounded-2xl flex items-center justify-center text-slate-400 mx-auto mb-6 group-hover:bg-blue-600 group-hover:text-white transition-all">
+                             <HelpCircle size={20} />
+                        </div>
+                        <h5 className="text-[11px] font-bold text-slate-900 uppercase tracking-widest mb-2">Need Help?</h5>
+                        <p className="text-[10px] text-slate-400 font-medium mb-6">Our support team is available 24/7</p>
+                        <button onClick={() => setTab('messages')} className="w-full py-3 border-2 border-slate-100 rounded-xl text-[10px] font-bold text-slate-900 uppercase tracking-widest hover:border-slate-900 transition-all">Support Inbox</button>
                     </div>
                 </div>
             </div>
-            
-            <ConfirmModal 
-                isOpen={isLogoutModalOpen}
-                onClose={() => setIsLogoutModalOpen(false)}
-                onConfirm={handleLogout}
-                title="Logout?"
-                message="Are you sure you want to log out? You will need to log in again to access your downloads and settings."
-                confirmText="Logout"
-                type="danger"
+        </div>
+    );
+
+    const AssetsTab = () => (
+        <div className="space-y-8 animate-in fade-in duration-500 pb-20">
+            <div className="flex items-center justify-between mb-8">
+                <div>
+                    <h3 className="text-xl font-bold text-slate-900 uppercase tracking-tight">Purchased Assets</h3>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Templates and components you have purchased.</p>
+                </div>
+                <div className="px-6 py-3 bg-white border border-slate-200 rounded-2xl flex items-center gap-3">
+                    <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
+                    <span className="text-[10px] font-bold text-slate-900 uppercase tracking-widest">{ownedAssets?.length || 0} Items</span>
+                </div>
+            </div>
+
+            {!ownedAssets || ownedAssets.length === 0 ? (
+                <div className="py-40 text-center bg-white rounded-[3rem] border border-slate-100 shadow-sm">
+                     <Package size={48} className="mx-auto text-slate-100 mb-6" />
+                     <h4 className="text-lg font-bold text-slate-300 uppercase tracking-[0.2em]">No assets found</h4>
+                     <Link to="/" className="mt-8 inline-block px-10 py-4 bg-slate-900 text-white rounded-2xl text-[11px] font-bold uppercase tracking-widest hover:scale-105 transition-all">Browse Templates</Link>
+                </div>
+            ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    {ownedAssets.map(asset => (
+                        <div key={asset.id} className="group bg-white rounded-[2.5rem] border border-slate-200 hover:border-blue-600 transition-all overflow-hidden shadow-sm hover:shadow-2xl hover:shadow-blue-600/10 flex flex-col h-full">
+                            <div className="aspect-[16/10] bg-slate-50 relative overflow-hidden">
+                                 {asset.image ? (
+                                     <img src={asset.image} alt={asset.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                                 ) : (
+                                     <div className="w-full h-full flex items-center justify-center text-slate-100">
+                                         <Package size={48} />
+                                     </div>
+                                 )}
+                                 <div className="absolute top-6 left-6 px-4 py-1.5 bg-white/90 backdrop-blur-md rounded-full text-[9px] font-bold uppercase tracking-widest shadow-xl border border-white/20">
+                                      {asset.category}
+                                 </div>
+                            </div>
+                            <div className="p-8 flex-1 flex flex-col">
+                                <h4 className="text-lg font-bold text-slate-900 uppercase tracking-tight mb-2 group-hover:text-blue-600 transition-colors leading-tight">{asset.title}</h4>
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2 mb-6">
+                                     <Check size={12} className="text-emerald-500" /> Active License
+                                </p>
+                                <div className="mt-auto flex items-center gap-3">
+                                    <Link to={`/templates/${asset.id}`} className="flex-1 py-3 bg-slate-900 text-white rounded-xl text-[10px] font-bold uppercase tracking-widest text-center hover:bg-blue-600 transition-all">
+                                         View Details
+                                    </Link>
+                                    <button className="p-3 bg-slate-50 text-slate-400 rounded-xl hover:bg-slate-900 hover:text-white transition-all">
+                                         <Download size={16} />
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+
+    const SettingsTab = () => (
+        <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-500 pb-20">
+            <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+                <div className="px-10 py-8 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+                    <div>
+                        <h3 className="text-xs font-bold text-slate-900 uppercase tracking-widest flex items-center gap-2">
+                             <User size={16} className="text-blue-600" /> Profile Details
+                        </h3>
+                    </div>
+                    {!isEditing ? (
+                        <button onClick={() => setIsEditing(true)} className="px-8 py-3 bg-slate-900 text-white rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-slate-800 transition-all shadow-lg">
+                            Edit Profile
+                        </button>
+                    ) : (
+                        <div className="flex gap-3">
+                            <button onClick={() => setIsEditing(false)} className="px-6 py-3 bg-slate-100 text-slate-400 rounded-xl text-[10px] font-bold uppercase tracking-widest">Cancel</button>
+                            <button onClick={() => updateProfile.mutate(formData)} className="px-8 py-3 bg-blue-600 text-white rounded-xl text-[10px] font-bold uppercase tracking-widest shadow-lg">Save Changes</button>
+                        </div>
+                    )}
+                </div>
+                <div className="p-10 space-y-10">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                        <Field label="Full Name" icon={<User size={14} />} value={formData.name} onChange={v => setFormData({...formData, name: v})} disabled={!isEditing} />
+                        <div className="space-y-3 relative group">
+                            <div className="flex justify-between items-center px-2">
+                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Username Handle</label>
+                                {isEditing && (
+                                    <button 
+                                        type="button"
+                                        onClick={handleAIsuggestUsername}
+                                        disabled={isSuggesting}
+                                        className="text-[9px] font-bold text-blue-600 hover:text-blue-700 uppercase tracking-widest flex items-center gap-1.5 transition-all"
+                                    >
+                                        {isSuggesting ? <RefreshCw size={10} className="animate-spin" /> : <Zap size={10} />} Synthesize Identity
+                                    </button>
+                                )}
+                            </div>
+                            <div className="relative">
+                                <div className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300"><AtSign size={14} /></div>
+                                <input 
+                                    disabled={!isEditing || (user?.lastUsernameChangeAt && new Date(new Date(user.lastUsernameChangeAt).getTime() + 30 * 24 * 60 * 60 * 1000) > new Date())}
+                                    value={formData.username}
+                                    onChange={(e) => setFormData({...formData, username: e.target.value})}
+                                    className={`w-full bg-slate-50 border border-slate-100 rounded-2xl pl-14 pr-6 py-4 text-xs font-bold transition-all focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/5 ${(!isEditing || (user?.lastUsernameChangeAt && new Date(new Date(user.lastUsernameChangeAt).getTime() + 30 * 24 * 60 * 60 * 1000) > new Date())) ? 'text-slate-400' : 'text-slate-900 animate-in fade-in'}`}
+                                    placeholder="your_handle"
+                                />
+                            </div>
+                            {isEditing && (user?.lastUsernameChangeAt && new Date(new Date(user.lastUsernameChangeAt).getTime() + 30 * 24 * 60 * 60 * 1000) > new Date()) && (
+                                <p className="text-[9px] font-bold text-rose-500 uppercase tracking-widest ml-2 flex items-center gap-1.5 mt-1">
+                                    <Lock size={10} /> Handle Locked (Available: {new Date(new Date(user.lastUsernameChangeAt).getTime() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString()})
+                                </p>
+                            )}
+                            {suggestions.length > 0 && isEditing && (
+                                <div className="mt-3 flex flex-wrap gap-2 animate-in slide-in-from-top-2 duration-300">
+                                    {suggestions.map(s => (
+                                        <button 
+                                            key={s} 
+                                            onClick={() => { setFormData({...formData, username: s}); setSuggestions([]); }}
+                                            className="px-3 py-1.5 bg-blue-50 text-blue-600 border border-blue-100 rounded-lg text-[9px] font-black uppercase hover:bg-blue-600 hover:text-white transition-all"
+                                        >
+                                            @{s}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                         <div className="space-y-3">
+                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-2">Email Address</label>
+                            <div className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 text-xs font-bold text-slate-400 flex items-center justify-between">
+                                 {user?.email}
+                                 <ShieldCheck size={14} className="text-emerald-500" />
+                            </div>
+                        </div>
+                        <Field label="Website Portfolio" icon={<Globe size={14} />} value={formData.website} onChange={v => setFormData({...formData, website: v})} disabled={!isEditing} placeholder="https://example.com" />
+                    </div>
+                    <div className="space-y-3">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-2">Personal Biography</label>
+                        <textarea disabled={!isEditing} value={formData.bio} onChange={(e) => setFormData({...formData, bio: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-5 text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/5 min-h-[160px] resize-none transition-all placeholder:text-slate-300" placeholder="Tell us about yourself..." />
+                    </div>
+                </div>
+            </div>
+
+            <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-10">
+                 <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-10 flex items-center gap-2">
+                      <Zap size={14} className="text-amber-500" /> Social Integrations
+                 </h3>
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                     <div className="space-y-6">
+                        <Field label="X / Twitter" icon={<Twitter size={14} />} value={formData.twitter} onChange={v => setFormData({...formData, twitter: v})} disabled={!isEditing} placeholder="@username" />
+                        <Field label="GitHub ID" icon={<Github size={14} />} value={formData.github} onChange={v => setFormData({...formData, github: v})} disabled={!isEditing} placeholder="github_id" />
+                     </div>
+                     <div className="bg-slate-50 rounded-3xl p-8 border border-slate-100 flex flex-col justify-center gap-6">
+                         {user?.github ? (
+                             <>
+                                <div className="space-y-2">
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-8 h-8 bg-slate-900 rounded-lg flex items-center justify-center text-white shadow-lg">
+                                            <Github size={14} />
+                                        </div>
+                                        <h4 className="text-xs font-bold text-slate-900 uppercase">Identity Verified</h4>
+                                    </div>
+                                    <p className="text-[10px] font-medium text-slate-500 leading-relaxed">Your GitHub identity is currently synchronized. To update or unlink, please submit a formal request.</p>
+                                </div>
+                                <button 
+                                    onClick={() => {
+                                        const reason = prompt("Please state the reason for identity update:");
+                                        if (reason) {
+                                            api.post('/profile/github-request', { reason })
+                                                .then(() => success("Identity update request submitted."))
+                                                .catch(err => toastError(err.message));
+                                        }
+                                    }}
+                                    className="w-full py-3 border-2 border-slate-200 rounded-xl text-[10px] font-bold text-slate-400 uppercase tracking-widest hover:border-slate-900 hover:text-slate-900 transition-all"
+                                >
+                                    Request Identity Update
+                                </button>
+                             </>
+                         ) : (
+                             <>
+                                <div className="space-y-2">
+                                    <h4 className="text-xs font-bold text-slate-900 uppercase">Sync GitHub Identity</h4>
+                                    <p className="text-[10px] font-medium text-slate-500 leading-relaxed">Connect your developer identity to verify contributions and unlock exclusive badges.</p>
+                                </div>
+                                <OAuthButton 
+                                    provider="GitHub" 
+                                    variant="slate" 
+                                    onClick={() => {
+                                        const token = localStorage.getItem('token');
+                                        window.location.href = `${API_URL}/auth/github/connect?token=${token}`;
+                                    }} 
+                                />
+                             </>
+                         )}
+                     </div>
+                 </div>
+            </div>
+        </div>
+    );
+
+    const SecurityTab = () => {
+        const [pwData, setPwData] = useState({ oldPassword: '', newPassword: '', confirmPassword: '' });
+        const [changing, setChanging] = useState(false);
+
+        const handleChangePw = async (e) => {
+            e.preventDefault();
+            if (pwData.newPassword !== pwData.confirmPassword) return toastError("Passwords do not match.");
+            setChanging(true);
+            try {
+                await api.post('/profile/change-password', { oldPassword: pwData.oldPassword, newPassword: pwData.newPassword });
+                success("Password updated successfully.");
+                setPwData({ oldPassword: '', newPassword: '', confirmPassword: '' });
+            } catch (err) {
+                toastError(err.message || "Failed to update password.");
+            } finally {
+                setChanging(false);
+            }
+        };
+
+        return (
+            <div className="max-w-2xl mx-auto space-y-8 animate-in slide-in-from-bottom-4 duration-500 pb-20">
+                <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden p-10">
+                    <div className="text-center mb-10">
+                         <div className="w-16 h-16 bg-slate-50 border border-slate-100 rounded-2xl flex items-center justify-center text-slate-400 mx-auto mb-6">
+                              <Lock size={24} />
+                         </div>
+                         <h3 className="text-lg font-bold text-slate-900 uppercase tracking-tight mb-2">Change Password</h3>
+                         <p className="text-[10px] font-medium text-slate-400 uppercase tracking-widest">Update your security credentials.</p>
+                    </div>
+                    
+                    <form onSubmit={handleChangePw} className="space-y-6">
+                        <div className="space-y-3">
+                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-2">Current Password</label>
+                            <input type="password" required value={pwData.oldPassword} onChange={e => setPwData({...pwData, oldPassword: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 text-xs font-bold focus:bg-white focus:outline-none transition-all" />
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-3">
+                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-2">New Password</label>
+                                <input type="password" required value={pwData.newPassword} onChange={e => setPwData({...pwData, newPassword: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 text-xs font-bold focus:bg-white focus:outline-none transition-all" />
+                            </div>
+                            <div className="space-y-3">
+                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-2">Confirm New Password</label>
+                                <input type="password" required value={pwData.confirmPassword} onChange={e => setPwData({...pwData, confirmPassword: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 text-xs font-bold focus:bg-white focus:outline-none transition-all" />
+                            </div>
+                        </div>
+                        <button type="submit" disabled={changing} className="w-full py-4 bg-slate-900 text-white rounded-2xl text-[10px] font-bold uppercase tracking-widest hover:bg-slate-800 transition-all shadow-xl active:scale-95 flex items-center justify-center gap-3 mt-4">
+                            {changing ? <RefreshCw className="animate-spin" size={14} /> : <ShieldCheck size={14} />} Update Password
+                        </button>
+                    </form>
+                </div>
+
+                <div className="bg-rose-50 border border-rose-100 rounded-3xl p-8 flex items-start gap-4">
+                    <AlertCircle className="text-rose-600 shrink-0 mt-1" size={18} />
+                    <div>
+                         <h4 className="text-[11px] font-bold text-rose-600 uppercase tracking-widest mb-1">Security Notice</h4>
+                         <p className="text-[9px] text-rose-500 font-medium leading-relaxed">Updating your password will sign you out of all other active sessions for your protection.</p>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+    const NotificationsTab = () => {
+        const [settings, setSettings] = useState({ email: true, inApp: true, marketing: false, security: true });
+        
+        const toggle = (key) => setSettings(p => ({ ...p, [key]: !p[key] }));
+
+        return (
+            <div className="max-w-2xl mx-auto space-y-8 animate-in slide-in-from-bottom-4 duration-500 pb-20">
+                <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden p-10">
+                    <div className="flex items-center justify-between mb-10">
+                        <div>
+                             <h3 className="text-lg font-bold text-slate-900 uppercase tracking-tight mb-1">Notification Preferences</h3>
+                             <p className="text-[10px] font-medium text-slate-400 uppercase tracking-widest">Manage how you receive updates and alerts.</p>
+                        </div>
+                        <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center">
+                             <Bell size={20} />
+                        </div>
+                    </div>
+
+                    <div className="space-y-6">
+                        <ToggleSetting label="Email Notifications" sub="Receive invoices, product updates, and key information" active={settings.email} onClick={() => toggle('email')} />
+                        <ToggleSetting label="In-App Notifications" sub="Real-time alerts while browsing the marketplace" active={settings.inApp} onClick={() => toggle('inApp')} />
+                        <ToggleSetting label="Marketing Communications" sub="Special offers, new arrivals, and marketplace highlights" active={settings.marketing} onClick={() => toggle('marketing')} />
+                        <ToggleSetting label="Security Alerts" sub="Immediate notice of login activity or account changes" active={settings.security} onClick={() => toggle('security')} />
+                    </div>
+                    
+                    <button onClick={() => success("Notification settings updated.")} className="w-full mt-10 py-4 bg-slate-900 text-white rounded-2xl text-[10px] font-bold uppercase tracking-widest hover:bg-slate-800 transition-all">Save Preferences</button>
+                </div>
+            </div>
+        );
+    };
+
+    const ReferralTab = () => {
+        const referralLink = `${window.location.origin}/register?ref=${user?.partnerCode || ''}`;
+        
+        return (
+            <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-500 pb-20">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                     <div className="bg-slate-900 rounded-3xl p-10 text-white relative overflow-hidden shadow-2xl">
+                         <div className="absolute top-0 right-0 p-8 opacity-10">
+                              <Wallet size={100} />
+                         </div>
+                         <p className="text-[10px] font-bold text-blue-400 uppercase tracking-widest mb-4">Earnings History</p>
+                         <h4 className="text-[11px] font-medium text-slate-400 uppercase tracking-widest mb-2">Available Balance</h4>
+                         <h3 className="text-4xl font-bold tracking-tight mb-8">₹{(user?.partnerBalance || 0).toLocaleString()}</h3>
+                         <button onClick={() => info("Withdrawal requires a minimum balance of ₹1,000.")} className="px-8 py-3 bg-white text-slate-900 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-blue-50 transition-all">Withdraw Funds</button>
+                     </div>
+                     <div className="bg-white rounded-3xl border border-slate-200 p-10 shadow-sm flex flex-col justify-between">
+                         <div className="flex items-center justify-between mb-8">
+                              <div>
+                                  <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Affiliate ID</h4>
+                                  <h3 className="text-xl font-bold text-slate-900 uppercase">{user?.partnerCode || 'DEFAULT'}</h3>
+                              </div>
+                              <div className="p-3 bg-slate-50 border border-slate-100 rounded-2xl">
+                                   <QrCode size={32} className="text-slate-900" />
+                              </div>
+                         </div>
+                         <div className="space-y-4">
+                             <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-2">Your Referral Link</label>
+                             <div className="p-4 bg-slate-50 border border-slate-100 rounded-2xl flex items-center justify-between group">
+                                 <span className="text-[10px] font-medium text-slate-400 truncate pr-4">{referralLink}</span>
+                                 <button onClick={() => { navigator.clipboard.writeText(referralLink); success("Referral link copied to clipboard."); }} className="p-2 text-slate-400 hover:text-slate-900 transition-all">
+                                      <LinkIcon size={16} />
+                                 </button>
+                             </div>
+                         </div>
+                     </div>
+                </div>
+
+                <div className="bg-white rounded-3xl border border-slate-200 p-10 shadow-sm">
+                    <h3 className="text-[11px] font-bold text-slate-900 uppercase tracking-widest mb-8 flex items-center gap-2">
+                         <Users size={16} className="text-blue-600" /> Program Statistics
+                    </h3>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+                         <ProgramDetail label="Total Referrals" val="0" />
+                         <ProgramDetail label="Active Conversions" val="0" />
+                         <ProgramDetail label="Recent Clicks" val="0" />
+                         <ProgramDetail label="Success Rate" val="0.0%" />
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+    const BillingTab = () => (
+        <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden animate-in fade-in duration-500 pb-20">
+            <div className="px-10 py-8 border-b border-slate-100 bg-slate-50/50">
+                 <h3 className="text-xs font-bold text-slate-900 uppercase tracking-widest flex items-center gap-2">
+                      <CreditCard size={16} className="text-blue-600" /> Billing History
+                 </h3>
+            </div>
+            <div className="p-0 overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                    <thead>
+                        <tr className="border-b border-slate-50">
+                            <th className="px-10 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Order ID</th>
+                            <th className="px-10 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Date</th>
+                            <th className="px-10 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Amount</th>
+                            <th className="px-10 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Status</th>
+                            <th className="px-10 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">Invoice</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-50">
+                        {!orders || orders.length === 0 ? (
+                            <tr>
+                                <td colSpan="5" className="py-32 text-center">
+                                     <div className="max-w-xs mx-auto">
+                                          <ShoppingBag size={32} className="text-slate-100 mx-auto mb-6" />
+                                          <p className="text-[10px] font-bold text-slate-300 uppercase tracking-[0.2em]">No transactions recorded</p>
+                                     </div>
+                                </td>
+                            </tr>
+                        ) : (
+                            orders.map(order => (
+                                <tr key={order.id} className="hover:bg-slate-50/50 transition-colors">
+                                    <td className="px-10 py-6 text-xs font-bold text-slate-900">#ORD-{order.id}</td>
+                                    <td className="px-10 py-6 text-xs font-medium text-slate-500">{new Date(order.createdAt).toLocaleDateString()}</td>
+                                    <td className="px-10 py-6 text-xs font-bold text-slate-900">₹{order.totalPrice.toLocaleString()}</td>
+                                    <td className="px-10 py-6">
+                                        <span className={`px-3 py-1 rounded-lg text-[9px] font-bold uppercase tracking-widest shadow-sm border ${order.paymentStatus === 'paid' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-amber-50 text-amber-600 border-amber-100'}`}>
+                                            {order.paymentStatus}
+                                        </span>
+                                    </td>
+                                    <td className="px-10 py-6 text-right">
+                                        <button 
+                                            onClick={() => setSelectedOrderForInvoice(order)}
+                                            className="p-2 text-slate-400 hover:text-slate-900 transition-all border border-slate-100 rounded-lg hover:border-slate-900"
+                                        >
+                                             <Download size={16} />
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))
+                        )}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    );
+
+    const InvoiceModal = ({ order, onClose }) => {
+        if (!order) return null;
+
+        const handlePrint = () => {
+             window.print();
+        };
+
+        return (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-10 animate-in fade-in duration-300">
+                <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-md" onClick={onClose}></div>
+                
+                <div className="bg-white w-full max-w-2xl rounded-[2.5rem] shadow-2xl relative z-10 overflow-hidden flex flex-col max-h-[90vh] print:shadow-none print:rounded-none print:max-h-full">
+                    <div className="px-10 py-8 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center print:hidden">
+                        <div>
+                            <h3 className="text-xs font-bold text-slate-900 uppercase tracking-widest">Order Invoice</h3>
+                            <p className="text-[10px] text-slate-400 font-medium uppercase tracking-widest">Official Transaction Record</p>
+                        </div>
+                        <div className="flex gap-4">
+                            <button onClick={handlePrint} className="flex items-center gap-2 px-6 py-2.5 bg-slate-900 text-white rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-blue-600 transition-all">
+                                <Download size={14} /> Download PDF
+                            </button>
+                            <button onClick={onClose} className="p-2.5 text-slate-400 hover:text-slate-900 transition-all">
+                                <X size={20} />
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="invoice-content" className="p-12 md:p-16 overflow-y-auto print:p-0 print:overflow-visible">
+                        <div className="flex justify-between items-start mb-14">
+                            <div className="space-y-4">
+                                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-900 text-lg font-bold text-white">D</div>
+                                <div>
+                                    <h2 className="text-xl font-bold text-slate-900">Devnity</h2>
+                                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Managed by Appnity Softwares</p>
+                                </div>
+                            </div>
+                            <div className="text-right">
+                                <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Invoice #</h4>
+                                <p className="text-lg font-bold text-slate-900">DEVNITY-{(order.id + 1000).toString()}</p>
+                                <p className="text-[10px] text-slate-400 font-medium uppercase tracking-widest mt-1">Date: {new Date(order.createdAt).toLocaleDateString()}</p>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-12 mb-14 pb-14 border-b border-slate-100">
+                            <div>
+                                <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">Billed To</h4>
+                                <div className="space-y-1">
+                                    <p className="text-xs font-bold text-slate-900">{user?.name}</p>
+                                    <p className="text-[11px] text-slate-500 font-medium tracking-tight">@{user?.username}</p>
+                                    <p className="text-[11px] text-slate-500 font-medium tracking-tight">{user?.email}</p>
+                                </div>
+                            </div>
+                            <div className="text-right">
+                                <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">Issuing Entity</h4>
+                                <div className="space-y-1">
+                                    <p className="text-xs font-bold text-slate-900">Appnity Softwares (India)</p>
+                                    <p className="text-[11px] text-slate-500 font-medium tracking-tight">Digital Services Division</p>
+                                    <p className="text-[11px] text-slate-500 font-medium tracking-tight">business@appnity.co.in</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="mb-14">
+                            <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-6">Service Breakdown</h4>
+                            <table className="w-full text-left">
+                                <thead>
+                                    <tr className="border-b border-slate-100">
+                                        <th className="py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Description</th>
+                                        <th className="py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">Qty</th>
+                                        <th className="py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">Price</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-50">
+                                    {order.orderItems?.map(item => (
+                                        <tr key={item.id}>
+                                            <td className="py-5">
+                                                <p className="text-xs font-bold text-slate-900 uppercase tracking-tight">{item.product?.title || 'Digital Asset'}</p>
+                                                <p className="text-[10px] text-slate-400 font-medium uppercase mt-0.5">Software License • v{item.product?.version || '1.0'}</p>
+                                            </td>
+                                            <td className="py-5 text-center text-xs font-bold text-slate-900">{item.Quantity || item.quantity}</td>
+                                            <td className="py-5 text-right text-xs font-bold text-slate-900">₹{item.Price?.toLocaleString() || item.price?.toLocaleString()}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div className="bg-slate-50 rounded-3xl p-8 flex justify-between items-center relative overflow-hidden">
+                            <div className="absolute top-0 right-0 p-4 opacity-5">
+                                <ShieldCheck size={80} />
+                            </div>
+                            <div>
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Transaction Status</p>
+                                <div className="flex items-center gap-2">
+                                    <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                                    <span className="text-xs font-black text-slate-900 uppercase tracking-widest">Verified Payment</span>
+                                </div>
+                            </div>
+                            <div className="text-right">
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Total Amount Paid</p>
+                                <h3 className="text-2xl font-black text-slate-900 tracking-tighter">₹{order.totalPrice.toLocaleString()}</h3>
+                            </div>
+                        </div>
+
+                        <div className="mt-12 text-center">
+                            <p className="text-[9px] text-slate-300 font-bold uppercase tracking-widest">Thank you for accelerating development with Devnity.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <style>{`
+                    @media print {
+                        body * { visibility: hidden; }
+                        #invoice-content, #invoice-content * { visibility: visible; }
+                        #invoice-content { 
+                            position: fixed; 
+                            left: 0; 
+                            top: 0; 
+                            width: 100% !important; 
+                            padding: 20mm !important;
+                            background: white !important;
+                        }
+                    }
+                `}</style>
+            </div>
+        );
+    }
+
+    const MessagesTab = () => {
+        const [replyingTo, setReplyingTo] = useState(null);
+        const [replyMsg, setReplyMsg] = useState('');
+        const [sending, setSending] = useState(false);
+
+        const handleReply = async () => {
+            if (!replyMsg.trim()) return;
+            setSending(true);
+            try {
+                await api.post(`/profile/inquiries/${replyingTo.id}/reply`, { message: replyMsg });
+                success("Reply sent successfully.");
+                setReplyingTo(null);
+                setReplyMsg('');
+                refetchInquiries();
+            } catch (err) {
+                toastError("Failed to send message. Please check your connection.");
+            } finally {
+                setSending(false);
+            }
+        };
+
+        return (
+            <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-500 pb-20">
+                <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden p-10">
+                    <div className="flex items-center justify-between mb-10">
+                        <div>
+                             <h3 className="text-lg font-bold text-slate-900 uppercase tracking-tight mb-2">Message History</h3>
+                             <p className="text-[10px] font-medium text-slate-400 uppercase tracking-widest">Support conversations and inquiries.</p>
+                        </div>
+                        <div className="w-12 h-12 bg-amber-50 text-amber-500 rounded-2xl flex items-center justify-center">
+                             <MessageSquare size={20} />
+                        </div>
+                    </div>
+
+                    <div className="space-y-6">
+                        {!inquiries || inquiries.length === 0 ? (
+                            <div className="text-center py-24 border-2 border-dashed border-slate-50 rounded-3xl">
+                                 <Send size={32} className="mx-auto text-slate-100 mb-6" />
+                                 <p className="text-[10px] font-bold text-slate-300 uppercase tracking-[0.2em]">No support messages found.</p>
+                                 <Link to="/contact" className="mt-6 inline-block text-[10px] font-bold text-blue-600 hover:underline uppercase tracking-widest">Contact Support</Link>
+                            </div>
+                        ) : (
+                            inquiries.map(inq => (
+                                <div key={inq.id} className="bg-slate-50/50 border border-slate-100 rounded-3xl p-8 hover:border-blue-200 transition-all group overflow-hidden relative">
+                                    <div className="flex items-start justify-between mb-8">
+                                         <div>
+                                             <div className="flex items-center gap-3 mb-2">
+                                                 <span className="px-3 py-1 bg-white text-[9px] font-bold text-slate-900 border border-slate-100 rounded-lg shadow-sm uppercase tracking-widest">ID #{inq.id}</span>
+                                                 <span className={`px-3 py-1 rounded-lg text-[9px] font-bold uppercase tracking-widest shadow-sm ${inq.status === 'replied' ? 'bg-blue-50 text-blue-600' : 'bg-amber-50 text-amber-600'}`}>
+                                                      {inq.status}
+                                                 </span>
+                                             </div>
+                                             <h4 className="text-sm font-bold text-slate-900 uppercase tracking-tight">{inq.subject || 'Support Inquiry'}</h4>
+                                         </div>
+                                         <span className="text-[9px] font-bold text-slate-300 uppercase">{new Date(inq.createdAt).toLocaleDateString()}</span>
+                                    </div>
+                                    
+                                    <div className="space-y-6">
+                                        <div className="p-5 bg-white border border-slate-50 shadow-sm rounded-2xl text-sm font-medium text-slate-600 leading-relaxed">
+                                            {inq.message}
+                                        </div>
+                                        
+                                        {inq.reply && (
+                                            <div className="p-5 bg-slate-900 text-slate-100 rounded-2xl text-[11px] font-semibold leading-relaxed relative flex items-start gap-4">
+                                                <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center shrink-0">
+                                                     <Check size={14} className="text-white" />
+                                                </div>
+                                                <div className="flex-1 whitespace-pre-line">
+                                                    <p className="text-[9px] font-bold text-blue-400 uppercase tracking-widest mb-2">Support Representative</p>
+                                                    {inq.reply}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="mt-8 pt-8 border-t border-white flex justify-end">
+                                        {replyingTo?.id === inq.id ? (
+                                            <div className="w-full space-y-4 animate-in slide-in-from-top-4 duration-300">
+                                                <textarea value={replyMsg} onChange={e => setReplyMsg(e.target.value)} placeholder="Type your reply here..." className="w-full p-6 bg-white border border-slate-100 rounded-2xl outline-none text-xs font-semibold focus:ring-2 focus:ring-blue-500/10 min-h-[140px] resize-none shadow-inner" />
+                                                <div className="flex gap-4 justify-end">
+                                                    <button onClick={() => setReplyingTo(null)} className="px-6 py-3 bg-slate-100 text-slate-400 rounded-xl text-[10px] font-bold uppercase tracking-widest">Cancel</button>
+                                                    <button onClick={handleReply} disabled={sending} className="px-10 py-3 bg-slate-900 text-white rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-blue-600 transition-all flex items-center gap-2">
+                                                        {sending ? <RefreshCw className="animate-spin" size={14} /> : <Send size={14} />} Send Reply
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <button onClick={() => setReplyingTo(inq)} className="flex items-center gap-2 text-[10px] font-bold text-slate-400 hover:text-slate-900 uppercase tracking-widest transition-all">
+                                                <RefreshCw size={14} /> Reply to Thread
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            ))
+                        )}
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+    const StudioTab = () => (
+        <div className="space-y-8 animate-in fade-in duration-500 pb-20">
+            <div className="flex items-center justify-between mb-8">
+                <div>
+                    <h3 className="text-xl font-bold text-slate-900 uppercase tracking-tight">Creator Studio</h3>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Manage your authored templates and submissions.</p>
+                </div>
+                <Link to="/account/submit" className="px-8 py-3 bg-slate-900 text-white rounded-2xl text-[10px] font-bold uppercase tracking-widest hover:bg-blue-600 transition-all shadow-xl">
+                    Submit New Template
+                </Link>
+            </div>
+
+            {!authoredAssets || authoredAssets.length === 0 ? (
+                <div className="py-40 text-center bg-white rounded-[3rem] border border-slate-100 shadow-sm">
+                     <Zap size={48} className="mx-auto text-slate-100 mb-6" />
+                     <h4 className="text-lg font-bold text-slate-300 uppercase tracking-[0.2em]">No submissions yet</h4>
+                     <p className="text-[10px] text-slate-400 font-medium mb-8 uppercase tracking-widest">Start your journey as a Devnity creator.</p>
+                     <Link to="/account/submit" className="inline-block px-10 py-4 bg-blue-600 text-white rounded-2xl text-[11px] font-bold uppercase tracking-widest hover:scale-105 transition-all">Submit First Template</Link>
+                </div>
+            ) : (
+                <div className="grid grid-cols-1 gap-4">
+                    {authoredAssets.map(asset => (
+                        <div key={asset.id} className="bg-white p-6 rounded-3xl border border-slate-200 flex items-center justify-between group hover:border-slate-900 transition-all shadow-sm">
+                            <div className="flex items-center gap-6">
+                                <div className="w-16 h-16 rounded-2xl bg-slate-50 border border-slate-100 overflow-hidden">
+                                    <img src={asset.image} alt="" className="w-full h-full object-cover" />
+                                </div>
+                                <div>
+                                    <h4 className="text-sm font-bold text-slate-900 uppercase tracking-tight">{asset.title}</h4>
+                                    <div className="flex items-center gap-3 mt-1">
+                                        <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md ${asset.moderationStatus === 'approved' ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}`}>
+                                            {asset.moderationStatus}
+                                        </span>
+                                        <span className="text-[9px] font-bold text-slate-400 uppercase">{asset.category} • v{asset.version}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <Link to={`/account/templates/${asset.id}/edit`} title="Edit Template" className="p-3 bg-slate-50 text-slate-400 rounded-xl hover:bg-slate-900 hover:text-white transition-all">
+                                     <Edit3 size={16} />
+                                </Link>
+                                {asset.moderationStatus === 'approved' && (
+                                    <button 
+                                        onClick={() => setConfirmModal({
+                                            isOpen: true,
+                                            title: "Unpublish Template?",
+                                            message: "This will immediately hide this template from the marketplace. You can republish it after review.",
+                                            confirmText: "Unpublish",
+                                            type: "warning",
+                                            onConfirm: () => {
+                                                unpublishTemplate.mutate(asset.id);
+                                                setConfirmModal(p => ({ ...p, isOpen: false }));
+                                            }
+                                        })} 
+                                        title="Unpublish Template" 
+                                        className="p-3 bg-slate-50 text-slate-400 rounded-xl hover:bg-amber-500 hover:text-white transition-all"
+                                    >
+                                         <Eye size={16} />
+                                    </button>
+                                )}
+                                <button 
+                                    onClick={() => setConfirmModal({
+                                        isOpen: true,
+                                        title: "Delete Forever?",
+                                        message: "This record and all associated metadata will be purged. This action is irreversible.",
+                                        confirmText: "Delete Record",
+                                        type: "danger",
+                                        onConfirm: () => {
+                                            deleteTemplate.mutate(asset.id);
+                                            setConfirmModal(p => ({ ...p, isOpen: false }));
+                                        }
+                                    })} 
+                                    title="Delete Template" 
+                                    className="p-3 bg-slate-50 text-slate-400 rounded-xl hover:bg-rose-500 hover:text-white transition-all"
+                                >
+                                     <Trash2 size={16} />
+                                </button>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+
+    return (
+        <div className="min-h-screen bg-[#fafafa] flex font-sans text-slate-900 antialiased h-screen overflow-hidden">
+            <input type="file" hidden ref={fileInputRef} accept="image/*" onChange={handleAvatarUpload} />
+
+            <aside className="w-64 bg-white border-r border-slate-200 flex flex-col pt-8 flex-shrink-0">
+                <Link to="/account?tab=overview" className="flex items-center gap-3 px-6 mb-10 group/brand hover:opacity-80 transition-opacity">
+                    <div className="w-9 h-9 bg-slate-900 rounded-xl flex items-center justify-center font-bold text-white text-base group-hover/brand:scale-110 transition-transform shadow-xl shadow-slate-900/20">N</div>
+                    <div>
+                        <h1 className="text-[11px] font-bold text-slate-900 uppercase tracking-[0.2em] leading-none mb-1">User Dashboard</h1>
+                        <p className="text-[8px] text-slate-400 font-bold uppercase tracking-widest">Account Settings</p>
+                    </div>
+                </Link>
+
+                <nav className="flex-1 px-4 space-y-1 overflow-y-auto custom-scrollbar">
+                    <NavLink active={activeTab === 'overview'} onClick={() => setTab('overview')} icon={<LayoutDashboard size={18} />} label="Account Overview" />
+                    <NavLink active={activeTab === 'assets'} onClick={() => setTab('assets')} icon={<Package size={18} />} label="My Assets" />
+                    <NavLink active={activeTab === 'billing'} onClick={() => setTab('billing')} icon={<CreditCard size={18} />} label="Billing & Invoices" />
+                    <NavLink active={activeTab === 'studio'} onClick={() => setTab('studio')} icon={<Zap size={18} />} label="Creator Studio" />
+                    <NavLink active={activeTab === 'messages'} onClick={() => setTab('messages')} icon={<MessageSquare size={18} />} label="Message History" />
+                    <div className="h-4"></div>
+                    <p className="text-[8px] font-bold text-slate-300 uppercase tracking-widest ml-4 mb-2">Account Settings</p>
+                    <NavLink active={activeTab === 'settings'} onClick={() => setTab('settings')} icon={<Settings size={18} />} label="Profile Settings" />
+                    <NavLink active={activeTab === 'security'} onClick={() => setTab('security')} icon={<Shield size={18} />} label="Security" />
+                    <NavLink active={activeTab === 'notifications'} onClick={() => setTab('notifications')} icon={<Bell size={18} />} label="Notifications" />
+                    <div className="h-4"></div>
+                    <NavLink active={activeTab === 'referral'} onClick={() => setTab('referral')} icon={<Share2 size={18} />} label="Referral Program" />
+                </nav>
+
+                <div className="p-5 border-t border-slate-100 bg-slate-50/50 mt-auto">
+                    <div className="flex items-center gap-4 px-3 mb-6 group/pfp cursor-pointer relative" onClick={() => fileInputRef.current.click()}>
+                        <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center font-bold text-slate-200 text-sm border-2 border-slate-100 relative overflow-hidden shadow-sm shadow-slate-200/50 transition-all">
+                            {user?.avatarUrl ? <img src={user.avatarUrl} alt="User" className="w-full h-full object-cover" /> : <User />}
+                            <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover/pfp:opacity-100 flex items-center justify-center transition-opacity">
+                                <Camera size={14} className="text-white" />
+                            </div>
+                        </div>
+                        <div className="min-w-0 flex-1">
+                            <p className="text-[11px] font-bold text-slate-900 truncate uppercase tracking-tight">{user?.name}</p>
+                            <Link to={`/@${user?.username}`} className="text-[9px] text-blue-600 font-bold uppercase tracking-widest flex items-center gap-1 hover:underline">View Public Profile <ArrowUpRight size={8} /></Link>
+                        </div>
+                    </div>
+
+                    <button onClick={handleLogout} className="w-full flex items-center justify-center gap-3 px-4 py-3 text-[10px] font-bold text-rose-500 uppercase tracking-widest hover:bg-rose-50 border border-rose-100 rounded-xl transition-all">
+                        <LogOut size={16} /> Logout
+                    </button>
+                </div>
+            </aside>
+
+            <main className="flex-1 bg-[#fafafa] overflow-y-auto custom-scrollbar flex flex-col pt-10">
+                <header className="fixed top-0 right-0 left-64 z-40 h-20 bg-white/40 backdrop-blur-3xl border-b border-slate-100 px-10 flex items-center justify-between">
+                    <div className="flex items-center gap-8">
+                        <div className="flex flex-col">
+                            <h2 className="text-xs font-bold text-slate-900 uppercase tracking-[0.2em]">{activeTab.replace('-', ' ')}</h2>
+                            <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-1">Status: Online</p>
+                        </div>
+                        <div className="h-6 w-px bg-slate-200"></div>
+                        <Link to="/" className="text-[10px] font-bold text-slate-400 hover:text-slate-900 uppercase tracking-widest flex items-center gap-2 group">
+                             <Home size={14} className="group-hover:-translate-y-0.5 transition-transform" /> Back to Store
+                        </Link>
+                    </div>
+
+                    <div className="flex items-center gap-6">
+                         <Link to={`/@${user?.username || user?.id}`} className="px-4 py-2 bg-slate-50 border border-slate-100 rounded-xl text-[9px] font-bold text-slate-400 hover:text-slate-900 hover:border-slate-300 transition-all uppercase tracking-widest flex items-center gap-2">
+                             <ExternalLink size={12} /> View Public Profile
+                         </Link>
+                         <div className="flex items-center gap-2 px-4 py-2 bg-emerald-50 border border-emerald-100 rounded-xl">
+                              <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                              <span className="text-[9px] font-bold text-emerald-700 uppercase tracking-widest">Secure Session</span>
+                         </div>
+                    </div>
+                </header>
+
+                <div className="p-12 max-w-7xl mx-auto w-full pt-16">
+                    {activeTab === 'overview' && <OverviewTab />}
+                    {activeTab === 'settings' && <SettingsTab />}
+                    {activeTab === 'assets' && <AssetsTab />}
+                    {activeTab === 'studio' && <StudioTab />}
+                    {activeTab === 'security' && <SecurityTab />}
+                    {activeTab === 'notifications' && <NotificationsTab />}
+                    {activeTab === 'referral' && <ReferralTab />}
+                    {activeTab === 'billing' && <BillingTab />}
+                    {activeTab === 'messages' && <MessagesTab />}
+                </div>
+
+                <AvatarCropModal 
+                    isOpen={cropModal.isOpen} 
+                    image={cropModal.image} 
+                    onClose={() => setCropModal({ isOpen: false, image: null })}
+                    onCrop={finalizeAvatarUpload}
+                />
+
+                <InvoiceModal 
+                    order={selectedOrderForInvoice} 
+                    onClose={() => setSelectedOrderForInvoice(null)} 
+                />
+            </main>
+            <ConfirmationModal 
+                isOpen={confirmModal.isOpen}
+                onClose={() => setConfirmModal(p => ({ ...p, isOpen: false }))}
+                onConfirm={confirmModal.onConfirm}
+                title={confirmModal.title}
+                message={confirmModal.message}
+                confirmText={confirmModal.confirmText}
+                type={confirmModal.type}
+                isLoading={unpublishTemplate.isPending || deleteTemplate.isPending}
             />
         </div>
     );
 };
 
-const StatCard = ({ label, value, sub, isPro }) => (
-    <div className={`p-10 rounded-[2.5rem] border border-gray-100 bg-gray-50/30 group hover:shadow-2xl transition-all duration-500 relative overflow-hidden ${isPro ? 'bg-white shadow-xl shadow-yellow-500/5 ring-1 ring-yellow-400/20' : 'hover:bg-white'}`}>
-        {isPro && (
-            <div className="absolute top-0 right-0 w-24 h-24 bg-yellow-400/10 rounded-bl-full -translate-y-4 translate-x-4"></div>
-        )}
-        <div className="text-[10px] font-black text-gray-300 uppercase tracking-widest mb-4 group-hover:text-black transition-colors">{label}</div>
-        <div className={`text-4xl font-black tracking-tight mb-2 ${isPro ? 'bg-gradient-to-r from-yellow-600 to-amber-400 bg-clip-text text-transparent' : 'text-black'}`}>{value}</div>
-        <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{sub}</div>
+const NavLink = ({ active, onClick, icon, label }) => (
+    <button onClick={onClick} className={`w-full flex items-center gap-4 px-4 py-3 rounded-2xl text-[11px] font-bold uppercase tracking-widest transition-all group ${active ? 'bg-slate-900 text-white shadow-xl shadow-slate-900/20' : 'text-slate-400 hover:text-slate-900 hover:bg-slate-50'}`}>
+        <span className={`${active ? 'text-blue-500' : 'text-slate-300 group-hover:text-blue-600'}`}>{icon}</span>
+        <span className="truncate">{label}</span>
+    </button>
+);
+
+const StatCard = ({ label, value, change, sub, icon, color }) => (
+    <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm hover:shadow-xl transition-all group overflow-hidden relative">
+        <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:scale-110 transition-transform">{icon}</div>
+        <div className="flex items-center justify-between mb-6">
+            <div className={`p-4 rounded-2xl bg-slate-50 border border-slate-100 ${color} shadow-sm`}>{icon}</div>
+            <span className="text-[10px] font-bold px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-600 uppercase tracking-widest border border-emerald-100">{change}</span>
+        </div>
+        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">{label}</p>
+        <h3 className="text-3xl font-bold text-slate-900 tracking-tighter mt-2 mb-2">{value}</h3>
+        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{sub}</p>
     </div>
 );
 
-const MetadataRow = ({ label, value }) => (
-    <div className="flex justify-between items-center py-2 border-b border-gray-50 last:border-0">
-        <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">{label}</span>
-        <span className="text-[10px] font-black text-black">{value}</span>
-    </div>
-);
-
-const Field = ({ label, children }) => (
+const Field = ({ label, icon, value, onChange, disabled, placeholder }) => (
     <div className="space-y-3">
-        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] ml-2">{label}</label>
-        {children}
+        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-2">{label}</label>
+        <div className="relative">
+            <div className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300">{icon}</div>
+            <input 
+                disabled={disabled}
+                value={value}
+                onChange={(e) => onChange(e.target.value)}
+                className="w-full bg-slate-50 border border-slate-100 rounded-2xl pl-14 pr-6 py-4 text-xs font-bold text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/5 transition-all disabled:opacity-40 placeholder:text-slate-300 shadow-sm"
+                placeholder={placeholder}
+            />
+        </div>
+    </div>
+);
+
+const ToggleSetting = ({ label, sub, active, onClick }) => (
+    <div className="flex items-center justify-between p-6 bg-slate-50/50 rounded-3xl border border-slate-100 group hover:bg-white hover:border-slate-200 transition-all">
+        <div>
+            <p className="text-[11px] font-bold text-slate-900 uppercase mb-1">{label}</p>
+            <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">{sub}</p>
+        </div>
+        <button onClick={onClick} className={`w-12 h-6 rounded-full relative transition-all duration-300 ${active ? 'bg-blue-600' : 'bg-slate-200 shadow-inner'}`}>
+             <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all duration-300 shadow-sm ${active ? 'left-7' : 'left-1'}`}></div>
+        </button>
+    </div>
+);
+
+const ProgramDetail = ({ label, val }) => (
+    <div className="p-6 bg-slate-50/80 border border-slate-100 rounded-2xl">
+         <p className="text-[9px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-2">{label}</p>
+         <h4 className="text-xl font-bold text-slate-900">{val}</h4>
     </div>
 );
 

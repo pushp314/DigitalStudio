@@ -35,37 +35,144 @@ func (h *MarketingHandler) ListCoupons(c *gin.Context) {
 
 // Admin: Create Coupon
 func (h *MarketingHandler) CreateCoupon(c *gin.Context) {
-	var coupon models.Coupon
-	if err := c.ShouldBindJSON(&coupon); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	var req struct {
+		Code          string  `json:"code" binding:"required"`
+		DiscountType  string  `json:"discountType" binding:"required"`
+		DiscountValue float64 `json:"discountValue" binding:"required"`
+		MinPurchase   float64 `json:"minPurchase"`
+		UsageLimit    int     `json:"usageLimit"`
+		ExpiresAt     *string `json:"expiresAt"` // Pointer to string to handle null
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request matrix: " + err.Error()})
 		return
 	}
-	coupon.Code = models.NormalizeCouponCode(coupon.Code)
+
+	coupon := models.Coupon{
+		Code:          models.NormalizeCouponCode(req.Code),
+		DiscountType:  models.DiscountType(req.DiscountType),
+		DiscountValue: req.DiscountValue,
+		MinPurchase:   req.MinPurchase,
+		UsageLimit:    req.UsageLimit,
+		Active:        true,
+	}
+
+	if req.ExpiresAt != nil && *req.ExpiresAt != "" {
+		t, err := time.Parse(time.RFC3339, *req.ExpiresAt)
+		if err != nil {
+			// Try a simpler format if RFC3339 fails (for the <input type="date">)
+			t, err = time.Parse("2006-01-02", *req.ExpiresAt)
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Temporal signature invalid. Use YYYY-MM-DD or RFC3339."})
+				return
+			}
+		}
+		coupon.ExpiresAt = &t
+	}
+
 	if coupon.Code == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "coupon code is required"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Key Code is required for protocol activation"})
 		return
 	}
 
 	if err := h.DB.Create(&coupon).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create coupon"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database write failure: conflict or isolation violation"})
 		return
 	}
 	c.JSON(http.StatusCreated, coupon)
 }
 
-// Admin: Delete Coupon
-func (h *MarketingHandler) DeleteCoupon(c *gin.Context) {
+// Admin: Update Coupon
+func (h *MarketingHandler) UpdateCoupon(c *gin.Context) {
 	id := c.Param("id")
-	if err := h.DB.Model(&models.Coupon{}).Where("id = ?", id).Update("active", false).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to remove coupon"})
+	var req struct {
+		DiscountValue float64 `json:"discountValue"`
+		MinPurchase   float64 `json:"minPurchase"`
+		UsageLimit    int     `json:"usageLimit"`
+		ExpiresAt     *string `json:"expiresAt"`
+		Active        *bool   `json:"active"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid update matrix: " + err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "Coupon deactivated"})
+
+	var coupon models.Coupon
+	if err := h.DB.First(&coupon, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Coupon node not found"})
+		return
+	}
+
+	updates := map[string]interface{}{
+		"discount_value": req.DiscountValue,
+		"min_purchase":   req.MinPurchase,
+		"usage_limit":    req.UsageLimit,
+	}
+
+	if req.Active != nil {
+		updates["active"] = *req.Active
+	}
+
+	if req.ExpiresAt != nil {
+		if *req.ExpiresAt == "" {
+			updates["expires_at"] = nil
+		} else {
+			t, err := time.Parse(time.RFC3339, *req.ExpiresAt)
+			if err != nil {
+				t, err = time.Parse("2006-01-02", *req.ExpiresAt)
+			}
+			if err == nil {
+				updates["expires_at"] = &t
+			}
+		}
+	}
+
+	if err := h.DB.Model(&coupon).Updates(updates).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database sync failure during modification"})
+		return
+	}
+
+	c.JSON(http.StatusOK, coupon)
+}
+
+// Admin: Revoke (Toggle Active)
+func (h *MarketingHandler) RevokeCoupon(c *gin.Context) {
+	id := c.Param("id")
+	var coupon models.Coupon
+	if err := h.DB.First(&coupon, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Coupon not found"})
+		return
+	}
+
+	coupon.Active = !coupon.Active
+	h.DB.Save(&coupon)
+
+	status := "Activated"
+	if !coupon.Active {
+		status = "Revoked"
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Coupon " + status, "active": coupon.Active})
+}
+
+// Admin: Hard Delete
+func (h *MarketingHandler) HardDeleteCoupon(c *gin.Context) {
+	id := c.Param("id")
+	if err := h.DB.Unscoped().Delete(&models.Coupon{}, id).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to purge coupon from ledger"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Coupon permanently purged"})
 }
 
 // Public: Validate Coupon
 func (h *MarketingHandler) ValidateCoupon(c *gin.Context) {
 	code := models.NormalizeCouponCode(c.Query("code"))
+	scope := strings.TrimSpace(c.Query("scope")) // membership, template, support
+	if scope == "" {
+		scope = "all"
+	}
 	amount, err := strconv.ParseFloat(strings.TrimSpace(c.Query("totalAmount")), 64)
 	if code == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Coupon code is required"})
@@ -83,8 +190,8 @@ func (h *MarketingHandler) ValidateCoupon(c *gin.Context) {
 	}
 
 	// Basic validation check (amount check might need to be more complex)
-	if !coupon.IsValid(amount) {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Coupon requirements not met"})
+	if !coupon.IsValid(amount, scope) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Coupon requirements or scope not met"})
 		return
 	}
 

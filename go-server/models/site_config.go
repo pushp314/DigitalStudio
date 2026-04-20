@@ -25,6 +25,12 @@ type ShowcaseItem struct {
 	Footer      string `json:"footer"`
 }
 
+type CarouselItem struct {
+	Image string `json:"image"`
+	Link  string `json:"link"`
+	Title string `json:"title"`
+}
+
 type ContactConfig struct {
 	Heading    string `json:"heading"`
 	Subheading string `json:"subheading"`
@@ -34,10 +40,20 @@ type ContactConfig struct {
 }
 
 type AISettings struct {
-	Enabled    bool   `json:"enabled"`
-	ServiceURL string `json:"serviceUrl"`
-	Model      string `json:"model"`
-	APIKey     string `json:"apiKey,omitempty"`
+	Enabled      bool   `json:"enabled"`
+	EnableDocsAI bool   `json:"enableDocsAi"`
+	EnableChatAI bool   `json:"enableChatAi"`
+	ServiceURL   string `json:"serviceUrl"`
+	Provider     string `json:"provider"` // ollama, groq, gemini
+	Model        string `json:"model"`
+	APIKey       string `json:"apiKey,omitempty"`
+}
+
+type EliteSettings struct {
+	NegotiationEnabled bool    `json:"negotiationEnabled"`
+	NegotiationFee     float64 `json:"negotiationFee"`
+	SupportMonthlyFee  float64 `json:"supportMonthlyFee"`
+	ServiceBenefitDays int     `json:"serviceBenefitDays"` // e.g. 30 days of chat for buyers
 }
 
 type MemberPlan struct {
@@ -58,6 +74,7 @@ type SiteConfig struct {
 	HeroImages          []string        `gorm:"serializer:json;type:jsonb" json:"heroImages,omitempty"`
 	HeroVisualEffect    string          `gorm:"default:'stack'" json:"heroVisualEffect"`
 	Announcements       []string        `gorm:"serializer:json;type:jsonb" json:"announcements"`
+	CarouselStack       []CarouselItem  `gorm:"serializer:json;type:jsonb" json:"carouselStack,omitempty"`
 	ShowAnnouncement    bool            `json:"showAnnouncement"`
 	SupportEmail        string          `json:"supportEmail"`
 	Features            map[string]bool `gorm:"serializer:json;type:jsonb" json:"features,omitempty"`
@@ -67,6 +84,7 @@ type SiteConfig struct {
 	ShowcaseItems       []ShowcaseItem  `gorm:"serializer:json;type:jsonb" json:"showcaseItems,omitempty"`
 	Contact             ContactConfig   `gorm:"serializer:json;type:jsonb" json:"contact"`
 	AISettings          AISettings      `gorm:"serializer:json;type:jsonb" json:"aiSettings"`
+	EliteSettings       EliteSettings   `gorm:"serializer:json;type:jsonb" json:"eliteSettings"`
 	FrontendURL         string          `gorm:"type:varchar(255)" json:"frontendUrl"`
 	MaintenanceMode     bool            `gorm:"default:false" json:"maintenanceMode"`
 	MaintenanceMessage  string          `gorm:"default:'We are currently performing a scheduled maintenance sequence. Please check back shortly.'" json:"maintenanceMessage"`

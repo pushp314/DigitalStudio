@@ -19,7 +19,7 @@ const DocEdit = () => {
     const [formData, setFormData] = useState({
         title: '',
         price: '0',
-        section: 'General',
+        category: 'General',
         content: '# Getting Started\n\nWrite your documentation here using Markdown. Use headers (H1, H2, H3) to automatically generate the **ScrollSpy** table of contents.\n\n## Example Section\nThis section will appear in the sidebar automatically.',
         isPremium: false,
         order: 0,
@@ -44,7 +44,7 @@ const DocEdit = () => {
                 setFormData({
                     title: doc.title || '',
                     price: String(doc.price || 0),
-                    section: doc.section || 'General',
+                    category: doc.category || 'General',
                     content: doc.content || '',
                     isPremium: doc.isPremium || false,
                     order: doc.order || 0,
@@ -200,7 +200,7 @@ const DocEdit = () => {
                                                 <input name="title" value={formData.title} onChange={handleChange} className="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:border-black font-bold text-sm" placeholder="e.g. Setup Guide" />
                                             </FormGroup>
                                             <FormGroup label="Category">
-                                                <input name="section" value={formData.section} onChange={handleChange} className="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:border-black font-bold text-sm" placeholder="e.g. Technical" />
+                                                <input name="category" value={formData.category} onChange={handleChange} className="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:border-black font-bold text-sm" placeholder="e.g. Technical" />
                                             </FormGroup>
                                         </div>
 

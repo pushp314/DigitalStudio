@@ -3,6 +3,27 @@ import ConfigContext from '../../context/ConfigContext';
 import api from '../../services/api';
 import { useToast } from '../../context/ToastContext';
 import ImageUpload from './ImageUpload';
+import { 
+    Layout, 
+    Monitor, 
+    ShieldAlert, 
+    Zap, 
+    CreditCard, 
+    HelpCircle, 
+    Share2, 
+    Plus, 
+    Trash2,
+    Type,
+    Mail,
+    Phone,
+    MapPin,
+    Eye,
+    X,
+    Database,
+    Cpu,
+    MessageSquare,
+    Shield
+} from 'lucide-react';
 
 const SiteConfigForm = ({ initialSection = 'general' }) => {
     const { config, updateContextConfig } = useContext(ConfigContext);
@@ -32,29 +53,34 @@ const SiteConfigForm = ({ initialSection = 'general' }) => {
         features: {},
         memberPlans: [],
         maintenanceMode: false,
-        maintenanceMessage: ''
+        maintenanceMessage: '',
+        carouselStack: [],
+        aiSettings: {
+            enabled: false,
+            enableDocsAi: true,
+            enableChatAi: true,
+            serviceUrl: '',
+            provider: 'ollama',
+            model: '',
+            apiKey: ''
+        },
+        eliteSettings: {
+            negotiationEnabled: true,
+            negotiationFee: 9,
+            supportMonthlyFee: 9,
+            serviceBenefitDays: 30
+        }
     });
     const [loading, setLoading] = useState(false);
     const { success, error: toastError } = useToast();
     const [activeSection, setActiveSection] = useState(initialSection);
-    const [previewIndex, setPreviewIndex] = useState(0);
 
-    // Sync active section with prop changes
     useEffect(() => {
         setActiveSection(initialSection);
     }, [initialSection]);
 
-    // Image Preview Rotation
-    useEffect(() => {
-        const interval = setInterval(() => {
-            setPreviewIndex((prev) => (prev + 1) % 3);
-        }, 3000);
-        return () => clearInterval(interval);
-    }, []);
-
     useEffect(() => {
         if (config) {
-// ... rest of useEffect remains
             setFormData({
                 heroTitle: config.heroTitle || '',
                 heroSubtitle: config.heroSubtitle || '',
@@ -70,10 +96,14 @@ const SiteConfigForm = ({ initialSection = 'general' }) => {
                 features: config.features || {},
                 memberPlans: Array.isArray(config.memberPlans) ? config.memberPlans.map(p => ({...p, features: Array.isArray(p.features) ? [...p.features] : []})) : [],
                 maintenanceMode: config.maintenanceMode || false,
-                maintenanceMessage: config.maintenanceMessage || 'We are currently performing a scheduled maintenance. Please check back shortly.'
+                maintenanceMessage: config.maintenanceMessage || 'Under scheduled maintenance. Please check back shortly.',
+                carouselStack: Array.isArray(config.carouselStack) ? config.carouselStack.map(item => ({...item})) : [],
+                aiSettings: config.aiSettings || { enabled: false, serviceUrl: '', provider: 'ollama', model: '', apiKey: '' },
+                eliteSettings: config.eliteSettings || { negotiationEnabled: true, negotiationFee: 9, supportMonthlyFee: 9, serviceBenefitDays: 30 }
             });
         }
     }, [config]);
+    
 
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
@@ -125,135 +155,112 @@ const SiteConfigForm = ({ initialSection = 'general' }) => {
         try {
             const data = await api.put('/config', formData);
             updateContextConfig(data);
-            success('Configuration updated successfully');
+            success('System manifest updated.');
         } catch (error) {
-            toastError('Failed to save changes');
-            console.error(error);
+            toastError('Failed to synchronize manifest.');
         } finally {
             setLoading(false);
         }
     };
 
     const sections = [
-        { id: 'general', label: 'Branding', icon: '🆔' },
-        { id: 'hero', label: 'Home Banner', icon: '🎨' },
-        { id: 'marketing', label: 'Social Proof', icon: '📢' },
-        { id: 'faqs', label: 'FAQs', icon: '❓' },
-        { id: 'features', label: 'Site Features', icon: '⚡' },
-        { id: 'plans', label: 'Member Plans', icon: '💎' },
-        { id: 'security', label: 'Maintenance', icon: '🛡️' }
+        { id: 'general', label: 'Identity', icon: <Type size={16} /> },
+        { id: 'hero', label: 'Banner Deck', icon: <Monitor size={16} /> },
+        { id: 'marketing', label: 'Social Index', icon: <Share2 size={16} /> },
+        { id: 'carousel', label: 'Carousel Stack', icon: <Layout size={16} /> },
+        { id: 'faqs', label: 'Queries', icon: <HelpCircle size={16} /> },
+        { id: 'intelligence', label: 'AI Settings', icon: <Database size={16} /> },
+        { id: 'elite', label: 'Support & Negotiation', icon: <MessageSquare size={16} /> },
+        { id: 'features', label: 'Operational Nodes', icon: <Zap size={16} /> },
+        { id: 'contact', label: 'Contact Center', icon: <Mail size={16} /> },
+        { id: 'plans', label: 'Membership', icon: <CreditCard size={16} /> },
+        { id: 'security', label: 'Maintenance', icon: <ShieldAlert size={16} /> }
     ];
 
     return (
-        <div className="space-y-8 animate-in fade-in duration-700 relative" style={{ fontFamily: "'Inter', sans-serif" }}>
+        <div className="space-y-8 animate-in fade-in duration-500 relative" style={{ fontFamily: "'Inter', sans-serif" }}>
             
-            <div className="bg-white border border-gray-100 rounded-[3.5rem] shadow-sm overflow-hidden flex flex-col lg:flex-row min-h-[800px] relative">
+            <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden flex flex-col lg:flex-row min-h-[700px]">
                 
-                {/* Enterprise Config Sidebar */}
-                <div className="w-full lg:w-80 bg-gray-50/50 border-r border-gray-100 p-10 flex flex-col relative z-20">
-                    <div className="mb-10 px-4">
-                        <p className="text-[11px] font-black text-gray-400 uppercase tracking-[0.4em] mb-3">Settings Hub</p>
-                        <div className="h-1 w-12 bg-black rounded-full"></div>
-                    </div>
-                    
-                    <div className="space-y-1 flex-grow">
+                {/* Fixed Professional Sidebar */}
+                <aside className="w-full lg:w-64 bg-slate-50/50 border-r border-slate-200 p-6 flex flex-col gap-8">
+                    <div className="space-y-1">
                         {sections.map(s => (
                             <button
                                 key={s.id}
+                                type="button"
                                 onClick={() => setActiveSection(s.id)}
-                                className={`w-full flex items-center justify-between px-6 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all duration-300 relative group ${
+                                className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-xs font-semibold transition-all group ${
                                     activeSection === s.id 
-                                    ? 'bg-white text-black shadow-xl shadow-black/5 ring-1 ring-gray-100/50' 
-                                    : 'text-gray-400 hover:text-black hover:bg-white/80'
+                                    ? 'bg-slate-100 text-slate-900 shadow-sm border border-slate-200' 
+                                    : 'text-slate-400 hover:text-slate-900 hover:bg-slate-100/50'
                                 }`}
                             >
-                                <div className="flex items-center gap-4">
-                                    <span className={`text-lg transition-transform duration-500 ${activeSection === s.id ? 'scale-110' : 'group-hover:scale-110 grayscale'}`}>{s.icon}</span>
-                                    <span>{s.label}</span>
-                                </div>
-                                {activeSection === s.id && (
-                                    <div className="w-1 h-4 bg-black rounded-full"></div>
-                                )}
+                                <span className={`${activeSection === s.id ? 'text-blue-600' : 'text-slate-400 group-hover:text-slate-600'}`}>{s.icon}</span>
+                                {s.label}
                             </button>
                         ))}
                     </div>
 
-                    <div className="pt-10 border-t border-gray-100 mt-10 space-y-4">
+                    <div className="mt-auto pt-6 border-t border-slate-200">
                          <button
                             onClick={handleSubmit}
                             disabled={loading}
-                            className="w-full group px-8 py-5 bg-black text-white rounded-[2rem] font-black uppercase text-[10px] tracking-widest shadow-2xl shadow-black/20 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 overflow-hidden relative"
+                            className="w-full py-2.5 bg-slate-900 text-white rounded-lg text-[11px] font-bold uppercase tracking-widest hover:bg-slate-800 disabled:opacity-30 transition-all shadow-sm"
                         >
-                            <span className="relative z-10">{loading ? 'Synchronizing...' : 'Save All Configuration'}</span>
-                            <div className="absolute inset-0 bg-white/10 translate-y-full group-hover:translate-y-0 transition-transform duration-500"></div>
+                            {loading ? 'Synchronizing...' : 'Sync Manifest'}
                         </button>
                     </div>
-                </div>
+                </aside>
 
                 {/* Content Panel */}
-                <div className="flex-1 p-12 md:p-16 lg:p-20 overflow-y-auto bg-white relative z-10 custom-scrollbar">
-                    <form onSubmit={handleSubmit} className="max-w-4xl space-y-12">
+                <div className="flex-1 p-10 lg:p-14 overflow-y-auto bg-white custom-scrollbar">
+                    <form onSubmit={handleSubmit} className="max-w-3xl space-y-12 pb-20">
                         
                         {activeSection === 'general' && (
-                            <div className="space-y-10 animate-in slide-in-from-right-4 duration-500">
+                            <div className="space-y-10 animate-in fade-in duration-500">
                                 <div>
-                                    <h2 className="text-2xl font-bold text-black tracking-tight mb-2">Website Settings</h2>
-                                    <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">General branding and contact information</p>
+                                    <h2 className="text-xl font-bold text-slate-900 tracking-tight mb-1">Branding Identity</h2>
+                                    <p className="text-xs text-slate-500">Configure global platform identifiers and support channels.</p>
                                 </div>
                                 <div className="space-y-6">
-                                    <Field label="Hero Section Title">
-                                        <input type="text" name="heroTitle" value={formData.heroTitle} onChange={handleChange} className="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:border-black font-medium text-sm transition-all" />
+                                    <Field label="Hero Headline">
+                                        <input type="text" name="heroTitle" value={formData.heroTitle} onChange={handleChange} className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg outline-none focus:ring-1 focus:ring-blue-500 text-sm" />
                                     </Field>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        <Field label="Support Email Address">
-                                            <input type="email" name="supportEmail" value={formData.supportEmail} onChange={handleChange} className="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:border-black font-medium text-sm transition-all" />
+                                        <Field label="Primary Support Channel">
+                                            <div className="relative">
+                                                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" size={14} />
+                                                <input type="email" name="supportEmail" value={formData.supportEmail} onChange={handleChange} className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-lg outline-none focus:ring-1 focus:ring-blue-500 text-sm font-medium" />
+                                            </div>
                                         </Field>
-                                        <div className="p-6 bg-gray-50 rounded-2xl border border-gray-100 flex items-center justify-between">
+                                        <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between">
                                             <div>
-                                                <p className="text-xs font-bold text-black uppercase tracking-wider">Announcement Bar</p>
-                                                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">Visible to all users</p>
+                                                <p className="text-[10px] font-bold text-slate-900 uppercase tracking-widest">Global Broadcast</p>
+                                                <p className="text-[9px] text-slate-400 font-bold uppercase tracking-[0.2em] mt-0.5">Announcement Bar</p>
                                             </div>
                                             <Toggle checked={formData.showAnnouncement} onChange={(val) => setFormData(prev => ({...prev, showAnnouncement: val}))} />
                                         </div>
                                     </div>
                                     {formData.showAnnouncement && (
-                                        <div className="space-y-6 animate-in fade-in slide-in-from-top-4 duration-500">
-                                            <div className="flex justify-between items-center px-2">
-                                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Active Carousel Messages</p>
-                                                <button 
-                                                    type="button" 
-                                                    onClick={() => addArrayItem('announcements', '')}
-                                                    className="text-[10px] font-black text-primary uppercase tracking-widest hover:underline"
-                                                >
-                                                    + Add Message
-                                                </button>
+                                        <div className="space-y-4 animate-in slide-in-from-top-2 duration-300">
+                                            <div className="flex justify-between items-center bg-slate-900/5 p-4 rounded-xl border border-slate-200/50">
+                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Announcement List</p>
+                                                <button type="button" onClick={() => addArrayItem('announcements', '')} className="text-[9px] font-bold text-blue-600 uppercase tracking-widest flex items-center gap-1.5 hover:underline"><Plus size={10} /> Add message</button>
                                             </div>
-                                            <div className="space-y-3">
+                                            <div className="space-y-2">
                                                 {formData.announcements.map((msg, idx) => (
-                                                    <div key={idx} className="relative group">
+                                                    <div key={idx} className="flex gap-2 group">
                                                         <input 
                                                             type="text" 
                                                             value={msg} 
                                                             onChange={(e) => handleArrayChangeRaw('announcements', idx, e.target.value)}
-                                                            placeholder={`Announcement ${idx + 1}...`}
-                                                            className="w-full px-5 py-4 bg-black text-white rounded-2xl outline-none font-bold text-[10px] uppercase tracking-widest"
+                                                            className="flex-1 px-4 py-2 bg-slate-900 text-white rounded-lg outline-none text-[10px] font-bold uppercase tracking-[0.2em]"
+                                                            placeholder={`Msg Node ${idx + 1}...`}
                                                         />
-                                                        <button 
-                                                            type="button" 
-                                                            onClick={() => removeArrayItem('announcements', idx)}
-                                                            className="absolute right-4 top-1/2 -translate-y-1/2 text-white/50 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"
-                                                        >
-                                                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
-                                                            </svg>
-                                                        </button>
+                                                        <button type="button" onClick={() => removeArrayItem('announcements', idx)} className="p-2 text-slate-300 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"><Trash2 size={14} /></button>
                                                     </div>
                                                 ))}
-                                                {formData.announcements.length === 0 && (
-                                                    <div className="p-10 border-2 border-dashed border-gray-100 rounded-[2rem] text-center">
-                                                        <p className="text-[10px] font-bold text-gray-300 uppercase tracking-widest">No messages configured. Carousel will be hidden.</p>
-                                                    </div>
-                                                )}
                                             </div>
                                         </div>
                                     )}
@@ -261,183 +268,325 @@ const SiteConfigForm = ({ initialSection = 'general' }) => {
                             </div>
                         )}
 
-                         {activeSection === 'hero' && (
-                            <div className="space-y-10 animate-in slide-in-from-right-4 duration-500">
-                                <div className="flex justify-between items-end">
-                                     <div>
-                                        <h2 className="text-2xl font-bold text-black tracking-tight mb-2">Banner Visuals</h2>
-                                        <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">Manage the homepage image rotation</p>
-                                    </div>
-                                    <div className="flex bg-gray-100 p-1 rounded-2xl gap-1">
-                                         {['stack', 'fade', 'scatter'].map(effect => (
-                                             <button
-                                                 key={effect}
-                                                 type="button"
-                                                 onClick={() => setFormData(prev => ({...prev, heroVisualEffect: effect}))}
-                                                 className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${formData.heroVisualEffect === effect ? 'bg-white text-black shadow-sm' : 'text-gray-400 hover:text-black'}`}
-                                             >
-                                                 {effect}
-                                             </button>
-                                         ))}
-                                    </div>
-                                    <button type="button" onClick={() => addArrayItem('heroImages', '')} className="text-[10px] font-bold text-black border-2 border-black px-4 py-2 rounded-xl uppercase tracking-widest hover:bg-black hover:text-white transition-all">+ Add New Image</button>
+                        {activeSection === 'hero' && (
+                            <div className="space-y-10 animate-in fade-in duration-500">
+                                <div>
+                                    <h2 className="text-xl font-bold text-slate-900 tracking-tight mb-1">Banner Visuals</h2>
+                                    <p className="text-xs text-slate-500">Manage asset rotation and visual entrance animations.</p>
                                 </div>
-
-                                {/* LIVE PREVIEW AREA */}
-                                <div className="p-10 bg-gray-950 rounded-[3rem] border border-gray-800 shadow-2xl relative overflow-hidden h-[350px]">
-                                     <div className="absolute top-6 left-6 z-50 flex items-center gap-3">
-                                         <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-                                         <span className="text-[10px] font-black text-white/40 uppercase tracking-[0.3em]">Live Preview — {formData.heroVisualEffect} animation</span>
-                                     </div>
-
-                                     <div className="relative w-full h-full flex items-center justify-center scale-75 lg:scale-90">
-                                         {/* Simulation Logic */}
-                                         {formData.heroImages.length > 0 ? (
-                                             <div className="relative w-[400px] aspect-video">
-                                                 {formData.heroVisualEffect === 'stack' && formData.heroImages.map((src, idx) => {
-                                                     const position = (idx - previewIndex + 3) % 3;
-                                                     const styles = {
-                                                         0: "z-30 scale-100 opacity-100 translate-x-[0%] translate-y-[0%] rotate-0 shadow-2xl",
-                                                         1: "z-20 scale-[0.9] opacity-40 translate-x-[15%] translate-y-[-10%] rotate-[4deg]",
-                                                         2: "z-10 scale-[0.8] opacity-20 translate-x-[30%] translate-y-[-20%] rotate-[8deg]"
-                                                     };
-                                                     return (
-                                                         <div key={idx} className={`absolute inset-0 bg-white rounded-3xl border border-white/10 overflow-hidden transition-all duration-1000 ${styles[position]}`}>
-                                                             <img src={src} className="w-full h-full object-cover" alt="Preview"/>
-                                                         </div>
-                                                     );
-                                                 })}
-
-                                                 {formData.heroVisualEffect === 'fade' && formData.heroImages.map((src, idx) => (
-                                                     <div key={idx} className={`absolute inset-0 bg-white rounded-3xl overflow-hidden transition-opacity duration-1000 ${idx === previewIndex % formData.heroImages.length ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}>
-                                                         <img src={src} className="w-full h-full object-cover" alt="Preview"/>
-                                                     </div>
-                                                 ))}
-
-                                                 {formData.heroVisualEffect === 'scatter' && formData.heroImages.map((src, idx) => {
-                                                     const offsets = [
-                                                         { top: '0%', left: '0%', scale: 'scale-100' },
-                                                         { top: '20%', left: '30%', scale: 'scale-90' },
-                                                         { top: '40%', left: '-10%', scale: 'scale-95' }
-                                                     ];
-                                                     const pos = offsets[idx % 3];
-                                                     return (
-                                                         <div key={idx} className={`absolute ${pos.top} ${pos.left} w-[280px] aspect-video bg-white rounded-2xl shadow-xl border border-white/10 overflow-hidden transition-all duration-[2000ms] ${pos.scale}`}>
-                                                             <img src={src} className="w-full h-full object-cover" alt="Preview"/>
-                                                         </div>
-                                                     );
-                                                 })}
-                                             </div>
-                                         ) : (
-                                             <div className="text-center space-y-4">
-                                                 <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center text-2xl mx-auto shadow-inner">🎞️</div>
-                                                 <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest underline decoration-white/20">Add assets to initialize sandbox</p>
-                                             </div>
-                                         )}
-                                     </div>
-                                </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                     {formData.heroImages?.map((url, idx) => (
-                                        <div key={idx} className="p-6 bg-gray-50/50 rounded-[2rem] border border-gray-100 relative group overflow-hidden">
-                                            <button type="button" onClick={() => removeArrayItem('heroImages', idx)} className="absolute top-4 right-4 text-gray-300 hover:text-red-500 transition-colors z-10 transition-all">
-                                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
-                                            </button>
-                                            <div className="space-y-4">
-                                                <ImageUpload 
-                                                    label={`Hero Asset ${idx + 1}`}
-                                                    currentImage={url}
-                                                    onUploadSuccess={(newUrl) => handleArrayChangeRaw('heroImages', idx, newUrl)}
-                                                />
-                                                <div className="px-5 py-3 bg-white border border-gray-100 rounded-2xl flex items-center justify-between">
-                                                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest truncate max-w-[200px]">{url || 'No R2 URL'}</p>
-                                                     <button type="button" onClick={() => handleArrayChangeRaw('heroImages', idx, '')} className="text-[9px] font-bold text-red-400 uppercase tracking-widest hover:text-red-600 transition-colors">Reset</button>
-                                                </div>
-                                            </div>
+                                        <div key={idx} className="p-6 border border-slate-200 rounded-xl bg-slate-50/30 relative group">
+                                            <button type="button" onClick={() => removeArrayItem('heroImages', idx)} className="absolute top-3 right-3 p-1.5 bg-white shadow-sm border border-slate-200 rounded-md text-slate-300 hover:text-red-500 transition-all"><Trash2 size={14} /></button>
+                                            <ImageUpload 
+                                                label={`Visual Asset ${idx + 1}`}
+                                                currentImage={url}
+                                                onUploadSuccess={(newUrl) => handleArrayChangeRaw('heroImages', idx, newUrl)}
+                                            />
                                         </div>
                                     ))}
-                                </div>
-                                {formData.heroImages?.length === 0 && (
-                                     <div className="p-20 border-2 border-dashed border-gray-100 rounded-[3rem] text-center">
-                                         <p className="text-sm font-bold text-gray-300 uppercase tracking-widest">No custom assets configured. Falling back to platform defaults.</p>
-                                     </div>
-                                )}
-                            </div>
-                        )}
-
-                        {activeSection === 'security' && (
-                            <div className="space-y-10 animate-in slide-in-from-right-4 duration-500">
-                                <div>
-                                    <h2 className="text-2xl font-bold text-red-500 tracking-tight mb-2">Site Maintenance</h2>
-                                    <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">Platform control and site visibility</p>
-                                </div>
-                                <div className="p-10 bg-red-50/50 border border-red-100 rounded-[2.5rem] space-y-8">
-                                    <div className="flex items-center justify-between">
-                                        <div>
-                                            <h3 className="text-sm font-black text-red-600 uppercase tracking-widest">Maintenance Mode</h3>
-                                            <p className="text-xs text-gray-500 mt-1 font-medium">Temporarily disable public access to the platform.</p>
-                                        </div>
-                                        <Toggle checked={formData.maintenanceMode} onChange={(val) => setFormData(prev => ({...prev, maintenanceMode: val}))} />
-                                    </div>
-                                    {formData.maintenanceMode && (
-                                        <div className="space-y-6 animate-in fade-in slide-in-from-top-4">
-                                             <Field label="Maintenance Message (Visible to Users)">
-                                                <textarea 
-                                                    name="maintenanceMessage" 
-                                                    value={formData.maintenanceMessage} 
-                                                    onChange={handleChange} 
-                                                    className="w-full px-8 py-6 bg-white border border-red-100 rounded-[2rem] outline-none focus:border-red-500 font-bold text-xs uppercase tracking-widest leading-loose" 
-                                                    rows={4}
-                                                />
-                                             </Field>
-                                             <div className="flex items-center gap-3 text-red-400 bg-white p-4 rounded-2xl border border-red-50">
-                                                 <span className="text-lg">⚠️</span>
-                                                 <span className="text-[10px] font-bold uppercase tracking-widest">Staff login and Admin panel will remain accessible.</span>
-                                             </div>
-                                        </div>
-                                    )}
+                                    <button type="button" onClick={() => addArrayItem('heroImages', '')} className="border-2 border-dashed border-slate-200 rounded-xl flex flex-col items-center justify-center p-8 text-slate-300 hover:border-slate-900 hover:text-slate-900 transition-all group">
+                                        <Plus size={20} className="mb-2 group-hover:scale-110 transition-transform" />
+                                        <span className="text-[10px] font-bold uppercase tracking-widest">New Asset</span>
+                                    </button>
                                 </div>
                             </div>
                         )}
 
                         {activeSection === 'marketing' && (
-                            <div className="space-y-10 animate-in slide-in-from-right-4 duration-500">
+                            <div className="space-y-10 animate-in fade-in duration-500">
                                 <div>
-                                    <h2 className="text-2xl font-bold text-black tracking-tight mb-2">Social Proof</h2>
-                                    <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">Customer ratings and trust indicators</p>
+                                    <h2 className="text-xl font-bold text-slate-900 tracking-tight mb-1">Social Index</h2>
+                                    <p className="text-xs text-slate-500">Manage social proof points and the partner logo marquee.</p>
                                 </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                     <Field label="Platform Rating">
-                                        <input value={formData.socialProof.rating} onChange={(e) => handleNestedChange('socialProof', 'rating', e.target.value)} className="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:border-black font-medium text-sm" placeholder="4.9/5" />
+                                        <input value={formData.socialProof.rating} onChange={(e) => handleNestedChange('socialProof', 'rating', e.target.value)} className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-sm font-bold" placeholder="e.g. 4.9/5" />
                                     </Field>
-                                    <Field label="User Count Text">
-                                        <input value={formData.socialProof.creatorsLabel} onChange={(e) => handleNestedChange('socialProof', 'creatorsLabel', e.target.value)} className="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:border-black font-medium text-sm" placeholder="2k+ Users" />
+                                    <Field label="Creators Counter">
+                                        <input value={formData.socialProof.creatorsLabel} onChange={(e) => handleNestedChange('socialProof', 'creatorsLabel', e.target.value)} className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-sm font-bold" placeholder="e.g. 5k+ Developers" />
                                     </Field>
                                 </div>
-                                <Field label="Reviews Summary">
-                                    <textarea value={formData.socialProof.summary} onChange={(e) => handleNestedChange('socialProof', 'summary', e.target.value)} className="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:border-black font-medium text-sm" rows={4} />
+                                <Field label="Proof Summary">
+                                    <textarea value={formData.socialProof.summary} onChange={(e) => handleNestedChange('socialProof', 'summary', e.target.value)} className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg text-xs font-medium" rows={3} placeholder="Unified testimonial or proof statement..." />
                                 </Field>
+                                
+                                <div className="space-y-6">
+                                    <div className="flex justify-between items-center bg-slate-50 p-4 rounded-xl border border-slate-200">
+                                        <div>
+                                            <p className="text-[10px] font-bold text-slate-900 uppercase tracking-widest">Partner Marquee</p>
+                                            <p className="text-[9px] text-slate-400 font-bold uppercase tracking-[0.2em] mt-0.5">Infinite scrolling logos/names</p>
+                                        </div>
+                                        <button type="button" onClick={() => {
+                                            const newTeams = [...(formData.socialProof.trustedCompanies || []), ''];
+                                            handleNestedChange('socialProof', 'trustedCompanies', newTeams);
+                                        }} className="text-[9px] font-bold text-blue-600 uppercase tracking-widest flex items-center gap-1.5 hover:underline"><Plus size={10} /> Add Partner</button>
+                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                        {formData.socialProof.trustedCompanies?.map((company, idx) => (
+                                            <div key={idx} className="flex gap-2 group">
+                                                <input 
+                                                    type="text" 
+                                                    value={company} 
+                                                    onChange={(e) => {
+                                                        const newTeams = [...formData.socialProof.trustedCompanies];
+                                                        newTeams[idx] = e.target.value;
+                                                        handleNestedChange('socialProof', 'trustedCompanies', newTeams);
+                                                    }}
+                                                    className="flex-1 px-4 py-2 bg-white border border-slate-200 rounded-lg outline-none text-[10px] font-bold uppercase tracking-widest focus:border-slate-900 transition-colors"
+                                                    placeholder="Partner Name..."
+                                                />
+                                                <button type="button" onClick={() => {
+                                                    const newTeams = formData.socialProof.trustedCompanies.filter((_, i) => i !== idx);
+                                                    handleNestedChange('socialProof', 'trustedCompanies', newTeams);
+                                                }} className="p-2 text-slate-300 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"><Trash2 size={14} /></button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {activeSection === 'carousel' && (
+                            <div className="space-y-10 animate-in fade-in duration-500">
+                                <div className="flex justify-between items-end">
+                                    <div>
+                                        <h2 className="text-xl font-bold text-slate-900 tracking-tight mb-1">Carousel Stack</h2>
+                                        <p className="text-xs text-slate-500">Upload document previews and configure redirection nodes.</p>
+                                    </div>
+                                    <button 
+                                        type="button" 
+                                        onClick={() => addArrayItem('carouselStack', { title: '', image: '', link: '' })} 
+                                        className="px-4 py-2 bg-slate-900 text-white rounded-lg text-[10px] font-bold uppercase tracking-widest flex items-center gap-2"
+                                    >
+                                        <Plus size={14} /> Add Asset
+                                    </button>
+                                </div>
+
+                                <div className="space-y-6">
+                                    {formData.carouselStack.length === 0 ? (
+                                        <div className="py-20 text-center border-2 border-dashed border-slate-100 rounded-[2.5rem]">
+                                            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">No visual assets configured</p>
+                                        </div>
+                                    ) : (
+                                        <div className="grid grid-cols-1 gap-6">
+                                            {formData.carouselStack.map((item, idx) => (
+                                                <div key={idx} className="p-8 border border-slate-200 rounded-[2.5rem] bg-white relative group">
+                                                    <button 
+                                                        type="button" 
+                                                        onClick={() => removeArrayItem('carouselStack', idx)} 
+                                                        className="absolute top-6 right-6 p-2 text-slate-300 hover:text-red-500 transition-all hover:bg-red-50 rounded-xl"
+                                                    >
+                                                        <Trash2 size={18} />
+                                                    </button>
+                                                    <div className="grid grid-cols-1 md:grid-cols-[240px,1fr] gap-10">
+                                                        <div className="space-y-4">
+                                                            <ImageUpload 
+                                                                label={`Visual Node ${idx + 1}`}
+                                                                currentImage={item.image}
+                                                                onUploadSuccess={(url) => handleArrayChange('carouselStack', idx, 'image', url)}
+                                                            />
+                                                        </div>
+                                                        <div className="space-y-6 self-center">
+                                                            <Field label="Asset Highlight Title">
+                                                                <input 
+                                                                    value={item.title} 
+                                                                    onChange={(e) => handleArrayChange('carouselStack', idx, 'title', e.target.value)} 
+                                                                    className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:bg-white focus:ring-1 focus:ring-slate-900 transition-all text-sm font-bold"
+                                                                    placeholder="e.g. Master Setup Guide"
+                                                                />
+                                                            </Field>
+                                                            <Field label="Redirection Intelligence (Link)">
+                                                                <div className="relative">
+                                                                    <Share2 className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={14} />
+                                                                    <input 
+                                                                        value={item.link} 
+                                                                        onChange={(e) => handleArrayChange('carouselStack', idx, 'link', e.target.value)} 
+                                                                        className="w-full pl-12 pr-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:bg-white focus:ring-1 focus:ring-slate-900 transition-all text-xs font-medium"
+                                                                        placeholder="/docs/setup-guide or https://external-manual.com"
+                                                                    />
+                                                                </div>
+                                                            </Field>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
+                        {activeSection === 'elite' && (
+                            <div className="space-y-10 animate-in fade-in duration-500">
+                                <div className="flex justify-between items-center">
+                                    <div>
+                                        <h2 className="text-xl font-bold text-slate-900 tracking-tight mb-1">Support & Negotiation</h2>
+                                        <p className="text-xs text-slate-500">Manage price negotiations and premium chat support sessions.</p>
+                                    </div>
+                                    <Toggle 
+                                        checked={formData.eliteSettings?.negotiationEnabled} 
+                                        onChange={(val) => handleNestedChange('eliteSettings', 'negotiationEnabled', val)} 
+                                    />
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                    <Field label="Negotiation Fee (₹)">
+                                        <div className="relative">
+                                            <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" size={14} />
+                                            <input 
+                                                type="number" 
+                                                value={formData.eliteSettings?.negotiationFee} 
+                                                onChange={(e) => handleNestedChange('eliteSettings', 'negotiationFee', parseFloat(e.target.value))}
+                                                className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-lg text-sm font-bold shadow-sm outline-none focus:ring-1 focus:ring-slate-900"
+                                                placeholder="e.g. 9"
+                                            />
+                                        </div>
+                                    </Field>
+                                    <Field label="Support Duration (Days)">
+                                        <div className="relative">
+                                            <MessageSquare className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" size={14} />
+                                            <input 
+                                                type="number" 
+                                                value={formData.eliteSettings?.serviceBenefitDays} 
+                                                onChange={(e) => handleNestedChange('eliteSettings', 'serviceBenefitDays', parseInt(e.target.value))}
+                                                className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-lg text-sm font-bold shadow-sm outline-none focus:ring-1 focus:ring-slate-900"
+                                                placeholder="e.g. 30"
+                                            />
+                                        </div>
+                                    </Field>
+                                </div>
+
+                                <div className="bg-slate-50 p-8 rounded-2xl border border-slate-100 flex items-start gap-6">
+                                    <div className="h-12 w-12 rounded-xl bg-slate-900 text-white flex items-center justify-center shadow-lg shrink-0">
+                                        <Shield size={24} />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-sm font-bold text-slate-900 uppercase tracking-widest mb-2">Support Policy</h3>
+                                        <p className="text-xs text-slate-500 leading-relaxed">
+                                            Enabling negotiation will allow users to pay a ₹{formData.eliteSettings?.negotiationFee} fee to start a direct chat with you. Buyers automatically receive {formData.eliteSettings?.serviceBenefitDays} days of dedicated direct support for every product they buy.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {activeSection === 'intelligence' && (
+                            <div className="space-y-10 animate-in fade-in duration-500">
+                                <div className="flex justify-between items-center">
+                                    <div>
+                                        <h2 className="text-xl font-bold text-slate-900 tracking-tight mb-1">Intelligence Matrix</h2>
+                                        <p className="text-xs text-slate-500">Orchestrate technical analysis providers and model deployments.</p>
+                                    </div>
+                                    <Toggle 
+                                        checked={formData.aiSettings.enabled} 
+                                        onChange={(val) => handleNestedChange('aiSettings', 'enabled', val)} 
+                                    />
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 p-6 rounded-2xl border border-slate-100">
+                                    <div className="flex items-center justify-between p-3 bg-white rounded-xl border border-slate-100 shadow-sm">
+                                        <div>
+                                            <p className="text-[10px] font-bold text-slate-900 uppercase tracking-widest">Manifest Analysis</p>
+                                            <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Docs AI Assistant</p>
+                                        </div>
+                                        <Toggle 
+                                            checked={formData.aiSettings.enableDocsAi} 
+                                            onChange={(val) => handleNestedChange('aiSettings', 'enableDocsAi', val)} 
+                                        />
+                                    </div>
+                                    <div className="flex items-center justify-between p-3 bg-white rounded-xl border border-slate-100 shadow-sm">
+                                        <div>
+                                            <p className="text-[10px] font-bold text-slate-900 uppercase tracking-widest">Community Support</p>
+                                            <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Chat AI Agent</p>
+                                        </div>
+                                        <Toggle 
+                                            checked={formData.aiSettings.enableChatAi} 
+                                            onChange={(val) => handleNestedChange('aiSettings', 'enableChatAi', val)} 
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                    <Field label="Intelligence Tier (Provider)">
+                                        <select 
+                                            value={formData.aiSettings.provider} 
+                                            onChange={(e) => handleNestedChange('aiSettings', 'provider', e.target.value)}
+                                            className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-sm font-bold shadow-sm outline-none focus:ring-1 focus:ring-slate-900"
+                                        >
+                                            <option value="ollama">Ollama (Local Node)</option>
+                                            <option value="groq">Groq (Deep-Speed Cloud)</option>
+                                            <option value="gemini">Gemini (Free Tier Uplink)</option>
+                                        </select>
+                                    </Field>
+                                    <Field label="Analytical Model Manifest">
+                                        <input 
+                                            type="text" 
+                                            value={formData.aiSettings.model} 
+                                            onChange={(e) => handleNestedChange('aiSettings', 'model', e.target.value)}
+                                            className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-sm font-bold shadow-sm outline-none focus:ring-1 focus:ring-slate-900"
+                                            placeholder="e.g. qwen3.5:2b or gemini-1.5-flash"
+                                        />
+                                    </Field>
+                                </div>
+
+                                <div className="grid grid-cols-1 gap-8">
+                                    <Field label="Uplink Service URL (Ollama)">
+                                        <div className="relative">
+                                            <Database className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" size={14} />
+                                            <input 
+                                                type="text" 
+                                                value={formData.aiSettings.serviceUrl} 
+                                                onChange={(e) => handleNestedChange('aiSettings', 'serviceUrl', e.target.value)}
+                                                className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-lg text-sm font-medium shadow-sm outline-none focus:ring-1 focus:ring-slate-900"
+                                                placeholder="http://localhost:11434/api"
+                                            />
+                                        </div>
+                                    </Field>
+                                    <Field label="Deep-Speed Authentication (API Key)">
+                                        <div className="relative">
+                                            <ShieldAlert className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" size={14} />
+                                            <input 
+                                                type="password" 
+                                                value={formData.aiSettings.apiKey} 
+                                                onChange={(e) => handleNestedChange('aiSettings', 'apiKey', e.target.value)}
+                                                className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-lg text-sm font-medium shadow-sm outline-none focus:ring-1 focus:ring-slate-900"
+                                                placeholder="••••••••••••••••••••••••••••••••"
+                                            />
+                                        </div>
+                                        <p className="text-[10px] text-slate-400 font-medium mt-2">API keys are stored in the secure technical manifest. Leave blank to use environment defaults.</p>
+                                    </Field>
+                                </div>
                             </div>
                         )}
 
                         {activeSection === 'faqs' && (
-                            <div className="space-y-10 animate-in slide-in-from-right-4 duration-500">
+                            <div className="space-y-10 animate-in fade-in duration-500">
                                 <div className="flex justify-between items-end">
                                     <div>
-                                        <h2 className="text-2xl font-bold text-black tracking-tight mb-2">General FAQs</h2>
-                                        <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">Manage platform help questions</p>
+                                        <h2 className="text-xl font-bold text-slate-900 tracking-tight mb-1">Inquiry Matrix</h2>
+                                        <p className="text-xs text-slate-500">Manage frequently asked questions and technical logic.</p>
                                     </div>
-                                    <button type="button" onClick={() => addArrayItem('faqs', { question: '', answer: '' })} className="text-[10px] font-bold text-black border-2 border-black px-4 py-2 rounded-xl uppercase tracking-widest hover:bg-black hover:text-white transition-all">+ Add FAQ</button>
+                                    <button type="button" onClick={() => addArrayItem('faqs', { question: '', answer: '' })} className="px-4 py-2 bg-slate-900 text-white rounded-lg text-[10px] font-bold uppercase tracking-widest flex items-center gap-2"><Plus size={14} /> New Query</button>
                                 </div>
                                 <div className="space-y-6">
                                     {formData.faqs.map((faq, idx) => (
-                                        <div key={idx} className="p-8 bg-gray-50/50 rounded-[2rem] border border-gray-100 relative group">
-                                            <button type="button" onClick={() => removeArrayItem('faqs', idx)} className="absolute top-6 right-6 text-gray-300 hover:text-red-500 transition-colors">
-                                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
-                                            </button>
-                                            <div className="space-y-4">
-                                                <input placeholder="Enter Question" value={faq.question} onChange={(e) => handleArrayChange('faqs', idx, 'question', e.target.value)} className="w-full bg-transparent border-none text-lg font-bold text-black placeholder-gray-300 outline-none" />
-                                                <textarea placeholder="Answer text..." value={faq.answer} onChange={(e) => handleArrayChange('faqs', idx, 'answer', e.target.value)} className="w-full bg-transparent border-none text-sm font-medium text-gray-500 outline-none resize-none" rows={3} />
-                                            </div>
+                                        <div key={idx} className="p-8 border border-slate-200 rounded-2xl bg-white relative group space-y-6">
+                                            <button type="button" onClick={() => removeArrayItem('faqs', idx)} className="absolute top-4 right-4 p-1.5 text-slate-300 hover:text-red-500 transition-all"><Trash2 size={16} /></button>
+                                            <Field label={`Query Node ${idx + 1}`}>
+                                                <input value={faq.question} onChange={(e) => {
+                                                    const newFaqs = [...formData.faqs];
+                                                    newFaqs[idx] = { ...newFaqs[idx], question: e.target.value };
+                                                    setFormData(prev => ({ ...prev, faqs: newFaqs }));
+                                                }} className="w-full px-4 py-2 bg-slate-50 border border-slate-100 rounded-lg text-sm font-bold" placeholder="State the inquiry..." />
+                                            </Field>
+                                            <Field label="Resolution Content">
+                                                <textarea value={faq.answer} onChange={(e) => {
+                                                    const newFaqs = [...formData.faqs];
+                                                    newFaqs[idx] = { ...newFaqs[idx], answer: e.target.value };
+                                                    setFormData(prev => ({ ...prev, faqs: newFaqs }));
+                                                }} className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg text-xs font-medium" rows={3} placeholder="Provide technical resolution..." />
+                                            </Field>
                                         </div>
                                     ))}
                                 </div>
@@ -445,21 +594,21 @@ const SiteConfigForm = ({ initialSection = 'general' }) => {
                         )}
 
                         {activeSection === 'features' && (
-                            <div className="space-y-10 animate-in slide-in-from-right-4 duration-500">
+                            <div className="space-y-10 animate-in fade-in duration-500">
                                 <div>
-                                    <h2 className="text-2xl font-bold text-black tracking-tight mb-2">Site Configuration</h2>
-                                    <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">Manage site features seamlessly</p>
+                                    <h2 className="text-xl font-bold text-slate-900 tracking-tight mb-1">Feature Gates</h2>
+                                    <p className="text-xs text-slate-500">Enable or disable core system operational nodes.</p>
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     {['payments', 'licenses', 'reviews', 'subscriptions', 'ai', 'wishlist', 'testimonials', 'docs'].map(feature => (
-                                        <div key={feature} className="flex items-center justify-between p-6 bg-white rounded-[2rem] border border-gray-100 shadow-sm transition-all group hover:bg-gray-50/50">
-                                            <div className="flex items-center gap-4">
-                                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-[10px] uppercase transition-all ${formData.features[feature] ? 'bg-black text-white' : 'bg-gray-100 text-gray-400'}`}>
-                                                    {feature.substring(0, 2)}
+                                        <div key={feature} className="flex items-center justify-between p-4 border border-slate-200 rounded-xl bg-white hover:bg-slate-50/50 transition-all">
+                                            <div className="flex items-center gap-3">
+                                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-[10px] ${formData.features[feature] ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-400'}`}>
+                                                    <Zap size={14} strokeWidth={2.5} />
                                                 </div>
-                                                <div className="space-y-0.5">
-                                                    <p className="font-bold text-black text-sm capitalize">{feature}</p>
-                                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{formData.features[feature] ? 'On' : 'Off'}</p>
+                                                <div>
+                                                    <p className="text-xs font-bold text-slate-900 capitalize">{feature}</p>
+                                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{formData.features[feature] ? 'ACTIVE' : 'LOCKED'}</p>
                                                 </div>
                                             </div>
                                             <Toggle 
@@ -475,119 +624,168 @@ const SiteConfigForm = ({ initialSection = 'general' }) => {
                             </div>
                         )}
 
+                        {activeSection === 'contact' && (
+                            <div className="space-y-10 animate-in fade-in duration-500">
+                                <div>
+                                    <h2 className="text-xl font-bold text-slate-900 tracking-tight mb-1">Contact Center</h2>
+                                    <p className="text-xs text-slate-500">Manage public contact details and engagement headings.</p>
+                                </div>
+                                <div className="space-y-6">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <Field label="Page Heading">
+                                            <input 
+                                                value={formData.contact.heading} 
+                                                onChange={(e) => handleNestedChange('contact', 'heading', e.target.value)} 
+                                                className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-sm font-bold" 
+                                                placeholder="e.g. Get in touch" 
+                                            />
+                                        </Field>
+                                        <Field label="Public Support Email">
+                                            <div className="relative">
+                                                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" size={14} />
+                                                <input 
+                                                    value={formData.contact.email} 
+                                                    onChange={(e) => handleNestedChange('contact', 'email', e.target.value)} 
+                                                    className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-lg text-sm font-medium" 
+                                                    placeholder="contact@devnity.com"
+                                                />
+                                            </div>
+                                        </Field>
+                                    </div>
+                                    <Field label="Engagement Subheading">
+                                        <textarea 
+                                            value={formData.contact.subheading} 
+                                            onChange={(e) => handleNestedChange('contact', 'subheading', e.target.value)} 
+                                            className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg text-xs font-medium" 
+                                            rows={3} 
+                                            placeholder="Provide context for customer inquiries..." 
+                                        />
+                                    </Field>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <Field label="Contact Hotline">
+                                            <div className="relative">
+                                                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" size={14} />
+                                                <input 
+                                                    value={formData.contact.phone} 
+                                                    onChange={(e) => handleNestedChange('contact', 'phone', e.target.value)} 
+                                                    className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-lg text-sm font-medium" 
+                                                    placeholder="+1 (555) 000-0000"
+                                                />
+                                            </div>
+                                        </Field>
+                                        <Field label="Operational Headquarters">
+                                            <div className="relative">
+                                                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" size={14} />
+                                                <input 
+                                                    value={formData.contact.address} 
+                                                    onChange={(e) => handleNestedChange('contact', 'address', e.target.value)} 
+                                                    className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-lg text-sm font-medium" 
+                                                    placeholder="Global City, Digital Hub"
+                                                />
+                                            </div>
+                                        </Field>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
                         {activeSection === 'plans' && (
-                            <div className="space-y-10 animate-in slide-in-from-right-4 duration-500">
+                            <div className="space-y-10 animate-in fade-in duration-500 text-slate-900">
                                 <div className="flex justify-between items-end">
                                     <div>
-                                        <h2 className="text-2xl font-bold text-black tracking-tight mb-2">Membership Plans</h2>
-                                        <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">Define your pricing tiers and perks</p>
+                                        <h2 className="text-xl font-bold tracking-tight mb-1">Membership Subscriptions</h2>
+                                        <p className="text-xs text-slate-500">Configure tier access and recursive billing logic.</p>
                                     </div>
-                                    <button 
-                                        type="button" 
-                                        onClick={() => addArrayItem('memberPlans', { name: '', badge: '', price: 0, period: 'month', features: [], buttonText: 'Get Started', isPopular: false, isPrimary: false })} 
-                                        className="text-[10px] font-bold text-black border-2 border-black px-4 py-2 rounded-xl uppercase tracking-widest hover:bg-black hover:text-white transition-all"
-                                    >
-                                        + Add New Plan
-                                    </button>
+                                    <button type="button" onClick={() => addArrayItem('memberPlans', { name: '', badge: '', price: 0, period: 'month', features: [], buttonText: 'Upgrade', isPopular: false, isPrimary: false })} className="px-4 py-2 bg-slate-900 text-white rounded-lg text-[10px] font-bold uppercase tracking-widest flex items-center gap-2"><Plus size={14} /> New Tier</button>
                                 </div>
-
-                                <div className="space-y-8">
+                                <div className="space-y-6">
                                     {formData.memberPlans.map((plan, idx) => (
-                                        <div key={idx} className="p-10 bg-white border border-gray-100 rounded-[3rem] shadow-sm relative group overflow-hidden">
-                                            <div className="absolute top-0 left-0 w-2 h-full bg-black group-hover:w-3 transition-all"></div>
-                                            <button 
-                                                type="button" 
-                                                onClick={() => removeArrayItem('memberPlans', idx)} 
-                                                className="absolute top-6 right-6 text-gray-300 hover:text-red-500 transition-colors"
-                                            >
-                                                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
-                                            </button>
-
+                                        <div key={idx} className="p-8 border border-slate-200 rounded-xl bg-white relative group">
+                                            <button type="button" onClick={() => removeArrayItem('memberPlans', idx)} className="absolute top-4 right-4 p-1.5 text-slate-300 hover:text-red-500 transition-all"><Trash2 size={16} /></button>
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                                                <div className="space-y-6">
-                                                    <div className="grid grid-cols-2 gap-4">
-                                                        <Field label="Plan Name">
-                                                            <input value={plan.name} onChange={(e) => handleArrayChange('memberPlans', idx, 'name', e.target.value)} className="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:border-black font-bold text-sm" placeholder="e.g. Pro Member" />
+                                                <div className="space-y-5">
+                                                     <div className="grid grid-cols-2 gap-4">
+                                                        <Field label="Tier Handle">
+                                                            <input value={plan.name} onChange={(e) => handleArrayChange('memberPlans', idx, 'name', e.target.value)} className="w-full px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm font-bold" />
                                                         </Field>
-                                                        <Field label="Badge Text">
-                                                            <input value={plan.badge} onChange={(e) => handleArrayChange('memberPlans', idx, 'badge', e.target.value)} className="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:border-black font-bold text-[10px] uppercase tracking-widest" placeholder="e.g. Most Popular" />
+                                                        <Field label="Identity Badge">
+                                                            <input value={plan.badge} onChange={(e) => handleArrayChange('memberPlans', idx, 'badge', e.target.value)} className="w-full px-4 py-2 bg-white border border-slate-200 rounded-lg text-[10px] uppercase font-bold tracking-widest" />
                                                         </Field>
-                                                    </div>
-
-                                                    <div className="grid grid-cols-2 gap-4">
-                                                        <Field label="Price (INR)">
-                                                            <input type="number" value={plan.price} onChange={(e) => handleArrayChange('memberPlans', idx, 'price', parseInt(e.target.value))} className="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:border-black font-bold text-lg" />
+                                                     </div>
+                                                     <div className="grid grid-cols-2 gap-4">
+                                                        <Field label="Rate (INR)">
+                                                            <input type="number" value={plan.price} onChange={(e) => handleArrayChange('memberPlans', idx, 'price', parseInt(e.target.value))} className="w-full px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm font-bold" />
                                                         </Field>
-                                                        <Field label="Period">
-                                                            <input value={plan.period} onChange={(e) => handleArrayChange('memberPlans', idx, 'period', e.target.value)} className="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:border-black font-medium text-sm" placeholder="e.g. month" />
+                                                        <Field label="Cycle Period">
+                                                            <input value={plan.period} onChange={(e) => handleArrayChange('memberPlans', idx, 'period', e.target.value)} className="w-full px-4 py-2 bg-white border border-slate-200 rounded-lg text-xs font-medium" />
                                                         </Field>
-                                                    </div>
-
-                                                    <Field label="Button Text">
-                                                        <input value={plan.buttonText} onChange={(e) => handleArrayChange('memberPlans', idx, 'buttonText', e.target.value)} className="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:border-black font-bold text-sm uppercase tracking-widest" />
-                                                    </Field>
-
-                                                    <div className="flex gap-6 pt-4">
+                                                     </div>
+                                                     <div className="flex gap-6">
                                                         <div className="flex items-center gap-3">
                                                             <Toggle checked={plan.isPopular} onChange={(val) => handleArrayChange('memberPlans', idx, 'isPopular', val)} />
-                                                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Popular Tag</span>
+                                                            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Promoted</span>
                                                         </div>
                                                         <div className="flex items-center gap-3">
                                                             <Toggle checked={plan.isPrimary} onChange={(val) => handleArrayChange('memberPlans', idx, 'isPrimary', val)} />
-                                                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Dark Theme</span>
+                                                            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Dark Accent</span>
                                                         </div>
-                                                    </div>
+                                                     </div>
                                                 </div>
-
-                                                <div className="space-y-6">
-                                                    <div className="flex justify-between items-center px-1">
-                                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Plan Highlights ({plan.features?.length || 0})</p>
-                                                        <button 
-                                                            type="button" 
-                                                            onClick={() => {
-                                                                const newFeatures = [...(plan.features || []), ''];
-                                                                handleArrayChange('memberPlans', idx, 'features', newFeatures);
-                                                            }}
-                                                            className="text-[9px] font-black text-primary uppercase tracking-widest hover:underline"
-                                                        >
-                                                            + Add Feature
-                                                        </button>
-                                                    </div>
-                                                    <div className="space-y-3">
-                                                        {plan.features?.map((feat, fIdx) => (
-                                                            <div key={fIdx} className="flex items-center gap-3 group/feat">
-                                                                <input 
+                                                <div className="space-y-4">
+                                                     <div className="flex justify-between items-center">
+                                                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Tier Perks ({plan.features?.length || 0})</p>
+                                                         <button type="button" onClick={() => { handleArrayChange('memberPlans', idx, 'features', [...(plan.features || []), '']) }} className="text-[9px] font-bold text-blue-600 uppercase tracking-widest hover:underline">+ Add perk</button>
+                                                     </div>
+                                                     <div className="space-y-2">
+                                                         {plan.features?.map((feat, fIdx) => (
+                                                             <div key={fIdx} className="flex gap-2 group/feat">
+                                                                 <input 
                                                                     value={feat} 
                                                                     onChange={(e) => {
                                                                         const newFeatures = [...plan.features];
                                                                         newFeatures[fIdx] = e.target.value;
                                                                         handleArrayChange('memberPlans', idx, 'features', newFeatures);
                                                                     }} 
-                                                                    className="flex-1 px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl outline-none focus:border-black text-xs font-medium"
-                                                                    placeholder="Enter perk..."
-                                                                />
-                                                                <button 
-                                                                    type="button"
-                                                                    onClick={() => {
-                                                                        const newFeatures = plan.features.filter((_, i) => i !== fIdx);
-                                                                        handleArrayChange('memberPlans', idx, 'features', newFeatures);
-                                                                    }}
-                                                                    className="p-3 text-gray-300 hover:text-red-500 opacity-0 group-hover/feat:opacity-100 transition-all"
-                                                                >
-                                                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
-                                                                </button>
-                                                            </div>
-                                                        ))}
-                                                        {(!plan.features || plan.features.length === 0) && (
-                                                            <div className="p-8 border-2 border-dashed border-gray-50 rounded-2xl text-center">
-                                                                <p className="text-[9px] font-bold text-gray-300 uppercase tracking-widest">No perks listed for this plan.</p>
-                                                            </div>
-                                                        )}
-                                                    </div>
+                                                                    className="flex-1 px-4 py-1.5 bg-slate-50 border border-slate-100 rounded-lg text-xs font-medium focus:bg-white transition-all"
+                                                                    placeholder="Perk identifier..."
+                                                                 />
+                                                                 <button type="button" onClick={() => { handleArrayChange('memberPlans', idx, 'features', plan.features.filter((_, i) => i !== fIdx)) }} className="p-1.5 text-slate-300 hover:text-red-500 opacity-0 group-hover/feat:opacity-100 transition-all"><X size={14} /></button>
+                                                             </div>
+                                                         ))}
+                                                     </div>
                                                 </div>
                                             </div>
                                         </div>
                                     ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {activeSection === 'security' && (
+                            <div className="space-y-10 animate-in fade-in duration-500">
+                                <div>
+                                    <h2 className="text-xl font-bold text-red-600 tracking-tight mb-1">Maintenance Environment</h2>
+                                    <p className="text-xs text-slate-500">Restrict public access to the platform for system stabilization.</p>
+                                </div>
+                                <div className="p-8 border border-red-100 bg-red-50/30 rounded-xl space-y-6">
+                                    <div className="flex items-center justify-between bg-white p-4 rounded-lg border border-red-100 shadow-sm">
+                                        <div>
+                                            <p className="text-xs font-bold text-red-600 uppercase tracking-widest">Stabilization Mode</p>
+                                            <p className="text-[10px] text-slate-400 mt-0.5">Enforce site-wide maintenance lockdown.</p>
+                                        </div>
+                                        <Toggle checked={formData.maintenanceMode} onChange={(val) => setFormData(prev => ({...prev, maintenanceMode: val}))} />
+                                    </div>
+                                    {formData.maintenanceMode && (
+                                        <Field label="System Status Message (Public)">
+                                            <textarea 
+                                                name="maintenanceMessage" 
+                                                value={formData.maintenanceMessage} 
+                                                onChange={handleChange} 
+                                                className="w-full px-4 py-3 bg-white border border-red-200 rounded-lg outline-none focus:ring-1 focus:ring-red-500 text-xs font-bold text-slate-900 leading-relaxed uppercase tracking-widest" 
+                                                rows={4}
+                                            />
+                                        </Field>
+                                    )}
                                 </div>
                             </div>
                         )}
@@ -601,7 +799,7 @@ const SiteConfigForm = ({ initialSection = 'general' }) => {
 
 const Field = ({ label, children }) => (
     <div className="space-y-2">
-        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] ml-1">{label}</label>
+        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] ml-1">{label}</label>
         {children}
     </div>
 );
@@ -610,9 +808,9 @@ const Toggle = ({ checked, onChange }) => (
     <button
         type="button"
         onClick={() => onChange(!checked)}
-        className={`w-11 h-6 rounded-full transition-all duration-300 relative ${checked ? 'bg-black' : 'bg-gray-200'}`}
+        className={`w-10 h-5 rounded-full transition-all duration-300 relative ${checked ? 'bg-slate-900 border border-slate-900' : 'bg-slate-200 border border-slate-200'}`}
     >
-        <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all duration-300 ease-in-out ${checked ? 'left-6' : 'left-1'}`} />
+        <div className={`absolute top-0.5 w-3.5 h-3.5 bg-white rounded-full transition-all duration-300 ease-in-out ${checked ? 'left-5 shadow-sm' : 'left-0.5 shadow-sm'}`} />
     </button>
 );
 

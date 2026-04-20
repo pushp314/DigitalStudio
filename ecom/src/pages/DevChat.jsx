@@ -1,105 +1,324 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AuthContext from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { useChat } from '../hooks/useChat';
+import api from '../services/api';
+import { normalizeUser } from '../utils/normalizers';
 
 // Components
 import ChatHeader from '../components/chat/ChatHeader';
 import MessageList from '../components/chat/MessageList';
 import ChatInput from '../components/chat/ChatInput';
 import ChatSidebar from '../components/chat/ChatSidebar';
+import ChatSettingsModal from '../components/chat/ChatSettingsModal';
 
-// Icons for navigation rail
-import { Home, Terminal, Settings, Layout, Search, Command } from 'lucide-react';
+// Calibrated Lucide Icons (2.5px weighted)
+import { 
+    Home, 
+    Terminal, 
+    Settings, 
+    Layout, 
+    ArrowRight,
+    Circle,
+    User,
+    Compass,
+    Pin,
+    MessageSquare
+} from 'lucide-react';
 
 const DevChat = () => {
-    const { user } = useContext(AuthContext);
-    const { success, error } = useToast();
+    const { user, setUser } = useContext(AuthContext);
+    const { info, error, success } = useToast();
     const navigate = useNavigate();
     const [searchQuery, setSearchQuery] = useState('');
+    const [usernameInput, setUsernameInput] = useState('');
+    const [isPromptingUsername, setIsPromptingUsername] = useState(false);
+    const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+    const [replyingTo, setReplyingTo] = useState(null);
+    const [selectedIds, setSelectedIds] = useState([]);
+    const [isSelectionMode, setIsSelectionMode] = useState(false);
+    
+    const [chatSettings, setChatSettings] = useState({
+        sounds: true,
+        hideTyping: false,
+        hideReadReceipts: false,
+        compactMode: false
+    });
 
     const {
         messages,
         onlineCount,
+        onlineUsers,
         status,
         historyLoading,
         typingUsers,
         sendMessage,
+        deleteMessage,
+        editMessage,
         sendTyping
     } = useChat(user);
 
-    const handleSendMessage = (content) => {
-        const success = sendMessage(content);
-        if (!success) {
-            error("Connection lost. Retrying...");
+    // Background Notifications & Audio
+    useEffect(() => {
+        if ('Notification' in window && Notification.permission === 'default') {
+            Notification.requestPermission();
+        }
+
+        if (messages.length > 0 && status === 'online') {
+            const lastMsg = messages[messages.length - 1];
+            if (lastMsg.userId !== user?.id) {
+                if (chatSettings.sounds) {
+                    playChatChime();
+                }
+                
+                // Show browser notification if not focused
+                if (document.hidden && 'Notification' in window && Notification.permission === 'granted') {
+                    new Notification("DigitalStudio Community", {
+                        body: `New message from ${lastMsg.userName || 'Someone'}`,
+                        icon: '/vite.svg'
+                    });
+                }
+            }
+        }
+    }, [messages.length, chatSettings.sounds, status, user?.id]);
+
+    const playChatChime = () => {
+        try {
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(600, audioCtx.currentTime);
+            oscillator.frequency.exponentialRampToValueAtTime(300, audioCtx.currentTime + 0.08);
+            gainNode.gain.setValueAtTime(0.01, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.08);
+            oscillator.start();
+            oscillator.stop(audioCtx.currentTime + 0.08);
+        } catch (e) {
+            console.warn("Audio failure:", e);
         }
     };
+
+    const handleUpdateSettings = (key, val) => {
+        setChatSettings(prev => ({ ...prev, [key]: val }));
+    };
+
+    useEffect(() => {
+        if (user && !user.username) {
+            setIsPromptingUsername(true);
+        }
+    }, [user]);
+
+    const userMessageCount = React.useMemo(() => {
+        return messages.filter(m => m.userId === user?.id && m.type !== 'system').length;
+    }, [messages, user?.id]);
+
+    const isPro = user?.isPro || user?.subscriptionPlan === 'pro' || user?.role === 'admin';
+
+    const handleSetUsername = async () => {
+        if (!usernameInput.trim()) return;
+        try {
+            const res = await api.put('/profile', { username: usernameInput.trim() });
+            setUser(normalizeUser(res));
+            setIsPromptingUsername(false);
+            success("Profile updated.");
+        } catch (err) {
+            error(err.response?.data?.error || "Handle registration failed.");
+        }
+    };
+
+    const handleSendMessage = (content, attachment = null) => {
+        if (!isPro && userMessageCount >= 2) {
+            info("Freemium Limit Reached: Unlock unlimited chat with Pro.");
+            return;
+        }
+
+        const payload = {
+            content,
+            attachmentUrl: attachment?.url,
+            isImage: !!attachment?.isImage,
+            parentId: replyingTo?.id,
+            replyToName: replyingTo?.userName,
+            replyToContent: replyingTo?.content
+        };
+        const success = sendMessage(payload);
+        if (!success) {
+            error("Failed to send message.");
+            return;
+        }
+        setReplyingTo(null);
+    };
+
+    const handleBulkDelete = async () => {
+        if (selectedIds.length === 0) return;
+        try {
+            await api.post('/chat/messages/bulk-delete', { ids: selectedIds });
+            success(`${selectedIds.length} messages deleted.`);
+            setSelectedIds([]);
+            setIsSelectionMode(false);
+        } catch (err) {
+            error("Bulk delete failed.");
+        }
+    };
+
+    const scrollToMessage = (id) => {
+        const element = document.getElementById(`msg-${id}`);
+        if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            element.classList.add('bg-blue-50/50');
+            setTimeout(() => element.classList.remove('bg-blue-50/50'), 2000);
+        }
+    };
+
+    const pinnedMessages = messages.filter(m => m.isPinned);
 
     if (!user) return null;
 
     return (
-        <div className="h-[100dvh] w-full bg-slate-50 flex overflow-hidden font-sans text-slate-800 antialiased selection:bg-blue-100 selection:text-blue-900">
+        <div className="h-[100dvh] w-full bg-white flex overflow-hidden font-sans text-slate-900 antialiased" style={{ fontFamily: "'Inter', sans-serif" }}>
             
-            {/* 1. TACTICAL RAIL (Slim Sidebar) */}
-            <div className="hidden sm:flex w-[70px] bg-white border-r border-slate-100 flex-col items-center py-6 z-30 justify-between shadow-[1px_0_0_0_rgba(0,0,0,0.05)]">
+            {/* Professional Identity Gating */}
+            {isPromptingUsername && (
+                <div className="fixed inset-0 bg-white/60 backdrop-blur-sm z-[100] flex items-center justify-center p-6">
+                    <div className="bg-white rounded-xl p-10 max-w-md w-full shadow-2xl border border-slate-200 animate-in zoom-in-95 duration-500">
+                        <div className="w-12 h-12 bg-slate-900 text-white rounded-lg flex items-center justify-center mb-6">
+                            <Terminal size={24} />
+                        </div>
+                        <h2 className="text-xl font-bold tracking-tight mb-2">Create Your Profile</h2>
+                        <p className="text-sm text-slate-500 font-medium leading-relaxed mb-8">
+                            Select a unique handle for the DigitalStudio community chat. Your identity will be tied to your verified profile.
+                        </p>
+                        
+                        <div className="relative group mb-8">
+                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">@</span>
+                            <input 
+                                type="text"
+                                placeholder="handle"
+                                value={usernameInput}
+                                onChange={(e) => setUsernameInput(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
+                                className="w-full bg-slate-50 border border-slate-200 rounded-lg py-4 pl-10 pr-6 text-sm font-bold outline-none focus:border-slate-900 transition-all"
+                            />
+                        </div>
+
+                        <button 
+                            onClick={handleSetUsername}
+                            className="w-full py-3 bg-slate-900 text-white rounded-lg font-bold text-xs uppercase tracking-widest hover:bg-slate-800 transition-all active:scale-95 shadow-sm"
+                        >
+                            Confirm Profile
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* Tactical Navigation Rail */}
+            <nav className="hidden sm:flex w-16 bg-slate-50 border-r border-slate-200 flex-col items-center py-6 z-30 justify-between">
                 <div className="flex flex-col gap-6 items-center w-full">
                     <button 
                         onClick={() => navigate('/')}
-                        className="w-11 h-11 bg-white border border-slate-200 rounded-xl flex items-center justify-center text-slate-400 hover:text-blue-600 hover:border-blue-100 hover:bg-blue-50/30 transition-all group relative"
+                        className="p-2.5 text-slate-400 hover:text-slate-900 transition-all rounded-lg hover:bg-slate-100"
+                        title="Exit Chat"
                     >
-                        <Home size={20} strokeWidth={2} />
-                        <span className="absolute left-full ml-4 px-3 py-1.5 bg-slate-900 text-white text-[10px] rounded-lg opacity-0 group-hover:opacity-100 transition-all whitespace-nowrap pointer-events-none z-50 uppercase tracking-widest font-black shadow-xl">Dashboard</span>
+                        <Home size={20} strokeWidth={2.5} />
                     </button>
 
-                    <div className="w-8 h-px bg-slate-100"></div>
+                    <div className="w-8 h-px bg-slate-200"></div>
 
-                    <div className="w-11 h-11 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-lg shadow-blue-600/30 cursor-pointer ring-4 ring-blue-50 transition-transform active:scale-95">
-                        <Terminal size={20} strokeWidth={2} />
-                    </div>
+                    <button className="p-2.5 bg-slate-900 text-white rounded-lg shadow-sm">
+                        <Terminal size={20} strokeWidth={2.5} />
+                    </button>
                     
-                    <div className="w-11 h-11 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-all cursor-pointer group relative">
-                        <Layout size={20} strokeWidth={2} />
-                        <span className="absolute left-full ml-4 px-3 py-1.5 bg-slate-900 text-white text-[10px] rounded-lg opacity-0 group-hover:opacity-100 transition-all whitespace-nowrap pointer-events-none z-50 uppercase tracking-widest font-black shadow-xl">Explore</span>
-                    </div>
+                    <button 
+                        onClick={() => navigate('/templates')}
+                        className="p-2.5 text-slate-400 hover:text-slate-900 transition-all rounded-lg hover:bg-slate-100"
+                        title="Explore Templates"
+                    >
+                        <Compass size={20} strokeWidth={2.5} />
+                    </button>
                 </div>
 
                 <div className="flex flex-col gap-6 items-center w-full">
-                    <button className="w-11 h-11 rounded-xl hover:bg-slate-50 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-all cursor-pointer">
-                        <Settings size={20} strokeWidth={2} />
+                    <button 
+                        onClick={() => setIsSettingsOpen(true)}
+                        className={`p-2.5 rounded-lg transition-all ${isSettingsOpen ? 'bg-slate-200 text-slate-900' : 'text-slate-400 hover:text-slate-900 hover:bg-slate-100'}`}
+                    >
+                        <Settings size={20} strokeWidth={2.5} />
                     </button>
-                    <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center text-[11px] font-black text-blue-600 border border-blue-200/50 shadow-inner">
+                    <div className="w-8 h-8 rounded-lg bg-slate-200 flex items-center justify-center text-[10px] font-bold text-slate-600 border border-slate-300">
                         {user?.name?.charAt(0)}
                     </div>
                 </div>
-            </div>
+            </nav>
 
-            {/* 2. CONVERSATION LAYER */}
+            {/* Conversation Deck */}
             <div className="flex-1 flex flex-col min-w-0 bg-white relative">
                 <ChatHeader 
                     status={status} 
                     onlineCount={onlineCount} 
                     searchQuery={searchQuery}
                     onSearchChange={setSearchQuery}
+                    isSelectionMode={isSelectionMode}
+                    onToggleSelection={() => setIsSelectionMode(!isSelectionMode)}
+                    user={user}
                 />
 
                 <div className="flex-1 overflow-hidden flex flex-col relative">
+                    {/* Header Pinned Bar */}
+                    {pinnedMessages.length > 0 && (
+                        <div className="bg-slate-50/80 backdrop-blur-sm border-b border-slate-100 px-8 py-2 flex items-center gap-4 overflow-x-auto no-scrollbar animate-in slide-in-from-top duration-500">
+                            <div className="flex items-center gap-2 text-[9px] font-black text-amber-600 uppercase tracking-[0.2em] bg-amber-50 px-2 py-0.5 rounded border border-amber-100 flex-shrink-0">
+                                <Pin size={10} className="fill-amber-500" /> Pinned
+                            </div>
+                            <div className="flex gap-4">
+                                {pinnedMessages.map(m => (
+                                    <button 
+                                        key={m.id} 
+                                        onClick={() => scrollToMessage(m.id)}
+                                        className="whitespace-nowrap flex items-center gap-2 group transition-all"
+                                    >
+                                        <p className="text-[10px] font-bold text-slate-900 group-hover:text-blue-600 truncate max-w-[200px]">{m.content}</p>
+                                        <ArrowRight size={10} className="text-slate-300 group-hover:text-blue-500" />
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {isSelectionMode && user?.role === 'admin' && (
+                        <div className="bg-slate-900 text-white px-8 py-3 flex items-center justify-between animate-in slide-in-from-top duration-300 sticky top-0 z-20">
+                            <p className="text-[10px] font-bold uppercase tracking-widest">{selectedIds.length} Messages Selected</p>
+                            <div className="flex gap-4">
+                                <button onClick={() => { setSelectedIds([]); setIsSelectionMode(false); }} className="text-[10px] font-bold uppercase hover:text-slate-300 transition-all">Cancel</button>
+                                <button onClick={handleBulkDelete} className="bg-rose-600 px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-rose-500 transition-all">Delete Messages</button>
+                            </div>
+                        </div>
+                    )}
+
                     <MessageList 
                         messages={messages} 
                         user={user} 
                         historyLoading={historyLoading} 
                         searchQuery={searchQuery}
                         typingUsers={typingUsers}
+                        onDelete={deleteMessage}
+                        onEdit={editMessage}
+                        onReply={setReplyingTo}
+                        isSelectionMode={isSelectionMode}
+                        onToggleSelection={(id) => {
+                            if (!isSelectionMode) setIsSelectionMode(true);
+                            setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
+                        }}
+                        selectedIds={selectedIds}
                     />
 
-                    {/* Disconnected Overlay */}
-                    {status !== 'online' && (
-                        <div className="absolute inset-0 bg-white/40 backdrop-blur-[1px] pointer-events-none z-20 transition-all duration-500">
-                             <div className="absolute top-4 left-1/2 -translate-x-1/2 px-4 py-2 bg-slate-900 text-white text-[10px] font-black uppercase tracking-widest rounded-full shadow-2xl flex items-center gap-3 animate-bounce">
-                                 <div className="w-1.5 h-1.5 bg-amber-400 rounded-full animate-pulse"></div>
-                                 {status === 'connecting' ? 'Re-Establishing Uplink...' : 'Connection Interrupted'}
-                             </div>
-                        </div>
+                    {/* Connection Status Indicator */}
+                    {(status !== 'online' && !historyLoading) && (
+                         <div className="absolute top-4 left-1/2 -translate-x-1/2 px-4 py-1.5 bg-slate-900 text-white text-[9px] font-bold uppercase tracking-widest rounded-full shadow-lg flex items-center gap-3 animate-pulse">
+                             <Circle size={8} fill="currentColor" className="text-amber-500" />
+                             {status === 'connecting' ? 'Establishing Uplink...' : 'Re-syncing Matrix...'}
+                         </div>
                     )}
                 </div>
 
@@ -108,11 +327,26 @@ const DevChat = () => {
                     onTyping={sendTyping}
                     status={status} 
                     user={user}
+                    isPro={isPro}
+                    messageCount={userMessageCount}
+                    replyingTo={replyingTo}
+                    onCancelReply={() => setReplyingTo(null)}
                 />
             </div>
 
-            {/* 3. INFORMATION LAYER */}
-            <ChatSidebar user={user} onlineCount={onlineCount} />
+            <ChatSidebar 
+                user={user} 
+                onlineCount={onlineCount} 
+                onlineUsers={onlineUsers}
+            />
+
+            <ChatSettingsModal 
+                isOpen={isSettingsOpen} 
+                onClose={() => setIsSettingsOpen(false)}
+                settings={chatSettings}
+                onUpdate={handleUpdateSettings}
+                user={user}
+            />
             
         </div>
     );

@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/pushp314/digitalstudio/go-server/config"
 	"github.com/pushp314/digitalstudio/go-server/models"
+	"github.com/pushp314/digitalstudio/go-server/services"
 )
 
 type CreateReviewReq struct {
@@ -68,6 +69,12 @@ func CreateReview(c *gin.Context) {
 		respondError(c, http.StatusInternalServerError, "Failed to create review")
 		return
 	}
+
+	// Reward verified feedback
+	var user models.User
+	config.DB.First(&user, userID)
+	services.AwardXP(&user, services.XPReviewAdded)
+	config.DB.Save(&user)
 
 	c.JSON(http.StatusCreated, review)
 }

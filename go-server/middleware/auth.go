@@ -22,6 +22,10 @@ func WebsocketAuthMiddleware() gin.HandlerFunc {
 	return authMiddleware(authOptions{allowQueryToken: true})
 }
 
+func OAuthAuthMiddleware() gin.HandlerFunc {
+	return authMiddleware(authOptions{allowQueryToken: true})
+}
+
 func authMiddleware(options authOptions) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		tokenString := extractBearerToken(c.GetHeader("Authorization"))
@@ -53,7 +57,19 @@ func authMiddleware(options authOptions) gin.HandlerFunc {
 			return
 		}
 
+		// Capture state before normalization for lazy cleanup
+		originalIsPro := user.IsPro
+
 		user = utils.NormalizeUserAccess(user)
+
+		// Lazy Cleanup: If the user was Pro in DB but normalization downgraded them, sync back to DB.
+		if originalIsPro && !user.IsPro {
+			config.DB.Model(&user).Updates(map[string]interface{}{
+				"is_pro":            false,
+				"subscription_plan": "free",
+				"pro_expires_at":    nil,
+			})
+		}
 
 		c.Set("user", user)
 		c.Set("userID", user.ID)

@@ -1,144 +1,45 @@
 import React from 'react';
 
+const items = [
+    {
+        title: 'Clean starting points',
+        description: 'Use products that give your team a clear structure, modern defaults, and room to customize without reworking the basics.',
+    },
+    {
+        title: 'Faster delivery',
+        description: 'Shorten setup time with ready-to-ship layouts, reusable patterns, and product details that match the actual implementation.',
+    },
+    {
+        title: 'Reliable support',
+        description: 'Use docs, account tools, and support flows designed to help teams stay confident after purchase.',
+    },
+];
+
 const FeaturesGrid = () => {
-  return (
-    <div className="w-full bg-[#F5F5F7] px-6 py-20 font-sans">
-      <div className="max-w-[1400px] mx-auto flex flex-col gap-16">
-
-        {/* 1. HEADER SECTION */}
-        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8">
-
-          {/* Left: Huge Title */}
-          <h2 className="max-w-4xl text-5xl md:text-7xl font-black text-black tracking-tight leading-[0.95]">
-            Fully <span className="text-primary">responsive</span> and customizable
-          </h2>
-
-          {/* Right: Description Text */}
-          <p className="max-w-xs text-gray-500 text-lg font-medium leading-relaxed pb-2">
-            No more website woes—just powerful solutions at your fingertips
-          </p>
-        </div>
-
-        {/* 2. CARDS GRID */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-
-          {/* CARD 1: White Card (Bottom-Right Decoration) */}
-          <div className="bg-white rounded-[2.5rem] p-8 md:p-10 flex flex-col justify-between relative overflow-hidden min-h-[450px] h-auto group hover:shadow-xl transition-all duration-300">
-
-            {/* Content */}
-            <div className="relative z-10 flex flex-col items-start gap-6">
-              {/* Icon */}
-              <div className="w-14 h-14 rounded-full bg-primary flex items-center justify-center text-white">
-                <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" /></svg>
-              </div>
-
-              {/* Text */}
-              <div>
-                <h3 className="text-4xl font-bold text-black tracking-tight leading-tight mb-4">
-                  Built with global standards
-                </h3>
-                <p className="text-gray-500 text-lg font-medium">
-                  We follow elite-tier coding practices to ensure your site is secure, fast, and SEO-optimized out of the box.
-                </p>
-              </div>
-
-              {/* Button */}
-              <button className="mt-4 flex items-center gap-2 bg-primary hover:bg-blue-600 text-white px-6 py-3 rounded-full font-semibold transition-colors">
-                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" /></svg>
-                Browse Templates
-              </button>
-            </div>
-
-            {/* Decoration Shape (Bottom Right) */}
-            <div className="absolute -bottom-10 -right-10 w-64 h-64 bg-gray-50 rounded-[3rem] transform rotate-12 opacity-80 z-0 group-hover:scale-105 transition-transform duration-500" />
-          </div>
-
-
-          {/* CARD 2: White Card (Top-Right Decoration) */}
-          <div className="bg-white rounded-[2.5rem] p-8 md:p-10 flex flex-col relative overflow-hidden min-h-[450px] h-auto group hover:shadow-xl transition-all duration-300">
-
-            {/* Decoration Shape (Top Right) */}
-            <div className="absolute -top-10 -right-10 w-64 h-64 bg-gray-50 rounded-[3rem] transform -rotate-12 opacity-80 z-0 group-hover:scale-105 transition-transform duration-500" />
-
-            {/* Content */}
-            <div className="relative z-10 flex flex-col items-start gap-6 mt-4">
-              {/* Icon */}
-              <div className="w-14 h-14 rounded-full bg-primary flex items-center justify-center text-white">
-                <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 2m6-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-              </div>
-
-              {/* Text */}
-              <div className="mt-6 md:mt-10">
-                <h3 className="text-4xl font-bold text-black tracking-tight leading-tight mb-4">
-                  Scale up 2x faster
-                </h3>
-                <p className="text-gray-500 text-lg font-medium">
-                  Stop reinventing the wheel. Use our pre-built components to launch products in days, not months.
-                </p>
-              </div>
-            </div>
-          </div>
-
-
-          {/* CARD 3: Blue Card (Checklist) */}
-          <div className="bg-primary rounded-[2.5rem] p-8 md:p-10 flex flex-col justify-between relative overflow-hidden min-h-[450px] h-auto group hover:shadow-xl transition-all duration-300 shadow-lg shadow-blue-500/20">
-
-            {/* Subtle Gradient Overlay */}
-            <div className="absolute top-0 right-0 w-80 h-80 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-
-            {/* Top Section */}
-            <div className="relative z-10 flex flex-col items-start gap-6">
-              {/* Icon (White) */}
-              <div className="w-14 h-14 rounded-full bg-white flex items-center justify-center text-primary">
-                {/* Framer 'F' Logo */}
-                <svg viewBox="0 0 24 24" className="w-7 h-7 fill-current">
-                  <path d="M4 0h16v8h-8zM4 8h8l8 8h-16zM4 16h8v8z" />
-                </svg>
-              </div>
-
-              {/* Text */}
-              <div className="mt-4">
-                <h3 className="text-4xl font-bold text-white tracking-tight leading-tight mb-4">
-                  Next-Gen Stacks
-                </h3>
-                <p className="text-blue-100 text-lg font-medium">
-                  Always up-to-date with React, Next.js, and modern CSS frameworks.
-                </p>
-              </div>
-            </div>
-
-            {/* Bottom Section: Checklist */}
-            <div className="relative z-10 flex flex-col gap-4 mt-8">
-
-              {/* Item 1: Checked */}
-              <div className="flex items-center gap-3">
-                <div className="w-6 h-6 rounded-full bg-white flex items-center justify-center">
-                  <svg className="w-4 h-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                  </svg>
+    return (
+        <section className="ds-page px-6 py-16">
+            <div className="ds-shell space-y-8">
+                <div className="space-y-3">
+                    <p className="ds-eyebrow">Why DigitalStudio</p>
+                    <h2 className="text-3xl font-bold tracking-tight text-slate-900 md:text-4xl">
+                        A simpler path from discovery to launch
+                    </h2>
+                    <p className="max-w-3xl text-base leading-7 text-slate-600">
+                        The platform is built to feel predictable: consistent product pages, clear checkout flows, and docs that match what customers actually buy.
+                    </p>
                 </div>
-                <span className="text-white font-medium text-lg">Pick a template</span>
-              </div>
 
-              {/* Item 2: Empty */}
-              <div className="flex items-center gap-3 opacity-60">
-                <div className="w-6 h-6 rounded-full border-2 border-white/50"></div>
-                <span className="text-white font-medium text-lg">Customize it</span>
-              </div>
-
-              {/* Item 3: Empty */}
-              <div className="flex items-center gap-3 opacity-60">
-                <div className="w-6 h-6 rounded-full border-2 border-white/50"></div>
-                <span className="text-white font-medium text-lg">Launch</span>
-              </div>
-
+                <div className="grid gap-6 md:grid-cols-3">
+                    {items.map((item) => (
+                        <div key={item.title} className="ds-card p-6">
+                            <h3 className="text-xl font-semibold tracking-tight text-slate-900">{item.title}</h3>
+                            <p className="mt-3 text-sm leading-6 text-slate-600">{item.description}</p>
+                        </div>
+                    ))}
+                </div>
             </div>
-          </div>
-
-        </div>
-      </div>
-    </div>
-  );
+        </section>
+    );
 };
 
 export default FeaturesGrid;

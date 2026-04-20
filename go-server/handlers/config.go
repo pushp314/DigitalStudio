@@ -15,6 +15,7 @@ type UpdateConfigReq struct {
 	HeroImages          []string                 `json:"heroImages"`
 	HeroVisualEffect    string                   `json:"heroVisualEffect"`
 	Announcements       []string                 `json:"announcements"`
+	CarouselStack       []models.CarouselItem    `json:"carouselStack"`
 	ShowAnnouncement    bool                     `json:"showAnnouncement"`
 	SupportEmail        string                   `json:"supportEmail"`
 	Features            map[string]bool          `json:"features"`
@@ -194,6 +195,7 @@ func UpdateConfig(c *gin.Context) {
 	siteConfig.HeroImages = req.HeroImages
 	siteConfig.HeroVisualEffect = req.HeroVisualEffect
 	siteConfig.Announcements = req.Announcements
+	siteConfig.CarouselStack = req.CarouselStack
 	siteConfig.ShowAnnouncement = req.ShowAnnouncement
 	siteConfig.SupportEmail = req.SupportEmail
 	siteConfig.Features = req.Features

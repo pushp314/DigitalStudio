@@ -2,91 +2,78 @@ import React from 'react';
 import testimonialService from '../services/testimonialService';
 
 const TestimonialsGrid = () => {
-  const [testimonials, setTestimonials] = React.useState([]);
-  const [loading, setLoading] = React.useState(true);
+    const [testimonials, setTestimonials] = React.useState([]);
+    const [loading, setLoading] = React.useState(true);
 
-  React.useEffect(() => {
-    const fetchTestimonials = async () => {
-      try {
-        const data = await testimonialService.getApproved();
-        setTestimonials(data);
-      } catch (error) {
-        console.error("Failed to fetch testimonials:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchTestimonials();
-  }, []);
+    React.useEffect(() => {
+        const fetchTestimonials = async () => {
+            try {
+                const data = await testimonialService.getApproved();
+                setTestimonials(Array.isArray(data) ? data : []);
+            } catch (error) {
+                console.error('Failed to fetch testimonials:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
 
-  if (loading) {
+        fetchTestimonials();
+    }, []);
+
+    if (loading) {
+        return (
+            <section className="ds-page px-6 py-16">
+                <div className="ds-shell flex justify-center">
+                    <div className="h-10 w-10 animate-spin rounded-full border-2 border-slate-200 border-t-slate-900" />
+                </div>
+            </section>
+        );
+    }
+
+    if (testimonials.length === 0) {
+        return null;
+    }
+
     return (
-      <div className="w-full bg-[#F5F5F7] px-6 py-20 flex justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-      </div>
+        <section className="ds-page px-6 py-8">
+            <div className="ds-shell grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+                {testimonials.map((item) => (
+                    <article key={item.id} className="ds-card p-6">
+                        <div className="flex items-center justify-between gap-4">
+                            <div className="flex items-center gap-3">
+                                <div className="h-12 w-12 overflow-hidden rounded-full border border-slate-200 bg-slate-100">
+                                    {item.user?.avatarUrl ? (
+                                        <img src={item.user.avatarUrl} alt={item.user?.name || 'Customer'} className="h-full w-full object-cover" />
+                                    ) : (
+                                        <div className="flex h-full w-full items-center justify-center text-sm font-semibold text-slate-600">
+                                            {item.user?.name?.charAt(0) || 'U'}
+                                        </div>
+                                    )}
+                                </div>
+                                <div>
+                                    <p className="text-sm font-semibold text-slate-900">{item.user?.name || 'Verified customer'}</p>
+                                    <p className="text-sm text-slate-500">{item.product?.title || 'Marketplace purchase'}</p>
+                                </div>
+                            </div>
+                            <div className="flex gap-1 text-amber-500">
+                                {[...Array(5)].map((_, index) => (
+                                    <svg key={index} className={`h-4 w-4 ${index < item.rating ? 'opacity-100' : 'opacity-20'}`} viewBox="0 0 24 24" fill="currentColor">
+                                        <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
+                                    </svg>
+                                ))}
+                            </div>
+                        </div>
+
+                        <p className="mt-5 text-sm leading-7 text-slate-600">"{item.content}"</p>
+
+                        <div className="mt-6 border-t border-slate-200 pt-4 text-sm text-slate-500">
+                            {new Date(item.createdAt).toLocaleDateString()}
+                        </div>
+                    </article>
+                ))}
+            </div>
+        </section>
     );
-  }
-
-  if (testimonials.length === 0) {
-    return null; // Or show a default section
-  }
-
-  return (
-    <div className="w-full bg-[#F5F5F7] px-6 py-20 font-sans">
-      <div className="max-w-[1400px] mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-
-        {testimonials.map((item) => (
-          <div key={item.id} className="bg-white rounded-[2rem] p-8 flex flex-col justify-between h-full shadow-sm hover:shadow-md transition-shadow duration-300">
-
-            {/* Top Section: User Info & Content */}
-            <div>
-              {/* Header: Avatar, Name, Stars */}
-              <div className="flex items-start justify-between mb-6">
-                <div className="flex items-center gap-3">
-                  <img
-                    src={item.user?.avatar || `https://ui-avatars.com/api/?name=${item.user?.name || 'User'}&background=random`}
-                    alt={item.user?.name || 'User'}
-                    className="w-12 h-12 rounded-full object-cover"
-                  />
-                  <div className="flex flex-col">
-                    <span className="font-bold text-black text-sm leading-tight">
-                      {item.user?.name || 'Verified User'}
-                    </span>
-                    <span className="text-primary text-xs font-medium">
-                      @{item.user?.email?.split('@')[0] || 'user'}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Stars based on rating */}
-                <div className="flex gap-1">
-                  {[...Array(5)].map((_, i) => (
-                    <svg key={i} className={`w-4 h-4 ${i < item.rating ? 'text-primary' : 'text-gray-200'}`} viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
-                    </svg>
-                  ))}
-                </div>
-              </div>
-
-              {/* Review Text */}
-              <p className="text-gray-800 text-[15px] leading-relaxed font-normal italic">
-                "{item.content}"
-              </p>
-            </div>
-
-            {/* Bottom Section: Date */}
-            <div className="mt-8 pt-0 flex items-center gap-2 text-xs font-medium text-black">
-              <span>Customer</span>
-              <span className="text-gray-300 text-sm">//</span>
-              <span>{new Date(item.createdAt).toLocaleDateString()}</span>
-            </div>
-
-          </div>
-        ))}
-
-      </div>
-    </div>
-  );
 };
 
 export default TestimonialsGrid;

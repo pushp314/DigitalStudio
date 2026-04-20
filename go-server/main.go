@@ -95,9 +95,9 @@ func main() {
 		products.GET("/owned", middleware.AuthMiddleware(), handlers.GetOwnedProducts)
 		products.GET("/:id/share", handlers.ServeProductSEO)
 		products.GET("/:id/download", middleware.AuthMiddleware(), handlers.DownloadSecureAsset)
-		products.POST("/", middleware.AuthMiddleware(), middleware.AdminMiddleware(), handlers.CreateProduct)
-		products.PUT("/:id", middleware.AuthMiddleware(), middleware.AdminMiddleware(), handlers.UpdateProduct)
-		products.DELETE("/:id", middleware.AuthMiddleware(), middleware.AdminMiddleware(), handlers.DeleteProduct)
+		products.POST("/", middleware.AuthMiddleware(), handlers.CreateProduct)
+		products.PUT("/:id", middleware.AuthMiddleware(), handlers.UpdateProduct)
+		products.DELETE("/:id", middleware.AuthMiddleware(), handlers.DeleteProduct)
 	}
 
 	orders := api.Group("/orders")
@@ -107,20 +107,44 @@ func main() {
 		orders.GET("/myorders", handlers.MyOrders)
 	}
 
-	adminOrders := api.Group("/admin/orders")
-	adminOrders.Use(middleware.AuthMiddleware(), middleware.AdminMiddleware())
+	admin := api.Group("/admin")
+	admin.Use(middleware.AuthMiddleware(), middleware.AdminMiddleware())
 	{
-		adminOrders.GET("/", handlers.AdminListOrders)
-		adminOrders.GET("/:id", handlers.AdminGetOrder)
-		adminOrders.PATCH("/:id", handlers.AdminUpdateOrder)
+		// Order Management
+		adminOrders := admin.Group("/orders")
+		{
+			adminOrders.GET("/", handlers.AdminListOrders)
+			adminOrders.GET("/:id", handlers.AdminGetOrder)
+			adminOrders.PATCH("/:id", handlers.AdminUpdateOrder)
+		}
+
+		adminUsers := admin.Group("/users")
+		{
+			adminUsers.GET("", handlers.ListUsers)
+			adminUsers.PATCH("/:id", handlers.UpdateUser)
+			adminUsers.POST("/:id/reset-password", handlers.ResetUserPassword)
+		}
+
+		adminGithub := admin.Group("/github-requests")
+		{
+			adminGithub.GET("", handlers.GetAllGithubRequests)
+			adminGithub.PATCH("/:id", handlers.ResolveGithubRequest)
+		}
 	}
 
-	adminUsers := api.Group("/admin/users")
-	adminUsers.Use(middleware.AuthMiddleware(), middleware.AdminMiddleware())
+	api.GET("/profile/:id", handlers.GetPublicProfile)
+	api.GET("/users/:id/profile", handlers.GetPublicProfile)
+	api.POST("/profile/:id/report", middleware.AuthMiddleware(), handlers.ReportUser)
+	profile := api.Group("/profile", middleware.AuthMiddleware())
 	{
-		adminUsers.GET("", handlers.ListUsers)
-		adminUsers.PATCH("/:id", handlers.UpdateUser)
-		adminUsers.POST("/:id/reset-password", handlers.ResetUserPassword)
+		profile.GET("", handlers.Me)
+		profile.PUT("", handlers.UpdateMyProfile)
+		profile.POST("/upload-avatar", uploadLimiter, handlers.UploadProfileAvatar)
+		profile.POST("/github-request", handlers.RequestGithubChange)
+		profile.GET("/github-requests", handlers.GetMyGithubRequests)
+		profile.POST("/change-password", handlers.ChangePassword)
+		profile.GET("/inquiries", handlers.MyInquiries)
+		profile.POST("/inquiries/:id/reply", handlers.UserReplyToInquiry)
 	}
 
 	siteConfig := api.Group("/config")
@@ -137,6 +161,8 @@ func main() {
 		docs.POST("/", middleware.AuthMiddleware(), middleware.AdminMiddleware(), handlers.CreateDoc)
 		docs.PUT("/:id", middleware.AuthMiddleware(), middleware.AdminMiddleware(), handlers.UpdateDoc)
 		docs.DELETE("/:id", middleware.AuthMiddleware(), middleware.AdminMiddleware(), handlers.DeleteDoc)
+		docs.GET("/:id/chat", middleware.AuthMiddleware(), handlers.GetDocChatHistory)
+		docs.DELETE("/:id/chat", middleware.AuthMiddleware(), handlers.DeleteDocChat)
 	}
 
 	api.POST("/upload", uploadLimiter, middleware.AuthMiddleware(), middleware.AdminMiddleware(), handlers.UploadFile)
@@ -146,10 +172,15 @@ func main() {
 	auth.GET("/google/callback", handlers.GoogleCallback)
 	auth.GET("/github/login", handlers.GithubLogin)
 	auth.GET("/github/callback", handlers.GithubCallback)
+	auth.GET("/github/connect", middleware.OAuthAuthMiddleware(), handlers.GithubConnect)
 
 	// AI Extended
 	ai := api.Group("/ai")
 	{
+		ai.POST("/generate-description", middleware.AuthMiddleware(), handlers.GenerateAIDescription)
+		ai.POST("/suggest-tags", middleware.AuthMiddleware(), handlers.SuggestAITags)
+		ai.POST("/recommend-pricing", middleware.AuthMiddleware(), handlers.RecommendAIPricing)
+		ai.POST("/suggest-usernames", middleware.AuthMiddleware(), handlers.SuggestUsernames)
 		ai.GET("/recommend", middleware.AuthMiddleware(), middleware.ProMiddleware(), handlers.GetAIRecommendation)
 		ai.POST("/roadmap", middleware.AuthMiddleware(), handlers.GetUserRoadmap)
 		ai.POST("/docsummary", middleware.AuthMiddleware(), middleware.ProMiddleware(), handlers.GenerateDocSummary)
@@ -162,6 +193,11 @@ func main() {
 		chat.GET("/ws", middleware.WebsocketAuthMiddleware(), handlers.ServeChatWs)
 		chat.GET("/history", middleware.AuthMiddleware(), handlers.GetChatHistory)
 		chat.POST("/messages", middleware.AuthMiddleware(), handlers.SendChatMessage)
+		chat.PUT("/messages/:id", middleware.AuthMiddleware(), handlers.UpdateChatMessage)
+		chat.DELETE("/messages/:id", middleware.AuthMiddleware(), handlers.DeleteChatMessage)
+		chat.POST("/messages/:id/pin", middleware.AuthMiddleware(), handlers.PinChatMessage)
+		chat.POST("/messages/:id/report", middleware.AuthMiddleware(), handlers.ReportChatMessage)
+		chat.POST("/messages/bulk-delete", middleware.AuthMiddleware(), middleware.AdminMiddleware(), handlers.BulkDeleteMessages)
 	}
 
 	analytics := api.Group("/analytics")
@@ -169,6 +205,8 @@ func main() {
 	{
 		analytics.GET("/metrics", handlers.GetIntelligenceMetrics)
 	}
+	
+	handlers.RegisterEliteRoutes(api)
 
 	// Reviews
 	products.POST("/:id/review", middleware.AuthMiddleware(), handlers.CreateReview)
@@ -216,7 +254,9 @@ func main() {
 	{
 		adminMarketing.GET("/coupons", marketingHandler.ListCoupons)
 		adminMarketing.POST("/coupons", marketingHandler.CreateCoupon)
-		adminMarketing.DELETE("/coupons/:id", marketingHandler.DeleteCoupon)
+		adminMarketing.PATCH("/coupons/:id", marketingHandler.UpdateCoupon)
+		adminMarketing.PATCH("/coupons/:id/revoke", marketingHandler.RevokeCoupon)
+		adminMarketing.DELETE("/coupons/:id", marketingHandler.HardDeleteCoupon)
 	}
 
 	// Showcase & Social Proof
@@ -231,6 +271,7 @@ func main() {
 	marketing := api.Group("/marketing")
 	{
 		marketing.GET("/validate", marketingHandler.ValidateCoupon)
+		marketing.POST("/wishlist-deals", middleware.AuthMiddleware(), marketingHandler.GetWishlistDeals)
 		marketing.GET("/wishlist-deals", middleware.AuthMiddleware(), marketingHandler.GetWishlistDeals)
 		marketing.POST("/personalized-offers", middleware.AuthMiddleware(), marketingHandler.GetPersonalizedOffers)
 	}
@@ -261,6 +302,13 @@ func main() {
 	adminLicenses.Use(middleware.AuthMiddleware(), middleware.AdminMiddleware())
 	{
 		adminLicenses.POST("/issue", handlers.AdminIssueLicenses)
+	}
+
+	// Notifications
+	notifications := api.Group("/notifications")
+	{
+		notifications.GET("/", middleware.AuthMiddleware(), handlers.GetMyNotifications)
+		notifications.POST("/broadcast", middleware.AuthMiddleware(), middleware.AdminMiddleware(), handlers.AdminBroadcastNotification)
 	}
 
 	port := os.Getenv("PORT")

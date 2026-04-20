@@ -5,62 +5,103 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeSlug from 'rehype-slug';
 import AuthContext from '../context/AuthContext';
+import ConfigContext from '../context/ConfigContext';
 import { useToast } from '../context/ToastContext';
 import docService from '../services/docService';
 import { normalizeDoc } from '../utils/normalizers';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Copy, Sparkles, Sun, Moon, Database, Download, Send, X, Terminal, FileText } from 'lucide-react';
 import aiService from '../services/aiService';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+    Cpu, X, Trash2, Loader2, Lock, Sparkles, Terminal, 
+    ChevronRight, ShieldCheck, Bot, Send, MessageCircle, Minimize2 
+} from 'lucide-react';
 
 const DocViewer = () => {
     const { id } = useParams();
     const { user } = useContext(AuthContext);
+    const { config } = useContext(ConfigContext);
     const { info } = useToast();
     const navigate = useNavigate();
-    
-    const { data: rawDoc, isLoading: loading } = useQuery({
+
+    const { data: rawDoc, isLoading } = useQuery({
         queryKey: ['doc', id],
         queryFn: () => docService.getById(id),
     });
 
     const doc = rawDoc ? normalizeDoc(rawDoc) : null;
-
     const [readingProgress, setReadingProgress] = useState(0);
     const [activeId, setActiveId] = useState('');
-    const [theme, setTheme] = useState('light'); // light, dark, midnight
-    const [isAiOpen, setIsAiOpen] = useState(false);
+    
+    // Chat State Management (SaaS-Pro persistence)
     const [chatInput, setChatInput] = useState('');
     const [chatHistory, setChatHistory] = useState([]);
     const [isChatLoading, setIsChatLoading] = useState(false);
-    const [chatId, setChatId] = useState(`chat_${Math.random().toString(36).substring(7)}_${Date.now()}`);
+    const [isAssistantOpen, setIsAssistantOpen] = useState(false);
+    const [isLoadingHistory, setIsLoadingHistory] = useState(false);
     const [copySuccess, setCopySuccess] = useState(null);
 
-    // Auto-generate TOC from content if not provided or to ensure it matches slugs
+    const isPro = user?.subscriptionPlan === 'pro' || user?.role === 'admin';
+
+    // Synchronize Session History
+    useEffect(() => {
+        let mounted = true;
+        if (isAssistantOpen && isPro && doc) {
+            const syncHistory = async () => {
+                setIsLoadingHistory(true);
+                try {
+                    const data = await aiService.getDocChatHistory(id);
+                    if (mounted && data?.history) {
+                        setChatHistory(data.history);
+                    }
+                } catch (error) {
+                    console.error("Transmission sync failure:", error);
+                } finally {
+                    if (mounted) setIsLoadingHistory(false);
+                }
+            };
+            syncHistory();
+        }
+        return () => { mounted = false; };
+    }, [isAssistantOpen, isPro, id]); // Use id instead of doc to prevent unnecessary re-syncs if doc object changes
+
+    const handleClearChat = async () => {
+        if (!window.confirm("Permanently purge this conversation protocol?")) return;
+        try {
+            await aiService.deleteDocChat(id);
+            setChatHistory([]);
+        } catch (error) {
+            console.error("Purge failure:", error);
+        }
+    };
+
     const autoToc = useMemo(() => {
-        if (!doc?.content) return [];
-        const lines = doc.content.split('\n');
-        const headers = [];
-        lines.forEach(line => {
-            const match = line.match(/^(#{1,3})\s+(.+)$/);
-            if (match) {
-                const level = match[1].length;
-                const title = match[2].trim();
-                // Simple slugify matching rehype-slug
-                const slug = title.toLowerCase().replace(/[^\w\s-]/g, '').replace(/\s+/g, '-');
-                headers.push({ id: slug, title, level });
-            }
-        });
-        return headers;
+        if (!doc?.content) {
+            return [];
+        }
+
+        return doc.content
+            .split('\n')
+            .map((line) => line.match(/^(#{1,3})\s+(.+)$/))
+            .filter(Boolean)
+            .map((match) => ({
+                id: match[2].trim().toLowerCase().replace(/[^\w\s-]/g, '').replace(/\s+/g, '-'),
+                title: match[2].trim(),
+                level: match[1].length,
+            }));
     }, [doc?.content]);
 
-    const toc = useMemo(() => {
-        return (doc?.tableOfContents && doc.tableOfContents.length > 0) ? doc.tableOfContents : autoToc;
-    }, [doc?.tableOfContents, autoToc]);
+    const toc = useMemo(
+        () => (doc?.tableOfContents && doc.tableOfContents.length > 0 ? doc.tableOfContents : autoToc),
+        [autoToc, doc?.tableOfContents],
+    );
 
     const handleScroll = useCallback(() => {
-        if (typeof document === 'undefined') return;
+        if (typeof document === 'undefined') {
+            return;
+        }
+
         const totalHeight = document.documentElement.scrollHeight - window.innerHeight;
-        const progress = (window.scrollY / totalHeight) * 100;
+        const progress = totalHeight > 0 ? (window.scrollY / totalHeight) * 100 : 0;
         setReadingProgress(progress);
     }, []);
 
@@ -69,9 +110,10 @@ const DocViewer = () => {
         return () => window.removeEventListener('scroll', handleScroll);
     }, [handleScroll]);
 
-    // Intersection Observer for ScrollSpy
     useEffect(() => {
-        if (!toc.length) return;
+        if (!toc.length) {
+            return undefined;
+        }
 
         const observer = new IntersectionObserver(
             (entries) => {
@@ -81,30 +123,24 @@ const DocViewer = () => {
                     }
                 });
             },
-            { rootMargin: '-10% 0px -70% 0px', threshold: 0 }
+            { rootMargin: '-10% 0px -70% 0px', threshold: 0 },
         );
 
-        const headingElements = toc.map(item => document.getElementById(item.id)).filter(Boolean);
-        headingElements.forEach(el => observer.observe(el));
+        const headingElements = toc.map((item) => document.getElementById(item.id)).filter(Boolean);
+        headingElements.forEach((element) => observer.observe(element));
 
         return () => {
-            headingElements.forEach(el => observer.unobserve(el));
+            headingElements.forEach((element) => observer.unobserve(element));
         };
-    }, [toc, loading]);
+    }, [toc]);
 
     const handleProtectedAccess = () => {
         if (!user) {
-            info('Please login to access protected docs.');
+            info('Please sign in to access this guide.');
             navigate('/login');
             return;
         }
         navigate('/pricing');
-    };
-
-    const toggleTheme = () => {
-        const themes = ['light', 'dark', 'midnight'];
-        const next = themes[(themes.indexOf(theme) + 1) % themes.length];
-        setTheme(next);
     };
 
     const handleCopy = (code) => {
@@ -113,58 +149,63 @@ const DocViewer = () => {
         setTimeout(() => setCopySuccess(null), 2000);
     };
 
-    const handleChatSubmit = async (e) => {
-        e.preventDefault();
-        if (!chatInput.trim() || isChatLoading) return;
+    const handleChatSubmit = async (event) => {
+        event.preventDefault();
+        if (!chatInput.trim() || isChatLoading || !doc?.content || !isPro) {
+            return;
+        }
 
-        const userMsg = { role: 'user', content: chatInput };
-        const aiMsgPlaceHolder = { role: 'ai', content: '' };
-        
-        setChatHistory(prev => [...prev, userMsg, aiMsgPlaceHolder]);
-        const currentMsgIndex = chatHistory.length + 1; // Index of the AI message we just added
-        
+        const question = chatInput.trim();
         setChatInput('');
+        
+        const currentHistory = [...chatHistory, { role: 'user', content: question }, { role: 'ai', content: '' }];
+        setChatHistory(currentHistory);
         setIsChatLoading(true);
 
         try {
-            const response = await aiService.askDocAIStream(doc.content, chatInput, chatId);
-            
-            if (!response.ok) throw new Error('Network response was not ok');
+            const response = await aiService.askDocAIStream(doc.content, question, id);
+            if (!response.ok) {
+                throw new Error('Intelligence node unavailable.');
+            }
 
             const reader = response.body.getReader();
             const decoder = new TextDecoder();
             let fullContent = '';
+            let lineBuffer = '';
 
             while (true) {
                 const { done, value } = await reader.read();
                 if (done) break;
 
                 const chunk = decoder.decode(value, { stream: true });
-                // SSE format is "data: content\n\n"
-                const lines = chunk.split('\n');
+                lineBuffer += chunk;
+
+                const lines = lineBuffer.split('\n\n');
+                lineBuffer = lines.pop() || '';
+
                 for (const line of lines) {
-                    if (line.startsWith('data: ')) {
-                        const content = line.replace('data: ', '');
-                        fullContent += content;
-                        
-                        // Update the last message in history
-                        setChatHistory(prev => {
-                            const newHistory = [...prev];
-                            newHistory[newHistory.length - 1] = { role: 'ai', content: fullContent };
-                            return newHistory;
-                        });
+                    const trimmedLine = line.trim();
+                    if (trimmedLine.startsWith('data:')) {
+                        const dataContent = line.replace(/^data:\s*/, '');
+                        if (dataContent) {
+                            fullContent += dataContent;
+                            setChatHistory((prev) => {
+                                const next = [...prev];
+                                next[next.length - 1] = { role: 'ai', content: fullContent };
+                                return next;
+                            });
+                        }
                     }
                 }
             }
-        } catch (err) {
-            console.error("Chat Stream Error:", err);
-            setChatHistory(prev => {
-                const newHistory = [...prev];
-                newHistory[newHistory.length - 1] = { 
-                    role: 'ai', 
-                    content: "I'm sorry, I'm having trouble connecting to my matrix right now. Please try again later." 
+        } catch (_err) {
+            setChatHistory((prev) => {
+                const next = [...prev];
+                next[next.length - 1] = {
+                    role: 'ai',
+                    content: `CRITICAL ERROR: ${_err.message || 'Transmission interrupted'}. Please refresh the uplink.`,
                 };
-                return newHistory;
+                return next;
             });
         } finally {
             setIsChatLoading(false);
@@ -175,336 +216,357 @@ const DocViewer = () => {
         window.print();
     };
 
-    const themeConfig = {
-        light: {
-            bg: 'bg-[#F5F5F7]',
-            card: 'bg-white',
-            text: 'text-gray-600',
-            heading: 'text-black',
-            sidebar: 'bg-white',
-            border: 'border-gray-100'
-        },
-        dark: {
-            bg: 'bg-[#0F172A]',
-            card: 'bg-[#1E293B]',
-            text: 'text-slate-400',
-            heading: 'text-slate-100',
-            sidebar: 'bg-[#1E293B]',
-            border: 'border-slate-800'
-        },
-        midnight: {
-            bg: 'bg-[#000000]',
-            card: 'bg-[#0A0A0A]',
-            text: 'text-gray-400',
-            heading: 'text-gray-100',
-            sidebar: 'bg-[#0A0A0A]',
-            border: 'border-white/5'
+    const scrollToSection = (event, sectionId) => {
+        event.preventDefault();
+        const element = document.getElementById(sectionId);
+        if (!element) {
+            return;
         }
-    };
 
-    const currentTheme = themeConfig[theme];
+        const offset = 120;
+        const top = element.getBoundingClientRect().top + window.scrollY - offset;
+        window.scrollTo({ top, behavior: 'smooth' });
+        window.history.pushState(null, null, `#${sectionId}`);
+        setActiveId(sectionId);
+    };
 
     const CodeBlock = ({ children, inline, ...props }) => {
         const code = String(children).replace(/\n$/, '');
         if (inline) {
-            return <code className={`bg-gray-100 px-2 py-0.5 rounded-md text-primary font-black text-sm`} {...props}>{children}</code>;
+            return (
+                <code className="rounded bg-slate-100 px-1.5 py-0.5 text-sm text-slate-900" {...props}>
+                    {children}
+                </code>
+            );
         }
 
         return (
-            <div className="relative group/code my-10 overflow-hidden rounded-[1.5rem] border border-white/10 shadow-2xl">
-                <div className="flex items-center justify-between px-6 py-4 bg-[#1C1C1E] border-b border-white/5">
-                    <div className="flex items-center gap-2">
-                        <Terminal className="w-4 h-4 text-gray-500" />
-                        <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Technical Snippet</span>
-                    </div>
-                    <button 
-                        onClick={() => handleCopy(code)}
-                        className="text-gray-400 hover:text-white transition-colors bg-white/5 p-2 rounded-lg"
-                    >
-                        {copySuccess === code ? <span className="text-[10px] font-black text-green-400 uppercase tracking-widest px-2">Copied!</span> : <Copy className="w-4 h-4" />}
+            <div className="my-8 overflow-hidden rounded-2xl border border-slate-200">
+                <div className="flex items-center justify-between border-b border-slate-200 bg-slate-50 px-4 py-3">
+                    <span className="text-xs font-medium uppercase tracking-[0.16em] text-slate-500">Code example</span>
+                    <button type="button" onClick={() => handleCopy(code)} className="ds-button-ghost">
+                        {copySuccess === code ? 'Copied' : 'Copy'}
                     </button>
                 </div>
-                <pre className="bg-[#1C1C1E] text-gray-300 p-8 overflow-x-auto font-mono text-sm leading-relaxed" {...props}>
+                <pre className="overflow-x-auto bg-slate-950 p-5 text-sm leading-6 text-slate-100" {...props}>
                     {children}
                 </pre>
             </div>
         );
     };
 
-    if (loading) {
+    if (isLoading) {
         return (
-            <div className="min-h-screen bg-[#F5F5F7] flex items-center justify-center">
-                <div className="w-8 h-8 border-4 border-gray-200 border-t-primary rounded-full animate-spin"></div>
+            <div className="ds-page flex min-h-screen items-center justify-center">
+                <div className="h-10 w-10 animate-spin rounded-full border-2 border-slate-200 border-t-slate-900" />
             </div>
         );
     }
 
     if (!doc) {
         return (
-            <div className="min-h-screen flex flex-col items-center justify-center bg-[#F5F5F7]">
-                <h2 className="text-3xl font-bold mb-4">Doc not found</h2>
-                <Link to="/docs" className="text-blue-600 underline">Back to docs</Link>
+            <div className="ds-page min-h-screen px-6 py-24">
+                <div className="ds-shell">
+                    <div className="ds-card p-8 text-center">
+                        <h2 className="text-3xl font-semibold tracking-tight text-slate-900">Guide not found</h2>
+                        <Link to="/docs" className="ds-button-primary mt-6">
+                            Back to docs
+                        </Link>
+                    </div>
+                </div>
             </div>
         );
     }
 
-    const scrollToSection = (e, sectionId) => {
-        e.preventDefault();
-        const element = document.getElementById(sectionId);
-        if (element) {
-            const offset = 120;
-            const bodyRect = document.body.getBoundingClientRect().top;
-            const elementRect = element.getBoundingClientRect().top;
-            const elementPosition = elementRect - bodyRect;
-            const offsetPosition = elementPosition - offset;
-
-            window.scrollTo({
-                top: offsetPosition,
-                behavior: 'smooth'
-            });
-            window.history.pushState(null, null, `#${sectionId}`);
-            setActiveId(sectionId);
-        }
-    };
-
+    const showLockCta = doc.locked && user?.role !== 'admin';
     const hasToc = toc.length > 0;
-    const showLockCta = doc.isPremium && doc.locked && user?.subscriptionPlan !== 'pro';
+    const estimatedRead = Math.max(1, Math.ceil((doc.content?.length || 0) / 1000));
 
     return (
-        <div className={`min-h-screen ${currentTheme.bg} py-24 md:py-32 font-sans relative transition-colors duration-700`}>
-            {/* Reading Progress Bar */}
-            <div className="fixed top-0 left-0 w-full h-1 z-[60] bg-gray-100/10">
-                <div 
-                    className="h-full bg-primary transition-all duration-300 ease-out shadow-[0_0_10px_rgba(59,130,246,0.5)]"
-                    style={{ width: `${readingProgress}%` }}
-                ></div>
+        <div className="ds-page px-6 pb-16 pt-28">
+            <div className="fixed left-0 top-0 z-[60] h-1 w-full bg-slate-200">
+                <div className="h-full bg-slate-900 transition-all" style={{ width: `${readingProgress}%` }} />
             </div>
 
-            {/* Floating Action Menu */}
-            <div className="fixed bottom-12 right-12 z-50 flex flex-col gap-4">
-                <AnimatePresence>
-                    {isAiOpen && (
-                        <motion.div 
-                            initial={{ opacity: 0, scale: 0.9, y: 20 }}
-                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                            className="absolute bottom-20 right-0 w-[400px] h-[600px] bg-white rounded-[2.5rem] shadow-2xl border border-gray-100 overflow-hidden flex flex-col pointer-events-auto"
-                        >
-                            <div className="p-6 bg-primary text-white flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    <Sparkles className="w-6 h-6" />
-                                    <h3 className="font-black uppercase text-xs tracking-widest">Doc Assistant</h3>
-                                </div>
-                                <button onClick={() => setIsAiOpen(false)} className="hover:opacity-70">
-                                    <X className="w-6 h-6" />
-                                </button>
-                            </div>
-                            <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-gray-50/50">
-                                <div className="bg-white p-4 rounded-2xl border border-gray-100 text-sm font-medium text-gray-600">
-                                    Hello! I'm your AI sidekick for DigitalStudio. Ask me anything about <span className="text-primary font-black">"{doc.title}"</span>.
-                                </div>
-                                {chatHistory.map((msg, i) => (
-                                    <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                                        <div className={`max-w-[85%] p-4 rounded-2xl text-sm ${
-                                            msg.role === 'user' 
-                                            ? 'bg-primary text-white font-bold' 
-                                            : 'bg-white border border-gray-100 text-gray-600 font-medium'
-                                        }`}>
-                                            {msg.content}
-                                        </div>
-                                    </div>
-                                ))}
-                                {isChatLoading && (
-                                    <div className="flex justify-start">
-                                        <div className="bg-white border border-gray-100 p-4 rounded-2xl flex gap-2">
-                                            <div className="w-2 h-2 bg-primary rounded-full animate-bounce"></div>
-                                            <div className="w-2 h-2 bg-primary rounded-full animate-bounce [animation-delay:0.2s]"></div>
-                                            <div className="w-2 h-2 bg-primary rounded-full animate-bounce [animation-delay:0.4s]"></div>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                            <form onSubmit={handleChatSubmit} className="p-6 bg-white border-t border-gray-100 flex gap-3">
-                                <input 
-                                    type="text" 
-                                    value={chatInput}
-                                    onChange={(e) => setChatInput(e.target.value)}
-                                    placeholder="Type your question..."
-                                    className="flex-1 bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
-                                />
-                                <button type="submit" className="bg-primary text-white p-3 rounded-xl hover:scale-105 transition-all shadow-lg shadow-primary/20">
-                                    <Send className="w-5 h-5" />
-                                </button>
-                            </form>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
-
-                <div className="flex flex-col gap-3">
-                    {user?.subscriptionPlan === 'pro' && (
-                        <button 
-                            onClick={handlePrint}
-                            className={`w-14 h-14 rounded-full flex items-center justify-center transition-all active:scale-90 shadow-xl border bg-white border-gray-100 text-gray-600 hover:bg-gray-50`}
-                            title="Export to PDF"
-                        >
-                            <Download className="w-6 h-6" />
-                        </button>
-                    )}
-                    <button 
-                        onClick={toggleTheme}
-                        className={`w-14 h-14 rounded-full flex items-center justify-center transition-all active:scale-90 shadow-xl border ${theme === 'midnight' ? 'bg-amber-400 text-black border-amber-300' : theme === 'dark' ? 'bg-white/10 text-white border-white/10' : 'bg-slate-900 text-white border-slate-800'}`}
-                        title="Change Theme"
-                    >
-                        {theme === 'light' ? <Sun className="w-6 h-6" /> : <Moon className="w-6 h-6" />}
-                    </button>
-                    <button 
-                        onClick={() => setIsAiOpen(!isAiOpen)}
-                        className="w-16 h-16 bg-primary text-white rounded-full flex items-center justify-center shadow-2xl shadow-primary/30 hover:scale-110 active:scale-95 transition-all group relative overflow-hidden"
-                    >
-                        <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-500"></div>
-                        <Sparkles className="w-8 h-8 relative z-10" />
-                    </button>
-                </div>
-            </div>
-
-            <div className="max-w-[1400px] mx-auto px-4 md:px-8 lg:px-12">
-                <div className="max-w-4xl mb-12">
-                    <Link to="/docs" className="text-primary font-black text-xs uppercase tracking-widest hover:opacity-70 mb-6 inline-flex items-center gap-2">
-                        <Terminal className="w-4 h-4" />
-                        Technical Manuals
+            <div className="ds-shell space-y-8">
+                <div className="space-y-4">
+                    <Link to="/docs" className="ds-button-ghost px-0">
+                        Back to docs
                     </Link>
-                    <h1 className={`text-4xl md:text-6xl font-black ${currentTheme.heading} mb-6 tracking-tight leading-tight`}>{doc.title}</h1>
-                    <div className="flex flex-wrap items-center gap-3">
-                        {doc.category && (
-                            <span className={`${currentTheme.card} border ${currentTheme.border} ${currentTheme.heading} px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-widest shadow-sm`}>
-                                {doc.category}
-                            </span>
-                        )}
-                        {doc.isPremium && (
-                            <div className={`flex items-center gap-2 px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-widest ${doc.locked
-                                ? 'bg-black text-white'
-                                : 'bg-emerald-50 text-emerald-600 border border-emerald-100'
-                                }`}>
-                                {doc.locked ? '🔒 Pro Membership' : '✅ Verified Access'}
-                            </div>
-                        )}
-                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-2">EST READ: {Math.ceil(doc.content?.length / 1000) || 1} MIN</span>
+                    <div className="flex flex-wrap gap-2">
+                        {doc.category && <span className="ds-chip">{doc.category}</span>}
+                        <span className="ds-chip">{estimatedRead} min read</span>
+                        <span className="ds-chip">{showLockCta ? 'Preview only' : 'Full access'}</span>
+                    </div>
+                    <div className="space-y-3">
+                        <h1 className="text-4xl font-bold tracking-tight text-slate-900 md:text-5xl">{doc.title}</h1>
+                        {doc.description && <p className="max-w-3xl text-base leading-7 text-slate-600">{doc.description}</p>}
                     </div>
                 </div>
 
-                <div className={`flex flex-col ${hasToc ? 'lg:flex-row' : ''} gap-12`}>
+                <div className={`grid gap-12 ${hasToc ? 'xl:grid-cols-[240px,minmax(0,1fr)]' : 'xl:grid-cols-[1fr]'}`}>
                     {hasToc && (
-                        <aside className="lg:w-72 shrink-0">
-                            <div className={`sticky top-40 ${currentTheme.sidebar} border ${currentTheme.border} p-8 rounded-[2.5rem] shadow-sm transition-colors duration-700`}>
-                                <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] mb-8">Navigation Guide</h3>
-                                <nav className="space-y-4">
+                        <aside className="hidden xl:block">
+                            <div className="ds-card sticky top-32 p-5">
+                                <h2 className="text-sm font-semibold text-slate-900">On this page</h2>
+                                <nav className="mt-4 space-y-2">
                                     {toc.map((item) => (
-                                        <div key={item.id} className="relative group">
-                                            <a 
-                                                href={`#${item.id}`} 
-                                                onClick={(e) => scrollToSection(e, item.id)}
-                                                className={`text-sm font-black transition-all duration-300 block py-1 pl-4 border-l-2 ${
-                                                    activeId === item.id 
-                                                    ? 'text-primary border-primary translate-x-1' 
-                                                    : `${currentTheme.text} ${currentTheme.border} hover:text-primary hover:border-gray-300`
-                                                }`}
-                                                style={{ paddingLeft: `${(item.level || 1) * 0.5 + 0.5}rem` }}
-                                            >
-                                                {item.title}
-                                            </a>
-                                            {activeId === item.id && (
-                                                <div className="absolute -left-1 top-1/2 -translate-y-1/2 w-1 h-1 bg-primary rounded-full shadow-[0_0_8px_rgba(59,130,246,1)]"></div>
-                                            )}
-                                        </div>
+                                        <a
+                                            key={item.id}
+                                            href={`#${item.id}`}
+                                            onClick={(event) => scrollToSection(event, item.id)}
+                                            className={`block rounded-lg px-3 py-2 text-sm ${
+                                                activeId === item.id ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                                            }`}
+                                            style={{ marginLeft: `${Math.max(0, (item.level || 1) - 1) * 12}px` }}
+                                        >
+                                            {item.title}
+                                        </a>
                                     ))}
                                 </nav>
-                                <div className="mt-10 pt-10 border-t border-gray-50/10">
-                                    <button 
-                                        onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-                                        className="text-[10px] font-black text-gray-400 uppercase tracking-widest hover:text-black transition-colors flex items-center gap-2"
-                                    >
-                                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 15l7-7 7 7" /></svg>
-                                        Back to Top
-                                    </button>
-                                </div>
                             </div>
                         </aside>
                     )}
 
-                    <div className="flex-grow min-w-0">
-                        <div className={`${currentTheme.card} rounded-[3rem] p-8 md:p-16 lg:p-20 border ${currentTheme.border} shadow-xl shadow-gray-200/10 relative overflow-hidden transition-colors duration-700`}>
-                            <article className={`markdown-content prose prose-zinc max-w-none transition-all duration-700 ${showLockCta ? 'max-h-[500px] overflow-hidden mask-blur-bottom' : ''}`}>
-                                <style>{`
-                                    .mask-blur-bottom {
-                                        mask-image: linear-gradient(to bottom, black 50%, transparent 100%);
-                                        -webkit-mask-image: linear-gradient(to bottom, black 50%, transparent 100%);
-                                    }
-                                `}</style>
-                                <ReactMarkdown 
+                    <main className="min-w-0">
+                        <article className="ds-card p-6 md:p-8">
+                            <div className={`markdown-content prose prose-slate max-w-none ${showLockCta ? 'max-h-[560px] overflow-hidden' : ''}`}>
+                                <ReactMarkdown
                                     remarkPlugins={[remarkGfm]}
                                     rehypePlugins={[rehypeSlug]}
                                     components={{
-                                        h1: ({node, ...props}) => <h1 className={`text-4xl font-black ${currentTheme.heading} mb-8 mt-12 first:mt-0 tracking-tight`} {...props} />,
-                                        h2: ({node, ...props}) => <h2 className={`text-2xl font-black ${currentTheme.heading} mb-6 mt-12 border-b border-gray-100/10 pb-4 tracking-tight`} {...props} />,
-                                        h3: ({node, ...props}) => <h3 className={`text-xl font-black ${currentTheme.heading} mb-4 mt-10 tracking-tight`} {...props} />,
-                                        p: ({node, ...props}) => <p className={`${currentTheme.text} leading-relaxed mb-6 font-medium text-lg`} {...props} />,
-                                        ul: ({node, ...props}) => <ul className={`space-y-3 mb-8 ml-6 list-disc ${currentTheme.text}`} {...props} />,
-                                        ol: ({node, ...props}) => <ol className={`space-y-3 mb-8 ml-6 list-decimal ${currentTheme.text}`} {...props} />,
-                                        li: ({node, ...props}) => <li className="pl-2 font-medium" {...props} />,
-                                        code: CodeBlock
+                                        h1: ({ node, ...props }) => <h1 className="mt-10 text-3xl font-semibold tracking-tight text-slate-900 first:mt-0" {...props} />,
+                                        h2: ({ node, ...props }) => <h2 className="mt-10 border-b border-slate-200 pb-3 text-2xl font-semibold tracking-tight text-slate-900" {...props} />,
+                                        h3: ({ node, ...props }) => <h3 className="mt-8 text-xl font-semibold tracking-tight text-slate-900" {...props} />,
+                                        p: ({ node, ...props }) => <p className="text-base leading-7 text-slate-600" {...props} />,
+                                        ul: ({ node, ...props }) => <ul className="space-y-2 text-base leading-7 text-slate-600" {...props} />,
+                                        ol: ({ node, ...props }) => <ol className="space-y-2 text-base leading-7 text-slate-600" {...props} />,
+                                        code: CodeBlock,
                                     }}
                                 >
                                     {doc.content}
                                 </ReactMarkdown>
-                            </article>
+                            </div>
 
                             {showLockCta && (
-                                <div className="mt-20 p-12 bg-black rounded-[3rem] text-white text-center relative overflow-hidden group border border-white/10 shadow-2xl">
-                                    <div className="absolute top-0 right-0 w-96 h-96 bg-primary opacity-20 blur-[130px] -translate-y-1/2 translate-x-1/2 group-hover:opacity-30 transition-opacity"></div>
-                                    <div className="relative z-10">
-                                        <div className="w-20 h-20 bg-white/5 backdrop-blur-xl rounded-3xl flex items-center justify-center mx-auto mb-8 shadow-inner border border-white/10">
-                                            <Database className="w-10 h-10 text-primary" />
-                                        </div>
-                                        <h3 className="text-4xl font-black mb-6 tracking-tight">Access Pro Technical Documentation</h3>
-                                        <p className="text-xl mb-10 text-gray-400 max-w-2xl mx-auto font-medium leading-relaxed">
-                                            This guide is reserved for our Pro community members. Unlock this guide and hundreds of others, plus premium templates and exclusive Discord access.
-                                        </p>
-                                        <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
-                                            <button
-                                                onClick={handleProtectedAccess}
-                                                className="w-full sm:w-auto bg-primary text-white px-12 py-5 rounded-2xl font-black hover:bg-white hover:text-black transition-all duration-500 shadow-2xl shadow-primary/30 active:scale-95"
-                                            >
-                                                Start Pro Trial
-                                            </button>
-                                            <Link
-                                                to="/pricing"
-                                                className="w-full sm:w-auto text-gray-400 hover:text-white font-black text-sm uppercase tracking-widest transition-colors flex items-center gap-2 group/btn"
-                                            >
-                                                Membership Plans 
-                                                <svg className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
-                                            </Link>
-                                        </div>
+                                <div className="mt-8 rounded-2xl border border-slate-200 bg-slate-50 p-6">
+                                    <h2 className="text-2xl font-semibold tracking-tight text-slate-900">Unlock the full guide</h2>
+                                    <p className="mt-3 text-sm leading-6 text-slate-600">
+                                        This guide is available to customers with the required access plan. Sign in or review pricing to continue.
+                                    </p>
+                                    <div className="mt-5 flex flex-wrap gap-3">
+                                        <button type="button" onClick={handleProtectedAccess} className="ds-button-primary">
+                                            Continue
+                                        </button>
+                                        <Link to="/pricing" className="ds-button-secondary">
+                                            View pricing
+                                        </Link>
                                     </div>
                                 </div>
                             )}
+                        </article>
+                    </main>
+
+                    <aside className="space-y-6">
+                        <div className="ds-card p-6 sticky top-32">
+                            <h2 className="text-sm font-bold text-slate-900 uppercase tracking-widest border-b border-slate-100 pb-4 mb-6">Manifest Meta</h2>
+                            <dl className="space-y-4">
+                                <div className="flex items-center justify-between">
+                                    <dt className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Protocol</dt>
+                                    <dd className="text-[11px] font-black text-slate-900 uppercase">{doc.category || 'General'}</dd>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <dt className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Security</dt>
+                                    <dd className="flex items-center gap-1.5">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></div>
+                                        <span className="text-[10px] font-bold text-emerald-600 uppercase">Verified</span>
+                                    </dd>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <dt className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Read Latency</dt>
+                                    <dd className="text-[10px] font-bold text-slate-900 font-mono">{estimatedRead}M</dd>
+                                </div>
+                            </dl>
+                            <button onClick={handlePrint} className="w-full mt-8 py-3 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-[0.2em] hover:bg-slate-800 transition-all shadow-lg shadow-slate-900/10">
+                                Export PDF
+                            </button>
                         </div>
-                    </div>
+                    </aside>
                 </div>
             </div>
 
-            {/* Print Styles */}
-            <style dangerouslySetInnerHTML={{ __html: `
-                @media print {
-                    .fixed, aside, footer, nav, button { display: none !important; }
-                    .max-w-[1400px] { max-width: 100% !important; margin: 0 !important; padding: 0 !important; }
-                    .py-24 { padding-top: 0 !important; }
-                    .rounded-[3rem] { border-radius: 0 !important; border: none !important; box-shadow: none !important; }
-                    .bg-[#F5F5F7], .bg-[#0F172A], .bg-[#000000] { background: white !important; }
-                    .text-slate-400, .text-gray-400 { color: #374151 !important; }
-                    .text-slate-100, .text-gray-100 { color: black !important; }
-                    pre { background: #f3f4f6 !important; color: black !important; border: 1px solid #e5e7eb !important; }
-                }
-            `}} />
+            {/* SaaS-Pro Assistant Trigger */}
+            {/* AI Assistant Hub Trigger - Hidden if Docs AI is disabled */}
+            {config?.aiSettings?.enableDocsAi !== false && (
+                <motion.button
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setIsAssistantOpen(true)}
+                    className="fixed bottom-10 right-10 z-30 flex items-center gap-3 rounded-full border border-slate-200 bg-white p-4 pr-6 shadow-[0_20px_50px_rgba(0,0,0,0.1)] transition-all hover:bg-slate-50"
+                >
+                    <div className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-slate-900 text-white">
+                        <Terminal size={20} />
+                        {isPro && (
+                            <span className="absolute -right-1 -top-1 h-3 w-3 animate-pulse rounded-full border-2 border-white bg-emerald-500" />
+                        )}
+                    </div>
+                    <span className="text-xs font-bold uppercase tracking-widest text-slate-900">Assistant Hub</span>
+                </motion.button>
+            )}
+
+            {/* Enterprise Offcanvas Drawer */}
+            <AnimatePresence>
+                {isAssistantOpen && config?.aiSettings?.enableDocsAi !== false && (
+                    <>
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setIsAssistantOpen(false)}
+                            className="fixed inset-0 z-40 bg-slate-950/20 backdrop-blur-sm"
+                        />
+                        <motion.div
+                            initial={{ x: '100%' }}
+                            animate={{ x: 0 }}
+                            exit={{ x: '100%' }}
+                            transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+                            className="fixed inset-y-0 right-0 z-50 flex h-full w-full max-w-md flex-col border-l border-slate-200 bg-white shadow-[-40px_0_80px_rgba(0,0,0,0.05)]"
+                        >
+                            {/* Header */}
+                            <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50/50 p-6">
+                                <div className="flex items-center gap-4">
+                                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-900 text-white shadow-lg">
+                                        <Cpu size={24} />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-sm font-bold tracking-tight text-slate-900">Protocol Assistant</h3>
+                                        <div className="mt-1 flex items-center gap-2">
+                                            <div className={`h-2 w-2 rounded-full ${isPro ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300'}`} />
+                                            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                                                {isPro ? 'Matrix Synchronized' : 'Restricted Uplink'}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    {isPro && chatHistory.length > 0 && (
+                                        <button
+                                            onClick={handleClearChat}
+                                            className="rounded-xl p-2 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-500"
+                                            title="Purge Protocol"
+                                        >
+                                            <Trash2 size={20} />
+                                        </button>
+                                    )}
+                                    <button
+                                        onClick={() => setIsAssistantOpen(false)}
+                                        className="rounded-xl p-2 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-900"
+                                    >
+                                        <X size={24} />
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Conversation Domain */}
+                            <div className="flex-1 overflow-y-auto p-6 space-y-8">
+                                {!isPro ? (
+                                    <div className="flex h-full flex-col items-center justify-center px-8 text-center space-y-6">
+                                        <div className="flex h-20 w-20 items-center justify-center rounded-[2.5rem] border border-slate-100 bg-slate-50 text-slate-300">
+                                            <Lock size={40} />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <h4 className="text-xl font-bold text-slate-900 tracking-tight">Pro Access Required</h4>
+                                            <p className="text-sm leading-relaxed text-slate-500">
+                                                Technical intelligence protocols are exclusive to verified Pro members. Unlock the manifest analysis node now.
+                                            </p>
+                                        </div>
+                                        <Link to="/pricing" className="w-full ds-button-primary py-4 rounded-2xl shadow-xl shadow-slate-900/10">
+                                            Upgrade Subscription
+                                        </Link>
+                                    </div>
+                                ) : (
+                                    <>
+                                        {chatHistory.length === 0 && !isLoadingHistory && (
+                                            <div className="flex h-40 flex-col items-center justify-center rounded-3xl border border-dashed border-slate-100 bg-slate-50/50">
+                                                <Sparkles size={28} className="mb-3 text-slate-300" />
+                                                <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Initialize Transmission</p>
+                                            </div>
+                                        )}
+
+                                        {isLoadingHistory && (
+                                            <div className="flex h-40 items-center justify-center">
+                                                <div className="h-8 w-8 animate-spin rounded-full border-2 border-slate-200 border-t-slate-900" />
+                                            </div>
+                                        )}
+
+                                        {chatHistory.map((msg, i) => (
+                                            <div key={i} className="space-y-2">
+                                                <div className="flex items-center justify-between px-1">
+                                                     <span className="text-[9px] font-bold uppercase tracking-widest text-slate-400">
+                                                        {msg.role === 'user' ? 'Transmission' : 'Uplink Response'}
+                                                     </span>
+                                                     <span className="text-[8px] font-mono text-slate-300 uppercase">SYN_{i}</span>
+                                                </div>
+                                                <div className={`p-5 rounded-2xl text-[13px] leading-relaxed tracking-tight ${
+                                                    msg.role === 'user'
+                                                        ? 'bg-slate-900 text-white shadow-xl shadow-slate-900/10'
+                                                        : 'bg-slate-50 border border-slate-100 text-slate-700'
+                                                }`}>
+                                                    <div className="prose prose-sm prose-slate max-w-none">
+                                                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                                            {msg.content}
+                                                        </ReactMarkdown>
+                                                        {isChatLoading && i === chatHistory.length - 1 && msg.role === 'ai' && (
+                                                            <span className="inline-block h-4 w-1.5 animate-pulse rounded-full bg-slate-900 ml-1 translate-y-0.5" />
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+
+                                        {isChatLoading && (
+                                            <div className="space-y-2 opacity-50">
+                                                <div className="h-4 w-24 bg-slate-100 rounded animate-pulse" />
+                                                <div className="h-16 w-full bg-slate-50 border border-slate-100 rounded-2xl animate-pulse" />
+                                            </div>
+                                        )}
+                                    </>
+                                )}
+                            </div>
+
+                            {/* Transmission Interface */}
+                            {isPro && (
+                                <div className="border-t border-slate-100 bg-white p-6">
+                                    <form onSubmit={handleChatSubmit} className="relative group">
+                                        <textarea
+                                            value={chatInput}
+                                            onChange={(e) => setChatInput(e.target.value)}
+                                            placeholder="Ask the manifest..."
+                                            disabled={isChatLoading}
+                                            rows="2"
+                                            className="w-full resize-none rounded-2xl border border-slate-200 bg-slate-50 p-5 pr-14 text-sm font-medium transition-all group-hover:border-slate-300 focus:border-slate-900 focus:bg-white focus:outline-none focus:ring-0"
+                                        />
+                                        <button
+                                            type="submit"
+                                            disabled={isChatLoading || !chatInput.trim()}
+                                            className="absolute bottom-3 right-3 flex h-11 w-11 items-center justify-center rounded-xl bg-slate-900 text-white transition-all shadow-lg shadow-slate-900/20 hover:bg-slate-800 disabled:opacity-30 disabled:shadow-none"
+                                        >
+                                            {isChatLoading ? <Loader2 size={18} className="animate-spin" /> : <ChevronRight size={22} />}
+                                        </button>
+                                    </form>
+                                    <div className="mt-4 flex items-center justify-center gap-4">
+                                        <div className="h-px flex-1 bg-slate-100" />
+                                        <span className="text-[10px] font-bold uppercase tracking-tighter text-slate-300">Enterprise Protocol v4.0</span>
+                                        <div className="h-px flex-1 bg-slate-100" />
+                                    </div>
+                                </div>
+                            )}
+                        </motion.div>
+                    </>
+                )}
+            </AnimatePresence>
         </div>
     );
 };

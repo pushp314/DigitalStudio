@@ -9,20 +9,29 @@ import (
 
 func EffectiveSubscription(user models.User) (bool, string) {
 	now := time.Now()
+
+	// 1. Admins are always Enterprise / High Priority
+	if user.Role == models.RoleAdmin {
+		return true, "enterprise"
+	}
+
+	// 2. Strict Date Check for Pro Entitlement
 	if user.IsPro {
 		if user.ProExpiresAt == nil || user.ProExpiresAt.After(now) {
 			return true, "pro"
 		}
+		// If we reached here, IsPro is true but the date has passed.
+		return false, "free"
 	}
 
+	// 3. Fallback for manually set plans (rarely used, but kept for non-expiring tiers)
 	plan := strings.ToLower(strings.TrimSpace(user.SubscriptionPlan))
-	if plan == "" {
-		plan = "free"
+	if plan == "enterprise" {
+		return true, "enterprise"
 	}
-	if plan == "pro" {
-		plan = "free"
-	}
-	return false, plan
+
+	// 4. Everything else is Free
+	return false, "free"
 }
 
 func NormalizeUserAccess(user models.User) models.User {

@@ -162,6 +162,16 @@ func getFrontendURL() string {
 	return url
 }
 
+func aiProvider() string {
+	var siteConfig models.SiteConfig
+	if config.DB != nil && config.DB.First(&siteConfig).Error == nil {
+		if trimmed := strings.TrimSpace(siteConfig.AISettings.Provider); trimmed != "" {
+			return trimmed
+		}
+	}
+	return "ollama"
+}
+
 func aiModel() string {
 	var siteConfig models.SiteConfig
 	if config.DB != nil && config.DB.First(&siteConfig).Error == nil {

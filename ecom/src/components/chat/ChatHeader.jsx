@@ -1,43 +1,113 @@
-import React from 'react';
-import { Globe, Search, MoreHorizontal, Activity, Shield } from 'lucide-react';
+import React, { useState } from 'react';
+import { 
+    Globe, 
+    Search, 
+    MoreHorizontal, 
+    Shield, 
+    Trash2, 
+    BellOff, 
+    Bell,
+    Circle,
+    Layout
+} from 'lucide-react';
 
-const ChatHeader = ({ status, onlineCount, searchQuery, onSearchChange }) => {
+const ChatHeader = ({ status, onlineCount, searchQuery, onSearchChange, isSelectionMode, onToggleSelection, user }) => {
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [isMuted, setIsMuted] = useState(false);
+    const isAdmin = user?.role === 'admin';
+
     return (
-        <header className="h-16 border-b border-slate-100 flex items-center justify-between px-8 bg-white/80 backdrop-blur-md sticky top-0 z-10">
+        <header className="h-16 border-b border-slate-100 flex items-center justify-between px-8 bg-white/80 backdrop-blur-md sticky top-0 z-40">
             <div className="flex items-center gap-4">
                 <div className="flex flex-col">
-                    <div className="flex items-center gap-2">
-                        <h2 className="text-[13px] font-black text-slate-900 uppercase tracking-tight">Public Stream</h2>
-                        <div className={`w-2 h-2 rounded-full ${
-                            status === 'online' ? 'bg-emerald-500 shadow-[0_0_8px_#10B981]' : 
-                            status === 'connecting' ? 'bg-amber-400 animate-pulse' : 'bg-rose-500'
-                        }`}></div>
+                    <div className="flex items-center gap-3">
+                        <h2 className="text-xs font-bold text-slate-900 uppercase tracking-widest">Community Chat</h2>
+                        <div className="flex items-center gap-1.5 px-2 py-0.5 bg-slate-50 border border-slate-100 rounded-full">
+                            <Circle 
+                                size={6} 
+                                fill="currentColor" 
+                                className={`${
+                                    status === 'online' ? 'text-emerald-500' : 
+                                    status === 'connecting' ? 'text-amber-400 animate-pulse' : 'text-rose-500'
+                                }`} 
+                            />
+                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">
+                                {status === 'online' ? 'Online' : status === 'connecting' ? 'Connecting' : 'Offline'}
+                            </span>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-6">
+                {/* Enterprise Search Interface */}
                 <div className="relative group flex items-center">
-                    <Search className={`absolute left-3 transition-colors ${searchQuery ? 'text-blue-600' : 'text-slate-300'}`} size={13} />
+                    <Search className="absolute left-3 text-slate-300 group-focus-within:text-slate-900 transition-colors" size={12} />
                     <input 
                         type="text" 
-                        placeholder="Search conversation..."
+                        placeholder="Search logs..."
                         value={searchQuery}
                         onChange={(e) => onSearchChange(e.target.value)}
-                        className="bg-slate-50 border border-transparent rounded-lg py-1.5 pl-9 pr-4 text-[11px] font-bold focus:outline-none focus:bg-white focus:border-slate-200 transition-all w-32 md:w-56"
+                        className="bg-slate-50 border border-slate-100 rounded-lg py-1.5 pl-9 pr-4 text-[11px] font-medium placeholder:text-slate-400 focus:outline-none focus:bg-white focus:border-slate-300 transition-all w-48 md:w-64"
                     />
                 </div>
                 
-                <div className="hidden md:flex items-center gap-2 px-2.5 py-1.5 bg-blue-50/50 text-blue-600 rounded-lg border border-blue-100/30">
-                    <Globe size={12} className="text-blue-500" />
-                    <span className="text-[10px] font-black uppercase tracking-wider">{onlineCount}</span>
+                {/* Subject Visibility Counter */}
+                <div className="hidden md:flex items-center gap-2 px-3 py-1 bg-slate-50 text-slate-600 rounded-lg border border-slate-200">
+                    <Globe size={12} className="text-slate-400" />
+                    <span className="text-[10px] font-bold tracking-tight">{onlineCount}</span>
                 </div>
 
-                <div className="w-px h-6 bg-slate-100 mx-1"></div>
+                <div className="w-px h-4 bg-slate-200"></div>
 
-                <div className="flex items-center gap-1">
-                    <button className="p-2 text-slate-300 hover:text-slate-600 transition-colors"><Shield size={16} /></button>
-                    <button className="p-2 text-slate-300 hover:text-slate-600 transition-colors"><MoreHorizontal size={16} /></button>
+                <div className="flex items-center gap-1 relative">
+                    {isAdmin && (
+                        <button 
+                            onClick={() => onToggleSelection()}
+                            className={`p-2 transition-all rounded-lg ${isSelectionMode ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-400 hover:text-slate-900 hover:bg-slate-50'}`}
+                            title="Selection Mode"
+                        >
+                            <Layout size={16} strokeWidth={2.5} />
+                        </button>
+                    )}
+
+                    <button className="p-2 text-slate-400 hover:text-slate-900 transition-colors" title="Guidelines">
+                        <Shield size={16} strokeWidth={2.5} />
+                    </button>
+                    
+                    <button 
+                        onClick={() => setIsMenuOpen(!isMenuOpen)}
+                        className={`p-2 transition-colors ${isMenuOpen ? 'text-slate-900' : 'text-slate-400 hover:text-slate-900'}`}
+                    >
+                        <MoreHorizontal size={16} strokeWidth={2.5} />
+                    </button>
+
+                    {isMenuOpen && (
+                        <>
+                            <div className="fixed inset-0 z-40" onClick={() => setIsMenuOpen(false)}></div>
+                            <div className="absolute top-full right-0 mt-2 w-48 bg-white rounded-xl shadow-2xl border border-slate-200 p-2 z-50 animate-in fade-in zoom-in-95 duration-200">
+                                <button className="w-full flex items-center gap-3 px-3 py-2 text-[10px] font-bold text-slate-600 hover:bg-slate-50 rounded-lg transition-colors">
+                                    <Trash2 size={14} className="text-slate-400" />
+                                    Clear History
+                                </button>
+                                <button 
+                                    onClick={() => setIsMuted(!isMuted)}
+                                    className="w-full flex items-center gap-3 px-3 py-2 text-[10px] font-bold text-slate-600 hover:bg-slate-50 rounded-lg transition-colors"
+                                >
+                                    {isMuted ? <Bell size={14} className="text-emerald-500" /> : <BellOff size={14} className="text-slate-400" />}
+                                    {isMuted ? 'Enable Sounds' : 'Disable Sounds'}
+                                </button>
+                                <div className="h-px bg-slate-100 my-2 mx-2"></div>
+                                <div className="px-3 py-2">
+                                    <p className="text-[8px] font-black text-slate-300 uppercase tracking-widest mb-1">Authorization</p>
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
+                                        <p className="text-[10px] font-bold text-slate-600">Secure Connection</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </>
+                    )}
                 </div>
             </div>
         </header>

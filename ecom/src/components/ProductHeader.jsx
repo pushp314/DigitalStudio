@@ -1,233 +1,241 @@
-import React, { useContext } from 'react';
+import React, { useContext, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import CartContext from '../context/CartContext';
 import WishlistContext from '../context/WishlistContext';
 import AuthContext from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import ConfigContext from '../context/ConfigContext';
 import StarRating from './ui/StarRating';
 import { normalizeProduct } from '../utils/normalizers';
+import productService from '../services/productService';
+import api from '../services/api';
+import { Share2, Eye, Zap, MessageSquare } from 'lucide-react';
+import ConfigContext from '../context/ConfigContext';
 
 const ProductHeader = ({ product }) => {
-  const normalizedProduct = normalizeProduct(product);
-  const { addToCart } = useContext(CartContext);
-  const { addToWishlist, removeFromWishlist, isInWishlist } = useContext(WishlistContext);
-  const { purchasedProductIds, user } = useContext(AuthContext);
-  const { config } = useContext(ConfigContext);
-  const navigate = useNavigate();
-  const { success } = useToast();
+    const { config } = useContext(ConfigContext);
+    const normalizedProduct = normalizeProduct(product);
+    const { addToCart } = useContext(CartContext);
+    const { addToWishlist, removeFromWishlist, isInWishlist } = useContext(WishlistContext);
+    const { purchasedProductIds, user } = useContext(AuthContext);
+    const navigate = useNavigate();
+    const { success, error: toastError } = useToast();
+    const [isDownloading, setIsDownloading] = useState(false);
+    const [paying, setPaying] = useState(false);
 
-  const handleAddToCart = () => {
-    addToCart(product);
-    success(`${product.title} added to cart!`);
-  };
+    const id = normalizedProduct?.id ?? null;
+    const title = normalizedProduct?.title || 'Untitled product';
+    const description = normalizedProduct?.description || 'Review the included files, features, and setup notes for this product.';
+    const price = normalizedProduct?.formattedPrice || '₹0';
+    const isPurchased = purchasedProductIds.includes(id);
+    const inWishlist = isInWishlist(id);
 
-   const handleBuyNow = () => {
-     addToCart(product);
-     success(`${product.title} added. Opening secure checkout...`);
-     navigate('/checkout');
-   };
+    const handleAddToCart = () => {
+        addToCart(normalizedProduct);
+        success(`${title} added to cart.`);
+    };
 
-  const handleWishlist = () => {
-    const id = normalizedProduct.id;
-    if (isInWishlist(id)) {
-      removeFromWishlist(id);
-      success('Removed from wishlist');
-    } else {
-      addToWishlist(product);
-      success('Added to wishlist ❤️');
-    }
-  };
+    const handleBuyNow = () => {
+        addToCart(normalizedProduct);
+        success(`${title} added. Opening checkout.`);
+        navigate('/checkout');
+    };
 
-  const {
-    title = "Untitled product",
-    description = "Explore the full details for this product.",
-    formattedPrice: price = "₹0",
-    previewUrl = ""
-  } = normalizedProduct || {};
+    const handleWishlist = () => {
+        if (inWishlist) {
+            removeFromWishlist(id);
+            success('Removed from wishlist.');
+            return;
+        }
 
-  const id = normalizedProduct ? normalizedProduct.id : null;
-  const socialProof = config?.socialProof ?? {};
-  const avatars = Array.isArray(socialProof.avatarImages) ? socialProof.avatarImages : [];
+        addToWishlist(normalizedProduct);
+        success('Saved to wishlist.');
+    };
 
-  return (
-    <div className="w-full bg-[#F8FAFC] px-6 py-20 lg:py-32 flex flex-col justify-center font-sans border-b border-gray-100">
-      <div className="max-w-[1400px] mx-auto w-full">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-24 items-center">
-          
-          {/* LEFT SECTOR: LOGIC & ACTION */}
-          <div className="flex flex-col gap-10">
-            <div className="flex flex-col gap-6">
-              {/* Category Breadcrumb */}
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">{normalizedProduct.productType || 'Template'}</span>
-                <span className="w-1 h-1 rounded-full bg-slate-300"></span>
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">{normalizedProduct.category}</span>
-                <span className="w-1 h-1 rounded-full bg-slate-300"></span>
-                <div className="flex items-center gap-1 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">
-                    <svg className="w-2.5 h-2.5 text-emerald-500" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
-                    <span className="text-[9px] font-black text-emerald-600 uppercase tracking-wider">Verified Asset</span>
-                </div>
-              </div>
+    const handleDownload = async () => {
+        if (!id) {
+            toastError('Download is unavailable for this product.');
+            return;
+        }
 
-              <h1 className="text-5xl md:text-7xl lg:text-[5.5rem] font-black text-slate-900 tracking-tighter leading-[0.9]">
-                {title}
-              </h1>
-              
-              <p className="text-slate-500 text-xl font-medium max-w-xl leading-relaxed">
-                {description}
-              </p>
+        try {
+            setIsDownloading(true);
+            const response = await productService.getDownloadUrl(id);
+            if (!response?.downloadUrl) {
+                throw new Error('Download link is unavailable right now.');
+            }
+            window.location.assign(response.downloadUrl);
+        } catch (err) {
+            toastError(err.message || 'Unable to start the download.');
+        } finally {
+            setIsDownloading(false);
+        }
+    };
 
-              {/* Trust Signal Cluster */}
-              <div className="flex items-center gap-8">
-                {normalizedProduct && normalizedProduct.rating > 0 && (
-                  <div className="flex items-center gap-2">
-                    <StarRating rating={normalizedProduct.rating} numReviews={normalizedProduct.numReviews} size="md" />
-                  </div>
-                )}
-                {normalizedProduct && normalizedProduct.numSales > 0 && (
-                  <div className="flex items-center gap-2 bg-slate-100 px-4 py-1.5 rounded-full">
-                    <span className="text-[10px] font-black text-slate-900 uppercase tracking-widest">⚡ {normalizedProduct.numSales} Deployments</span>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* ACTION CENTER */}
-            <div className="flex flex-col gap-8">
-              <div className="flex flex-wrap items-center gap-5">
-                {purchasedProductIds.includes(normalizedProduct.id) ? (
-                  <>
-                    <button
-                      onClick={() => navigate('/profile')}
-                      className="bg-emerald-500 text-white px-10 py-5 rounded-full font-black uppercase text-[10px] tracking-widest shadow-xl shadow-emerald-500/20 active:scale-95 transition-all"
-                    >
-                      ✓ Already Purchased
-                    </button>
-                    {normalizedProduct.fileURL && (
-                      <a
-                        href={normalizedProduct.fileURL}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="bg-slate-900 text-white px-10 py-5 rounded-full font-black uppercase text-[10px] tracking-widest shadow-2xl shadow-slate-900/10 active:scale-95 transition-all flex items-center gap-3"
-                      >
-                        Source Code 📦
-                      </a>
-                    )}
-                  </>
-                ) : user?.subscriptionPlan === 'pro' && (normalizedProduct.requiresSubscription || normalizedProduct.isFree) ? (
-                  <>
-                    <a
-                      href={normalizedProduct.fileURL || '#'}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="bg-amber-400 text-black px-10 py-5 rounded-full font-black uppercase text-[10px] tracking-widest shadow-2xl shadow-amber-500/20 active:scale-95 transition-all flex items-center gap-3"
-                    >
-                      Pro Entitlement — Unlock 🔓
-                    </a>
-                    <button
-                      onClick={handleWishlist}
-                      className="bg-white border border-slate-200 text-slate-900 px-8 py-5 rounded-full font-black uppercase text-[10px] tracking-widest hover:bg-slate-50 transition-all shadow-sm active:scale-95"
-                    >
-                      Save to Library
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <button
-                      onClick={handleBuyNow}
-                      className="bg-primary hover:bg-blue-600 text-white px-10 py-5 rounded-full font-black uppercase text-[10px] tracking-widest shadow-2xl shadow-blue-500/20 active:scale-95 transition-all"
-                    >
-                      {normalizedProduct.isFree ? 'Get for Free' : `Buy Now — ${price}`}
-                    </button>
-                    <button
-                      onClick={handleAddToCart}
-                      className="bg-white border border-slate-200 text-slate-900 px-10 py-5 rounded-full font-black uppercase text-[10px] tracking-widest hover:bg-slate-50 transition-all shadow-sm active:scale-95"
-                    >
-                      Add to Cart
-                    </button>
-                  </>
-                )}
-
-                {/* Secondary Actions */}
-                <div className="flex items-center gap-3">
-                    <button
-                      onClick={handleWishlist}
-                      className={`p-5 rounded-full transition-all active:scale-90 border ${isInWishlist(id) ? 'bg-red-50 border-red-100 text-red-500 shadow-xl shadow-red-500/10' : 'bg-white border-slate-100 text-slate-400 hover:text-slate-900'}`}
-                    >
-                      <svg className={`w-6 h-6 ${isInWishlist(id) ? 'fill-current' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                      </svg>
-                    </button>
-                    {previewUrl && (
-                      <a
-                        href={previewUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="p-5 rounded-full bg-white border border-slate-100 text-slate-400 hover:text-slate-900 transition-all shadow-sm"
-                        title="Live Preview"
-                      >
-                        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                        </svg>
-                      </a>
-                    )}
-                </div>
-              </div>
-
-              {/* Secure Transaction Link */}
-              <div className="flex items-center gap-3 text-slate-400 font-bold uppercase text-[9px] tracking-widest">
-                <span className="flex items-center gap-2">
-                  <svg className="w-4 h-4 text-emerald-500" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M12 2a10 10 0 100 20 10 10 0 000-20zm3 12H9v-2h6v2zm0-4H9V8h6v2z" />
-                  </svg>
-                  Encrypted Transaction
-                </span>
-                <span className="w-1 h-1 rounded-full bg-slate-300"></span>
-                <span>Razorpay Gateway</span>
-              </div>
-            </div>
-          </div>
-
-          {/* RIGHT SECTOR: VISUAL ASSET */}
-          <div className="relative group lg:block">
-            <div className="relative z-10 w-full aspect-[4/3] bg-white rounded-[3rem] shadow-[0_50px_100px_-20px_rgba(0,0,0,0.15)] border border-slate-50 overflow-hidden transform transition-transform duration-700 hover:scale-[1.02]">
-                <img 
-                    src={normalizedProduct.image} 
-                    alt={title}
-                    className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
-                />
-                <div className="absolute inset-0 bg-gradient-to-tr from-primary/5 to-transparent pointer-events-none"></div>
-            </div>
-            
-            {/* Social Verification Cluster */}
-            {(avatars.length > 0) && (
-              <div className="absolute -bottom-8 -right-8 bg-white p-6 rounded-[2.5rem] shadow-2xl shadow-indigo-900/10 border border-slate-50 flex items-center gap-6 z-20 animate-in slide-in-from-right-8 duration-700">
-                <div className="flex -space-x-3">
-                  {avatars.slice(0, 4).map((src, i) => (
-                    <div key={i} className="w-10 h-10 rounded-full border-2 border-white overflow-hidden shadow-sm">
-                       <img src={src} className="w-full h-full object-cover" alt="User" />
+    return (
+        <section className="ds-page border-b border-slate-200 px-6 py-12 md:py-16">
+            <div className="ds-shell grid gap-8 lg:grid-cols-[minmax(0,1fr),520px] lg:items-start">
+                <div className="space-y-6">
+                    <div className="flex flex-wrap gap-2">
+                        <span className="ds-chip">{normalizedProduct.productType || 'Product'}</span>
+                        {normalizedProduct.category && <span className="ds-chip">{normalizedProduct.category}</span>}
+                        {normalizedProduct.requiresSubscription && <span className="ds-chip">Member access available</span>}
                     </div>
-                  ))}
-                </div>
-                <div className="flex flex-col">
-                  <div className="flex items-center gap-1">
-                     {[...Array(5)].map((_, i) => (
-                        <span key={i} className="text-amber-400 text-xs">★</span>
-                     ))}
-                  </div>
-                  <span className="text-[10px] font-black text-slate-900 uppercase tracking-widest mt-1">12k+ Trusted</span>
-                </div>
-              </div>
-            )}
-            
-            {/* Removed confusing floating emoji */}
-          </div>
 
-        </div>
-      </div>
-    </div>
-  );
+                    <div className="space-y-4">
+                        <h1 className="text-4xl font-bold tracking-tight text-slate-900 md:text-5xl">{title}</h1>
+                        <p className="max-w-3xl text-base leading-7 text-slate-600">{description}</p>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-5 text-sm text-slate-600">
+                        <span className="text-3xl font-semibold tracking-tight text-slate-900">{price}</span>
+                        {normalizedProduct.rating > 0 && (
+                            <div className="flex items-center gap-2">
+                                <StarRating rating={normalizedProduct.rating} numReviews={normalizedProduct.numReviews} size="md" />
+                            </div>
+                        )}
+                        {normalizedProduct.numSales > 0 && (
+                            <span>{normalizedProduct.numSales} sales</span>
+                        )}
+                    </div>
+
+                    <div className="flex flex-wrap gap-3">
+                        {isPurchased ? (
+                            <>
+                                <button type="button" onClick={() => navigate('/account')} className="ds-button-primary">
+                                    View in account
+                                </button>
+                                {(normalizedProduct.fileURL || id) && (
+                                    <button type="button" onClick={handleDownload} className="ds-button-secondary">
+                                        {isDownloading ? 'Preparing download...' : 'Download'}
+                                    </button>
+                                )}
+                            </>
+                        ) : user?.subscriptionPlan === 'pro' && (normalizedProduct.requiresSubscription || normalizedProduct.isFree) ? (
+                            <>
+                                <button type="button" onClick={handleDownload} className="ds-button-primary">
+                                    {isDownloading ? 'Preparing download...' : 'Download with membership'}
+                                </button>
+                                <button type="button" onClick={handleWishlist} className="ds-button-secondary">
+                                    {inWishlist ? 'Saved' : 'Save'}
+                                </button>
+                            </>
+                        ) : (
+                            <>
+                                <button type="button" onClick={handleBuyNow} className="ds-button-primary">
+                                    {normalizedProduct.isFree ? 'Get product' : `Buy now · ${price}`}
+                                </button>
+                                <button type="button" onClick={handleAddToCart} className="ds-button-secondary">
+                                    Add to cart
+                                </button>
+                            </>
+                        )}
+
+                        <button 
+                            type="button" 
+                            onClick={handleWishlist} 
+                            className="ds-button-ghost gap-2"
+                        >
+                            <span className={inWishlist ? 'text-rose-600' : ''}>
+                                {inWishlist ? 'Saved' : 'Save to wishlist'}
+                            </span>
+                        </button>
+
+                        {normalizedProduct.previewUrl && (
+                            <a
+                                href={normalizedProduct.previewUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="ds-button-ghost flex items-center gap-2"
+                            >
+                                <Eye size={16} /> Live Preview
+                            </a>
+                        )}
+
+                        <button 
+                            type="button" 
+                            onClick={() => {
+                                navigator.clipboard.writeText(window.location.href);
+                                success("Technical blueprint link shared.");
+                            }}
+                            className="ds-button-ghost flex items-center gap-2"
+                            title="Share Matrix Node"
+                        >
+                            <Share2 size={16} /> Share
+                        </button>
+                        {!isPurchased && config?.eliteSettings?.negotiationEnabled && (
+                            <button 
+                                type="button" 
+                                disabled={paying}
+                                onClick={async () => {
+                                    if (!user) {
+                                        toastError("Please log in to negotiate.");
+                                        navigate('/login');
+                                        return;
+                                    }
+                                    setPaying(true);
+                                    try {
+                                        const orderData = await api.post(`/support/create-order/${id}`);
+
+                                        if (orderData.alreadyActive) {
+                                            success("You already have an active chat for this product.");
+                                            navigate(`/support/chat/${orderData.sessionId}`);
+                                            return;
+                                        }
+
+                                        const options = {
+                                            key: orderData.keyId,
+                                            amount: orderData.amount,
+                                            currency: orderData.currency,
+                                            name: "DigitalStudio",
+                                            description: `Negotiate: ${title}`,
+                                            order_id: orderData.orderId,
+                                            handler: async function (response) {
+                                                try {
+                                                    const verifyData = await api.post('/support/verify-payment', {
+                                                        razorpayOrderId: response.razorpay_order_id,
+                                                        razorpayPaymentId: response.razorpay_payment_id,
+                                                        razorpaySignature: response.razorpay_signature,
+                                                        productId: id,
+                                                    });
+                                                    if (verifyData.sessionId) {
+                                                        success("Payment verified! Opening your chat.");
+                                                        navigate(`/support/chat/${verifyData.sessionId}`);
+                                                    }
+                                                } catch (err) {
+                                                    toastError("Payment verification failed.");
+                                                }
+                                            },
+                                            prefill: { name: user?.name || '', email: user?.email || '' },
+                                            theme: { color: "#f59e0b" },
+                                            modal: { ondismiss: () => setPaying(false) }
+                                        };
+                                        const rzp = new window.Razorpay(options);
+                                        rzp.open();
+                                    } catch (err) {
+                                        toastError(err.message || "Failed to start negotiation.");
+                                    } finally {
+                                        setPaying(false);
+                                    }
+                                }}
+                                className="ds-button-ghost gap-2 border-slate-200 border text-slate-900 hover:bg-slate-50 disabled:opacity-50"
+                            >
+                                <MessageSquare size={14} className="text-amber-500" /> 
+                                {paying ? 'Processing...' : `Negotiate Price (₹${config?.eliteSettings?.negotiationFee || 9})`}
+                            </button>
+                        )}
+                    </div>
+
+                    <p className="text-sm text-slate-500">Payments are processed securely through Razorpay. Downloads use authenticated links.</p>
+                </div>
+
+                <div className="ds-card overflow-hidden">
+                    <div className="aspect-[4/3] bg-slate-100">
+                        <img src={normalizedProduct.image} alt={title} className="h-full w-full object-cover" />
+                    </div>
+                </div>
+            </div>
+        </section>
+    );
 };
 
 export default ProductHeader;

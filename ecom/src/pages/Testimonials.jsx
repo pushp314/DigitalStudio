@@ -9,23 +9,36 @@ const Testimonials = () => {
     const { config } = useContext(ConfigContext);
     const navigate = useNavigate();
 
-    // Feature Enforcement
     useEffect(() => {
         if (config && config.features && config.features.testimonials === false) {
             navigate('/');
         }
     }, [config, navigate]);
+
     return (
-        <div className="bg-[#F5F5F7]">
+        <div className="ds-page">
             <BuildSitesHeader
-                title="Loved by thousands of"
-                highlight="users"
-                description="See what others are saying about our templates."
+                title="Customer"
+                highlight="feedback"
+                description="Read recent reviews from customers and share your own feedback after purchase."
             />
             <TestimonialsGrid />
-            <div className="max-w-[1400px] mx-auto pb-20 px-6">
-                <TestimonialForm />
-            </div>
+            <section className="px-6 pb-16">
+                <div className="ds-shell">
+                    <div className="ds-panel p-6 md:p-8">
+                        <div className="space-y-2">
+                            <p className="ds-eyebrow">Leave a review</p>
+                            <h2 className="text-2xl font-semibold tracking-tight text-slate-900">Share your purchase experience</h2>
+                            <p className="text-sm leading-6 text-slate-600">
+                                Reviews are tied to a purchased product so other customers can trust the feedback they see.
+                            </p>
+                        </div>
+                        <div className="mt-6">
+                            <TestimonialForm />
+                        </div>
+                    </div>
+                </div>
+            </section>
         </div>
     );
 };

@@ -4,11 +4,14 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import docService from '../../services/docService';
 import { useToast } from '../../context/ToastContext';
 import { normalizeDoc } from '../../utils/normalizers';
+import ConfirmationModal from '../ui/ConfirmationModal';
+import { useState } from 'react';
 
 const DocsManager = () => {
     const queryClient = useQueryClient();
     const navigate = useNavigate();
     const { success, error } = useToast();
+    const [confirmModal, setConfirmModal] = useState({ isOpen: false, id: null });
 
     const { data: docData, isLoading: loading } = useQuery({
         queryKey: ['docs'],
@@ -29,8 +32,9 @@ const DocsManager = () => {
     });
 
     const handleDelete = (id) => {
-        if (!window.confirm('Are you sure you want to delete this documentation?')) return;
-        deleteMutation.mutate(id);
+        deleteMutation.mutate(confirmModal.id, {
+            onSuccess: () => setConfirmModal({ isOpen: false, id: null })
+        });
     };
 
     return (
@@ -91,8 +95,8 @@ const DocsManager = () => {
                                                 >
                                                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                                                 </button>
-                                                <button 
-                                                    onClick={() => handleDelete(doc.id)} 
+                                                 <button 
+                                                    onClick={() => setConfirmModal({ isOpen: true, id: doc.id })} 
                                                     disabled={deleteMutation.isPending}
                                                     className="p-2.5 bg-red-50 text-red-400 rounded-lg hover:bg-red-500 hover:text-white transition-all border border-red-50"
                                                 >
@@ -107,6 +111,17 @@ const DocsManager = () => {
                     </div>
                 )}
             </div>
+
+            <ConfirmationModal 
+                isOpen={confirmModal.isOpen}
+                onClose={() => setConfirmModal({ isOpen: false, id: null })}
+                onConfirm={handleDelete}
+                title="Purge Documentation?"
+                message="This technical guide will be permanently removed from the knowledge base. This action is irreversible."
+                confirmText="Delete Asset"
+                type="danger"
+                isLoading={deleteMutation.isPending}
+            />
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {[

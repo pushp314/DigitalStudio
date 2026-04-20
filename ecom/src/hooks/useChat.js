@@ -1,22 +1,20 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import api, { WS_URL } from '../services/api';
+import api from '../services/api';
+import { useRealtime } from '../context/RealtimeContext';
 
 /**
- * Custom hook for managing real-time chat with auto-reconnection and state cleanup.
+ * Custom hook for managing real-time chat utilizing a global realtime context.
  */
 export const useChat = (user) => {
-    const [messages, setMessages] = useState([]);
-    const [onlineCount, setOnlineCount] = useState(0);
-    const [status, setStatus] = useState('connecting'); // connecting, online, offline, error
-    const [historyLoading, setHistoryLoading] = useState(true);
-    const [typingUsers, setTypingUsers] = useState({}); // { userId: { name, timestamp } }
+    const { status, onlineCount, onlineUsers, events, sendSignal } = useRealtime();
     
-    const socketRef = useRef(null);
-    const reconnectTimeoutRef = useRef(null);
-    const reconnectCountRef = useRef(0);
-    const MAX_RECONNECT_DELAY = 30000;
-
+    const [messages, setMessages] = useState([]);
+    const [historyLoading, setHistoryLoading] = useState(true);
+    const [typingUsers, setTypingUsers] = useState({});
+    
+    // 1. Initial Load
     const fetchHistory = useCallback(async () => {
+        if (!user) return;
         try {
             setHistoryLoading(true);
             const data = await api.get('/chat/history');
@@ -26,112 +24,150 @@ export const useChat = (user) => {
         } finally {
             setHistoryLoading(false);
         }
-    }, []);
+    }, [user]);
 
-    const connect = useCallback(() => {
-        if (socketRef.current?.readyState === WebSocket.OPEN) return;
+    // 2. Process Incoming Events from the Global Hub
+    useEffect(() => {
+        if (!events) return;
+        const { type, data } = events;
 
-        const token = localStorage.getItem('token');
-        if (!token) {
-            setStatus('error');
-            return;
-        }
-
-        const url = `${WS_URL}/chat/ws?token=${token}`;
-        const ws = new WebSocket(url);
-
-        ws.onopen = () => {
-            console.log('Chat Link Verified');
-            setStatus('online');
-            reconnectCountRef.current = 0;
-            if (reconnectTimeoutRef.current) {
-                clearTimeout(reconnectTimeoutRef.current);
-            }
-        };
-
-        ws.onmessage = (event) => {
-            try {
-                const lines = event.data.split('\n');
-                lines.forEach(line => {
-                    if (!line.trim()) return;
-                    
-                    let data;
-                    try {
-                        data = JSON.parse(line);
-                    } catch (e) {
-                        // Handle raw string fallbacks from legacy broadcasts
-                        data = { content: line, type: 'text', createdAt: new Date().toISOString() };
-                    }
-                    
-                    processMessage(data);
-                });
-            } catch (err) {
-                console.error("Critical Stream Error:", err);
-            }
-        };
-
-        ws.onclose = () => {
-            console.log('Chat Link Interrupted');
-            setStatus('offline');
-            
-            // Indefinite Reconnection
-            const delay = Math.min(1000 * Math.pow(1.5, reconnectCountRef.current), MAX_RECONNECT_DELAY);
-            reconnectTimeoutRef.current = setTimeout(() => {
-                reconnectCountRef.current++;
-                connect();
-            }, delay);
-        };
-
-        ws.onerror = () => setStatus('error');
-
-        socketRef.current = ws;
-    }, []);
-
-    const processMessage = (data) => {
-        if (data.type === 'presence') {
-            setOnlineCount(data.count);
-        } else if (data.type === 'typing') {
+        if (type === 'typing') {
             if (data.userId === user?.id) return;
             setTypingUsers(prev => ({
                 ...prev,
                 [data.userId]: { name: data.userName, timestamp: Date.now() }
             }));
-        } else if (data.type === 'read') {
+        } else if (type === 'read') {
             if (data.userId === user?.id) return;
             setMessages(prev => prev.map(m => 
                 m.userId === user?.id && m.status !== 'read' ? { ...m, status: 'read' } : m
             ));
+        } else if (type === 'delete') {
+            setMessages(prev => prev.filter(m => m.id !== data.id));
+        } else if (type === 'edit') {
+            setMessages(prev => prev.map(m => 
+                m.id === data.id ? { ...m, content: data.content, isEdited: true } : m
+            ));
+        } else if (type === 'bulk_delete') {
+            const deleteIds = data.ids || [];
+            setMessages(prev => prev.filter(m => !deleteIds.includes(m.id)));
+        } else if (type === 'metadata_update') {
+            setMessages(prev => prev.map(m => 
+                m.id === data.id ? { ...m, ...data } : m
+            ));
         } else {
+            // Normal message
+            if (data.userId) {
+                setTypingUsers(prev => {
+                    if (!prev[data.userId]) return prev;
+                    const next = { ...prev };
+                    delete next[data.userId];
+                    return next;
+                });
+            }
             setMessages(prev => {
                 const existingIndex = prev.findIndex(m => (data.cid && m.cid === data.cid) || (data.id && m.id === data.id));
-                
-                // Determine initial status based on presence
-                const status = (onlineCount > 1) ? 'read' : 'delivered';
+                const deliveryStatus = (onlineCount > 1) ? 'read' : 'delivered';
 
                 if (existingIndex !== -1) {
                     const next = [...prev];
-                    next[existingIndex] = { ...data, status };
+                    next[existingIndex] = { 
+                        ...prev[existingIndex], 
+                        ...data, 
+                        status: data.status || deliveryStatus 
+                    };
                     return next;
                 }
                 return [...prev, { ...data, status: 'sent' }];
             });
         }
-    };
+    }, [events, user, onlineCount]);
 
-    const markAllAsRead = useCallback(() => {
-        if (socketRef.current?.readyState === WebSocket.OPEN) {
-            socketRef.current.send(`@read:`);
+    const sendMessage = useCallback(async (payload) => {
+        const content = typeof payload === 'string' ? payload : payload.content;
+        const attachmentUrl = payload.attachmentUrl || null;
+        const isImage = payload.isImage || false;
+
+        if (!content && !isImage) return false;
+
+        const cid = `cid-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        const optimisticMsg = {
+            cid,
+            userId: user.id,
+            userName: user.name,
+            content: content || "",
+            attachmentUrl: attachmentUrl,
+            isImage: isImage,
+            isPro: user.subscriptionPlan === 'pro' || user.role === 'admin' || user.isPro,
+            type: isImage ? 'image' : (content?.startsWith('```') ? 'code' : 'text'),
+            parentId: payload.parentId,
+            replyToName: payload.replyToName,
+            replyToContent: payload.replyToContent,
+            createdAt: new Date().toISOString(),
+            status: 'sending'
+        };
+
+        setMessages(prev => [...prev, optimisticMsg]);
+
+        try {
+            const data = await api.post('/chat/messages', { 
+                cid, 
+                content: content || "",
+                attachmentUrl: attachmentUrl,
+                isImage: isImage,
+                parentId: payload.parentId,
+                replyToName: payload.replyToName,
+                replyToContent: payload.replyToContent
+            });
+            setMessages(prev => prev.map(m => 
+                m.cid === cid ? { ...m, id: data.id, status: 'sent', isPro: data.isPro } : m
+            ));
+            return true;
+        } catch (err) {
+            setMessages(prev => prev.map(m => m.cid === cid ? { ...m, status: 'error' } : m));
+            return false;
+        }
+    }, [user]);
+
+    const deleteMessage = useCallback(async (msgId) => {
+        try {
+            await api.delete(`/chat/messages/${msgId}`);
+            setMessages(prev => prev.filter(m => m.id !== msgId));
+            return true;
+        } catch (err) {
+            console.error("Failed to delete message", err);
+            return false;
         }
     }, []);
 
-    // Mark as read on mount and on visibility change
-    useEffect(() => {
-        if (status === 'online') {
-            markAllAsRead();
+    const editMessage = useCallback(async (msgId, newContent) => {
+        if (user?.subscriptionPlan !== 'pro' && user?.role !== 'admin') {
+            return false;
         }
-    }, [status, markAllAsRead]);
+        try {
+            await api.put(`/chat/messages/${msgId}`, { content: newContent });
+            setMessages(prev => prev.map(m => 
+                m.id === msgId ? { ...m, content: newContent, isEdited: true } : m
+            ));
+            return true;
+        } catch (err) {
+            console.error("Failed to edit message", err);
+            return false;
+        }
+    }, [user]);
 
-    // Cleanup stale typing indicators
+    const sendTyping = useCallback(() => {
+        sendSignal(`@typing:`);
+    }, [sendSignal]);
+
+    const markAllAsRead = useCallback(() => {
+        sendSignal(`@read:`);
+    }, [sendSignal]);
+
+    useEffect(() => {
+        if (user) fetchHistory();
+    }, [user, fetchHistory]);
+
     useEffect(() => {
         const interval = setInterval(() => {
             const now = Date.now();
@@ -150,72 +186,28 @@ export const useChat = (user) => {
         return () => clearInterval(interval);
     }, []);
 
-    const sendMessage = useCallback(async (content) => {
-        if (content.startsWith('@')) {
-            console.warn('System command detected in message stream. Blocking normal persistence.');
-            return false;
-        }
-
-        const cid = `cid-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-        const optimisticMsg = {
-            cid,
-            userId: user.id,
-            userName: user.name,
-            content,
-            isPro: user.subscriptionPlan === 'pro',
-            type: content.startsWith('```') ? 'code' : 'text',
-            createdAt: new Date().toISOString(),
-            status: 'sending'
-        };
-
-        setMessages(prev => [...prev, optimisticMsg]);
-
-        try {
-            // Using HTTP POST for high reliability sending
-            const data = await api.post('/chat/messages', { cid, content });
-            
-            // Mark as sent immediately on success
-            setMessages(prev => prev.map(m => 
-                m.cid === cid ? { ...m, id: data.id, status: 'sent' } : m
-            ));
-            return true;
-        } catch (err) {
-            console.error("Failed to send message via REST:", err);
-            setMessages(prev => prev.map(m => m.cid === cid ? { ...m, status: 'error' } : m));
-            return false;
-        }
-    }, [user]);
-
-    const sendTyping = useCallback(() => {
-        if (socketRef.current?.readyState === WebSocket.OPEN) {
-            socketRef.current.send(`@typing:`);
-        }
-    }, []);
+    useEffect(() => {
+        const handleFocus = () => fetchHistory();
+        window.addEventListener('focus', handleFocus);
+        return () => window.removeEventListener('focus', handleFocus);
+    }, [fetchHistory]);
 
     useEffect(() => {
-        if (user) {
-            fetchHistory();
-            connect();
-        }
-
-        return () => {
-            if (socketRef.current) {
-                socketRef.current.close();
-            }
-            if (reconnectTimeoutRef.current) {
-                clearTimeout(reconnectTimeoutRef.current);
-            }
-        };
-    }, [user, fetchHistory, connect]);
+        if (status === 'online') fetchHistory();
+    }, [status, fetchHistory]);
 
     return {
         messages,
         onlineCount,
+        onlineUsers,
         status,
         historyLoading,
         typingUsers,
         sendMessage,
+        deleteMessage,
+        editMessage,
         sendTyping,
-        retryConnection: connect
+        markAllAsRead,
+        retryConnection: () => {} 
     };
 };
