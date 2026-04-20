@@ -4,9 +4,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io"
 	"github.com/pushp314/digitalstudio/go-server/models"
+	"io"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -39,6 +40,11 @@ func (h *MarketingHandler) CreateCoupon(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	coupon.Code = models.NormalizeCouponCode(coupon.Code)
+	if coupon.Code == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "coupon code is required"})
+		return
+	}
 
 	if err := h.DB.Create(&coupon).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create coupon"})
@@ -50,7 +56,7 @@ func (h *MarketingHandler) CreateCoupon(c *gin.Context) {
 // Admin: Delete Coupon
 func (h *MarketingHandler) DeleteCoupon(c *gin.Context) {
 	id := c.Param("id")
-	if err := h.DB.Delete(&models.Coupon{}, id).Error; err != nil {
+	if err := h.DB.Model(&models.Coupon{}).Where("id = ?", id).Update("active", false).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to remove coupon"})
 		return
 	}
@@ -59,8 +65,16 @@ func (h *MarketingHandler) DeleteCoupon(c *gin.Context) {
 
 // Public: Validate Coupon
 func (h *MarketingHandler) ValidateCoupon(c *gin.Context) {
-	code := c.Query("code")
-	amount := c.GetFloat64("totalAmount") // Total potentially passed from frontend or calculated previously
+	code := models.NormalizeCouponCode(c.Query("code"))
+	amount, err := strconv.ParseFloat(strings.TrimSpace(c.Query("totalAmount")), 64)
+	if code == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Coupon code is required"})
+		return
+	}
+	if err != nil || amount < 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Valid totalAmount is required"})
+		return
+	}
 
 	var coupon models.Coupon
 	if err := h.DB.Where("code = ? AND active = ?", code, true).First(&coupon).Error; err != nil {
@@ -101,7 +115,7 @@ func (h *MarketingHandler) GetWishlistDeals(c *gin.Context) {
 
 	for _, item := range req.Items {
 		// Hack: If added > 48 hours ago
-		if now - item.AddedAt > 172800 { 
+		if now-item.AddedAt > 172800 {
 			var product models.Product
 			if err := h.DB.First(&product, item.ID).Error; err == nil {
 				deals = append(deals, gin.H{
@@ -132,7 +146,7 @@ func (h *MarketingHandler) GetPersonalizedOffers(c *gin.Context) {
 	// Fetch Context
 	var orders []models.Order
 	h.DB.Preload("OrderItems.Product").Where("user_id = ? AND status = 'paid'", userID).Find(&orders)
-	
+
 	var purchases []string
 	for _, o := range orders {
 		for _, item := range o.OrderItems {
@@ -150,7 +164,7 @@ func (h *MarketingHandler) GetPersonalizedOffers(c *gin.Context) {
 	}
 
 	// AI Strategic Request
-	prompt := fmt.Sprintf("Analyze User Profile: Bought: [%s], Wants: [%s].\nGenerate a 'Limited Time VIP Offer'. Return ONLY a JSON object: {\"offerTitle\": \"string\", \"pitch\": \"short 10 word pitch\", \"discount\": number, \"code\": \"GEN-CODE\", \"expiryHours\": number}", 
+	prompt := fmt.Sprintf("Analyze User Profile: Bought: [%s], Wants: [%s].\nGenerate a 'Limited Time VIP Offer'. Return ONLY a JSON object: {\"offerTitle\": \"string\", \"pitch\": \"short 10 word pitch\", \"discount\": number, \"code\": \"GEN-CODE\", \"expiryHours\": number}",
 		strings.Join(purchases, ", "), strings.Join(wishlist, ", "))
 
 	aiReqBody, _ := json.Marshal(map[string]string{
@@ -166,7 +180,9 @@ func (h *MarketingHandler) GetPersonalizedOffers(c *gin.Context) {
 	defer resp.Body.Close()
 
 	bodyBytes, _ := io.ReadAll(resp.Body)
-	var aiResp struct{ Answer string `json:"answer"` }
+	var aiResp struct {
+		Answer string `json:"answer"`
+	}
 	json.Unmarshal(bodyBytes, &aiResp)
 
 	// Simple extraction
@@ -183,14 +199,14 @@ func (h *MarketingHandler) GetPersonalizedOffers(c *gin.Context) {
 		Code        string `json:"code"`
 		ExpiryHours int    `json:"expiryHours"`
 	}
-	
+
 	if err := json.Unmarshal([]byte(cleanJSON), &offer); err != nil {
 		// Fallback
 		c.JSON(http.StatusOK, gin.H{
-			"offerTitle": "Creator Loyalty Reward",
-			"pitch": "Since you're growing with us, here is a special return gift.",
-			"discount": 15,
-			"code": "GROWTH15",
+			"offerTitle":  "Creator Loyalty Reward",
+			"pitch":       "Since you're growing with us, here is a special return gift.",
+			"discount":    15,
+			"code":        "GROWTH15",
 			"expiryHours": 24,
 		})
 		return
@@ -201,7 +217,7 @@ func (h *MarketingHandler) GetPersonalizedOffers(c *gin.Context) {
 
 func (h *MarketingHandler) aiEnabled() bool {
 	// Simple reuse of check config
-	return true 
+	return true
 }
-func (h *MarketingHandler) aiModel() string { return "qwen3.5:2b" }
+func (h *MarketingHandler) aiModel() string      { return "qwen3.5:2b" }
 func (h *MarketingHandler) aiServiceURL() string { return "http://localhost:8081" }

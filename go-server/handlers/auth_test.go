@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/gin-gonic/gin"
 	"github.com/pushp314/digitalstudio/go-server/middleware"
 	"github.com/pushp314/digitalstudio/go-server/models"
 )
@@ -73,4 +74,34 @@ func TestLoginAndMeReturnNormalizedUser(t *testing.T) {
 	if mePayload["role"] != string(user.Role) {
 		t.Fatalf("expected role %s, got %v", user.Role, mePayload["role"])
 	}
+}
+
+func TestAuthMiddlewareRejectsQueryTokenOutsideWebsocket(t *testing.T) {
+	setupTestDB(t)
+
+	user := seedUser(t, "query-token@example.com", models.RoleUser, "free", "secret123")
+	token := mustIssueToken(t, user)
+
+	router := newRouter()
+	router.GET("/api/secure", middleware.AuthMiddleware(), func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"ok": true})
+	})
+
+	recorder := performJSONRequest(t, router, http.MethodGet, "/api/secure?token="+token, nil, "")
+	assertStatus(t, recorder, http.StatusUnauthorized)
+}
+
+func TestWebsocketAuthMiddlewareAllowsQueryToken(t *testing.T) {
+	setupTestDB(t)
+
+	user := seedUser(t, "ws-token@example.com", models.RoleUser, "free", "secret123")
+	token := mustIssueToken(t, user)
+
+	router := newRouter()
+	router.GET("/api/chat/ws", middleware.WebsocketAuthMiddleware(), func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"ok": true})
+	})
+
+	recorder := performJSONRequest(t, router, http.MethodGet, "/api/chat/ws?token="+token, nil, "")
+	assertStatus(t, recorder, http.StatusOK)
 }

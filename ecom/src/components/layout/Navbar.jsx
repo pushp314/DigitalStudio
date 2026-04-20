@@ -96,9 +96,9 @@ const FloatingNavbar = ({ onSearchClick }) => {
                                     <path d="M12 12V22" stroke="white" strokeWidth="2" />
                                 </svg>
                             </div>
-                            <span className="text-white font-bold text-xl tracking-tight select-none">
-                                CodeStudio
-                            </span>
+                             <span className="text-white font-bold text-xl tracking-tight select-none">
+                                 DigitalStudio
+                             </span>
                         </Link>
 
                         {/* Desktop Navigation */}

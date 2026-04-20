@@ -47,15 +47,15 @@ const Footer = () => {
                                 </svg>
                             </div>
                             <span className="text-white font-bold text-xl tracking-tight">
-                                FlowGrid
+                                DigitalStudio
                             </span>
                         </Link>
 
                         {/* Email Contact */}
                         <div>
                             <p className="text-gray-400 text-xs font-bold tracking-widest uppercase mb-2">DROP US A LINE</p>
-                            <a href="mailto:hello@flowgrid.com" className="text-2xl md:text-3xl font-medium hover:text-primary transition-colors">
-                                hello@flowgrid.com
+                            <a href="mailto:hello@digitalstudio.dev" className="text-2xl md:text-3xl font-medium hover:text-primary transition-colors">
+                                hello@digitalstudio.dev
                             </a>
                         </div>
                     </div>

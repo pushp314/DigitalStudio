@@ -7,7 +7,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/pushp314/digitalstudio/go-server/config"
 	"github.com/pushp314/digitalstudio/go-server/models"
+	"github.com/pushp314/digitalstudio/go-server/services"
 	"golang.org/x/crypto/bcrypt"
+	"strconv"
 )
 
 type UpdateUserReq struct {
@@ -22,12 +24,35 @@ type ResetPasswordReq struct {
 }
 
 func ListUsers(c *gin.Context) {
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "50"))
+	search := c.Query("search")
+
+	if page < 1 {
+		page = 1
+	}
+	if limit < 1 || limit > 100 {
+		limit = 50
+	}
+	offset := (page - 1) * limit
+
 	var users []models.User
-	if err := config.DB.Order("created_at desc").Find(&users).Error; err != nil {
+	query := config.DB.Order("created_at desc")
+
+	if search != "" {
+		searchStr := "%" + strings.ToLower(search) + "%"
+		query = query.Where("LOWER(name) LIKE ? OR LOWER(email) LIKE ?", searchStr, searchStr)
+	}
+
+	var total int64
+	query.Model(&models.User{}).Count(&total)
+
+	if err := query.Limit(limit).Offset(offset).Find(&users).Error; err != nil {
 		respondError(c, http.StatusInternalServerError, "Failed to fetch users")
 		return
 	}
 
+	c.Header("X-Total-Count", strconv.FormatInt(total, 10))
 	c.JSON(http.StatusOK, users)
 }
 
@@ -69,6 +94,24 @@ func UpdateUser(c *gin.Context) {
 		return
 	}
 
+	if actorID, ok := c.Get("userID"); ok {
+		actor := actorID.(uint)
+		resourceID := user.ID
+		services.WriteAuditLog(nil, services.AuditEvent{
+			RequestID:    requestIDFromContext(c),
+			ActorUserID:  &actor,
+			EventType:    "admin.user_updated",
+			ResourceType: "user",
+			ResourceID:   &resourceID,
+			Message:      "Admin updated user profile fields",
+			Metadata: map[string]interface{}{
+				"role":             user.Role,
+				"subscriptionPlan": user.SubscriptionPlan,
+				"suspended":        user.Suspended,
+			},
+		})
+	}
+
 	c.JSON(http.StatusOK, user)
 }
 
@@ -96,6 +139,19 @@ func ResetUserPassword(c *gin.Context) {
 	if err := config.DB.Save(&user).Error; err != nil {
 		respondError(c, http.StatusInternalServerError, "Failed to reset password")
 		return
+	}
+
+	if actorID, ok := c.Get("userID"); ok {
+		actor := actorID.(uint)
+		resourceID := user.ID
+		services.WriteAuditLog(nil, services.AuditEvent{
+			RequestID:    requestIDFromContext(c),
+			ActorUserID:  &actor,
+			EventType:    "admin.user_password_reset",
+			ResourceType: "user",
+			ResourceID:   &resourceID,
+			Message:      "Admin reset a user password",
+		})
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Password reset successfully"})

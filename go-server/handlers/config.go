@@ -128,6 +128,13 @@ func defaultSiteConfig() models.SiteConfig {
 
 func ensureSiteConfig() (models.SiteConfig, error) {
 	var siteConfig models.SiteConfig
+	if config.DB == nil {
+		return defaultSiteConfig(), nil
+	}
+	
+	// Force migrate to ensure FrontendURL column exists
+	_ = config.DB.AutoMigrate(&models.SiteConfig{})
+
 	if err := config.DB.First(&siteConfig).Error; err == nil {
 		return siteConfig, nil
 	}

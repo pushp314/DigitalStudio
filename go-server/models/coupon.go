@@ -1,8 +1,9 @@
 package models
 
 import (
-	"time"
 	"gorm.io/gorm"
+	"strings"
+	"time"
 )
 
 type DiscountType string
@@ -48,4 +49,8 @@ func (c *Coupon) CalculateDiscount(orderAmount float64) float64 {
 		return (orderAmount * c.DiscountValue) / 100
 	}
 	return c.DiscountValue
+}
+
+func NormalizeCouponCode(code string) string {
+	return strings.ToUpper(strings.TrimSpace(code))
 }

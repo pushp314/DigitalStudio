@@ -6,6 +6,7 @@ import api from '../services/api';
 import { useToast } from '../context/ToastContext';
 import ConfigContext from '../context/ConfigContext';
 import { formatCurrency } from '../utils/normalizers';
+import { useQueryClient } from '@tanstack/react-query';
 
 const loadRazorpayScript = () => {
     return new Promise((resolve) => {
@@ -20,9 +21,10 @@ const loadRazorpayScript = () => {
 const Checkout = () => {
     const { config } = useContext(ConfigContext);
     const { cartItems, clearCart } = useContext(CartContext);
-    const { user } = useContext(AuthContext);
+    const { user, refreshPurchases } = useContext(AuthContext);
     const { success, error } = useToast();
     const navigate = useNavigate();
+    const queryClient = useQueryClient();
 
     const [loading, setLoading] = useState(false);
     const [couponCode, setCouponCode] = useState('');
@@ -110,6 +112,9 @@ const Checkout = () => {
                         if (verifyRes.paymentStatus === 'paid' || verifyRes.status === 'captured' || verifyRes.entitled) {
                             success('Payment verified successfully! 🎉');
                             clearCart();
+                            if (refreshPurchases) await refreshPurchases();
+                            queryClient.invalidateQueries({ queryKey: ['orders', 'my'] });
+                            queryClient.invalidateQueries({ queryKey: ['licenses', 'my'] });
                             navigate('/profile');
                         }
                     } catch (err) {
@@ -240,7 +245,14 @@ const Checkout = () => {
                                 disabled={loading}
                                 className={`w-full bg-black text-white py-6 rounded-[2rem] font-black uppercase text-[11px] tracking-[0.2em] shadow-2xl shadow-black/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3 ${loading ? 'opacity-70 cursor-not-allowed grayscale' : ''}`}
                             >
-                                {loading ? 'Processing...' : 'Confirm Payment'}
+                                {loading ? 'Processing...' : (
+                                    <span className="flex items-center gap-2">
+                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                        </svg>
+                                        Confirm Payment
+                                    </span>
+                                )}
                                 {!loading && <span className="text-lg">→</span>}
                             </button>
                             

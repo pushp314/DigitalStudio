@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"net/http"
-	"os"
+	"net/url"
 	"strconv"
 	"strings"
 
@@ -30,11 +30,8 @@ func DownloadSecureAsset(c *gin.Context) {
 	}
 
 	// 1. Check if user is Pro
-	var user models.User
-	if err := config.DB.First(&user, userID).Error; err == nil {
-		if user.IsPro {
-			goto generateUrl
-		}
+	if isPro, ok := c.Get("isPro"); ok && isPro == true {
+		goto generateUrl
 	}
 
 	// 2. Check if user owned the product
@@ -44,7 +41,7 @@ func DownloadSecureAsset(c *gin.Context) {
 			Joins("JOIN orders ON orders.id = order_items.order_id").
 			Where("order_items.product_id = ? AND orders.user_id = ? AND (orders.payment_status = ? OR orders.status = ?)", productID, userID, "paid", "paid").
 			Count(&count)
-		
+
 		if count > 0 {
 			goto generateUrl
 		}
@@ -54,20 +51,38 @@ func DownloadSecureAsset(c *gin.Context) {
 	return
 
 generateUrl:
-	fileKey := strings.TrimPrefix(product.FileURL, os.Getenv("R2_PUBLIC_URL")+"/")
-	// If it's a full URL from another source, we might have a problem, 
-	// but assuming internally hosted on R2 for production.
-	
-	url, err := services.GeneratePresignedURL(fileKey)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate security payload"})
+	if fileKey, managed := services.StorageKeyFromURL(product.FileURL); managed {
+		if services.IsManagedPrivateAssetKey(fileKey) {
+			url, err := services.GeneratePresignedURL(fileKey)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate security payload"})
+				return
+			}
+
+			c.JSON(http.StatusOK, gin.H{
+				"downloadUrl": url,
+				"expiresIn":   "15m",
+			})
+			return
+		}
+
+		publicURL := strings.TrimSpace(product.FileURL)
+		c.JSON(http.StatusOK, gin.H{
+			"downloadUrl": publicURL,
+			"expiresIn":   "public",
+		})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"downloadUrl": url,
-		"expiresIn": "15m",
-	})
+	if parsed, err := url.Parse(strings.TrimSpace(product.FileURL)); err == nil && parsed.Scheme == "https" && parsed.Host != "" {
+		c.JSON(http.StatusOK, gin.H{
+			"downloadUrl": parsed.String(),
+			"expiresIn":   "external",
+		})
+		return
+	}
+
+	c.JSON(http.StatusConflict, gin.H{"error": "Secure asset is not configured for managed delivery"})
 }
 
 type CreateProductReq struct {
@@ -162,6 +177,22 @@ func ListProducts(c *gin.Context) {
 
 	enrichProducts(&products)
 	c.JSON(http.StatusOK, products)
+}
+
+func GetOwnedProducts(c *gin.Context) {
+	userID, exists := c.Get("userID")
+	if !exists {
+		respondError(c, http.StatusUnauthorized, "Unauthorized")
+		return
+	}
+
+	var productIDs []uint
+	config.DB.Table("order_items").
+		Joins("JOIN orders ON orders.id = order_items.order_id").
+		Where("orders.user_id = ? AND (orders.payment_status = ? OR orders.status = ?)", userID, "paid", "paid").
+		Pluck("DISTINCT product_id", &productIDs)
+
+	c.JSON(http.StatusOK, productIDs)
 }
 
 func GetProduct(c *gin.Context) {

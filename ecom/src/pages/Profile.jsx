@@ -10,6 +10,7 @@ import { normalizeOrder, formatCurrency } from '../utils/normalizers';
 import api from '../services/api';
 import WishlistContext from '../context/WishlistContext';
 import aiService from '../services/aiService';
+import licenseService from '../services/licenseService';
 
 const Profile = () => {
     const { user, logout } = useContext(AuthContext);
@@ -24,6 +25,13 @@ const Profile = () => {
         queryFn: () => orderService.getMyOrders(),
         enabled: !!user,
         select: (data) => (Array.isArray(data) ? data.map(normalizeOrder) : []),
+    });
+
+    const { data: licenses, isLoading: loadingLicenses } = useQuery({
+        queryKey: ['licenses', 'my'],
+        queryFn: () => licenseService.getMyLicenses(),
+        enabled: !!user,
+        select: (data) => (Array.isArray(data) ? data : []),
     });
 
     const { data: inquiries, isLoading: loadingInquiries } = useQuery({
@@ -381,7 +389,7 @@ const Profile = () => {
                                                                 <div className="mt-6 flex flex-col gap-2">
                                                                      <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Serial Key</p>
                                                                      <div className="bg-gray-50/50 border border-gray-100 px-6 py-3 rounded-2xl font-mono text-[10px] font-bold text-black border-dashed break-all select-all hover:bg-gray-100 transition-colors">
-                                                                         DS-{order.id}-{String(product?.id).padStart(4, '0')}-KEY
+                                                                         {(licenses || []).find(l => l.productId === product?.id && l.orderId === order.id)?.licenseKey || `DS-${order.id}-${String(product?.id).padStart(4, '0')}-KEY`}
                                                                      </div>
                                                                 </div>
                                                             </div>

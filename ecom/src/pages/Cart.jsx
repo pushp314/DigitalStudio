@@ -61,6 +61,23 @@ const Cart = () => {
                         ))}
                     </div>
 
+                    {/* Left Bottom Growth Nudge */}
+                    {cartItems.length < 3 && (
+                        <div className="mt-8 p-6 bg-blue-50 border border-blue-100 rounded-3xl flex items-center justify-between gap-6 animate-in slide-in-from-bottom-4 duration-700">
+                           <div className="flex items-center gap-4">
+                               <div className="w-12 h-12 bg-primary text-white rounded-2xl flex items-center justify-center text-xl shadow-lg shadow-blue-500/20">🎁</div>
+                               <div>
+                                   <h4 className="text-sm font-black text-primary uppercase tracking-widest mb-1">Scale your library</h4>
+                                   <p className="text-slate-600 text-sm font-medium">Add {3 - cartItems.length} more item{3 - cartItems.length > 1 ? 's' : ''} to unlock an <span className="font-bold text-black">Automatic 10% Bundle Discount</span> on your entire order.</p>
+                               </div>
+                           </div>
+                           <Link to="/templates" className="px-6 py-3 bg-white border border-blue-100 text-primary font-bold rounded-xl text-sm hover:shadow-md transition-all whitespace-nowrap">
+                               Browse More
+                           </Link>
+                        </div>
+                    )}
+                </div>
+
                     {/* Summary Card */}
                     <div className="w-full lg:w-[350px]">
                         <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 sticky top-24">
@@ -80,16 +97,30 @@ const Cart = () => {
                             </div>
                             <button
                                 onClick={checkoutHandler}
-                                className="w-full bg-black text-white py-4 rounded-xl font-bold hover:bg-gray-800 transition-colors shadow-lg shadow-black/20"
+                                className="w-full bg-black text-white py-4 rounded-xl font-bold hover:bg-gray-800 transition-colors shadow-lg shadow-black/20 flex items-center justify-center gap-2"
                             >
-                                Checkout
+                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                </svg>
+                                Secure Checkout
                             </button>
+
+                            <div className="mt-6 pt-6 border-t border-gray-50 space-y-4">
+                                <div className="flex items-center gap-3 grayscale opacity-40 justify-center">
+                                    <img src="https://img.icons8.com/color/48/000000/visa.png" className="h-4" alt="Visa" />
+                                    <img src="https://img.icons8.com/color/48/000000/mastercard.png" className="h-4" alt="Mastercard" />
+                                    <img src="https://img.icons8.com/color/48/000000/razorpay.png" className="h-4" alt="Razorpay" />
+                                </div>
+                                <div className="flex items-center gap-2 text-[9px] font-bold text-gray-400 uppercase tracking-widest justify-center">
+                                    <svg className="w-3 h-3 text-emerald-500" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zm3 12H9v-2h6v2zm0-4H9V8h6v2z" /></svg>
+                                    Encrypted Transactions
+                                </div>
+                            </div>
                         </div>
                     </div>
 
                 </div>
             </div>
-        </div>
     );
 };
 

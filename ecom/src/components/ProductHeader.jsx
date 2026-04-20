@@ -22,10 +22,11 @@ const ProductHeader = ({ product }) => {
     success(`${product.title} added to cart!`);
   };
 
-  const handleBuyNow = () => {
-    addToCart(product);
-    navigate('/cart');
-  };
+   const handleBuyNow = () => {
+     addToCart(product);
+     success(`${product.title} added. Opening secure checkout...`);
+     navigate('/checkout');
+   };
 
   const handleWishlist = () => {
     const id = normalizedProduct.id;
@@ -62,6 +63,11 @@ const ProductHeader = ({ product }) => {
                 <span className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">{normalizedProduct.productType || 'Template'}</span>
                 <span className="w-1 h-1 rounded-full bg-slate-300"></span>
                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">{normalizedProduct.category}</span>
+                <span className="w-1 h-1 rounded-full bg-slate-300"></span>
+                <div className="flex items-center gap-1 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">
+                    <svg className="w-2.5 h-2.5 text-emerald-500" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
+                    <span className="text-[9px] font-black text-emerald-600 uppercase tracking-wider">Verified Asset</span>
+                </div>
               </div>
 
               <h1 className="text-5xl md:text-7xl lg:text-[5.5rem] font-black text-slate-900 tracking-tighter leading-[0.9]">
@@ -96,7 +102,7 @@ const ProductHeader = ({ product }) => {
                       onClick={() => navigate('/profile')}
                       className="bg-emerald-500 text-white px-10 py-5 rounded-full font-black uppercase text-[10px] tracking-widest shadow-xl shadow-emerald-500/20 active:scale-95 transition-all"
                     >
-                      ✓ Owned Intelligence
+                      ✓ Already Purchased
                     </button>
                     {normalizedProduct.fileURL && (
                       <a
@@ -132,7 +138,7 @@ const ProductHeader = ({ product }) => {
                       onClick={handleBuyNow}
                       className="bg-primary hover:bg-blue-600 text-white px-10 py-5 rounded-full font-black uppercase text-[10px] tracking-widest shadow-2xl shadow-blue-500/20 active:scale-95 transition-all"
                     >
-                      {normalizedProduct.isFree ? 'Get for Free' : `Acquire Now — ${price}`}
+                      {normalizedProduct.isFree ? 'Get for Free' : `Buy Now — ${price}`}
                     </button>
                     <button
                       onClick={handleAddToCart}
@@ -215,8 +221,7 @@ const ProductHeader = ({ product }) => {
               </div>
             )}
             
-            {/* Asset Node (Floating) */}
-            <div className="absolute -top-6 -left-6 w-24 h-24 bg-slate-900 rounded-[2rem] shadow-2xl flex items-center justify-center text-3xl rotate-[-12deg] animate-bounce-slow z-20">💎</div>
+            {/* Removed confusing floating emoji */}
           </div>
 
         </div>

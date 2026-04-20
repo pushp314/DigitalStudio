@@ -11,6 +11,8 @@ import ProBanner from '../components/ProBanner';
 import productService from '../services/productService';
 import { normalizeProduct } from '../utils/normalizers';
 
+import Meta from '../components/common/Meta';
+
 const Home = () => {
     const { data, isLoading, error } = useQuery({
         queryKey: ['products', 'featured-home'],
@@ -24,6 +26,10 @@ const Home = () => {
 
     return (
         <>
+            <Meta 
+                title="Premium Developer Templates & Code Assets"
+                description="Discover and acquire the best React templates, SaaS boilerplates, and developer tools."
+            />
             <HeroSection />
             <FeaturedHeader />
             {isLoading ? (

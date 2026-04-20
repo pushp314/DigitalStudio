@@ -40,6 +40,46 @@ const Features = () => {
                         </Link>
                     </div>
                 </div>
+
+                {/* AI & Premium Insights Surface */}
+                <div className="max-w-[1400px] mx-auto mt-24 mb-12 grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div className="bg-gradient-to-br from-indigo-50 to-white p-12 rounded-[3.5rem] border border-indigo-100 flex flex-col justify-between overflow-hidden relative group">
+                        <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 group-hover:scale-110 transition-transform duration-1000"></div>
+                        <div className="relative z-10">
+                            <span className="text-[10px] font-black text-indigo-500 uppercase tracking-[0.3em] bg-indigo-100/50 px-5 py-2 rounded-full mb-8 inline-block">Pro Intelligence</span>
+                            <h3 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tighter leading-none mb-6">
+                                AI-Driven Stack <br /> <span className="text-indigo-400">Recommendations.</span>
+                            </h3>
+                            <p className="text-slate-500 text-lg font-medium leading-relaxed max-w-md">
+                                Stop guessing. Our integrated AI analyzes your project goals and suggests the perfect combination of templates and modules to ensure technical success.
+                            </p>
+                        </div>
+                        <div className="mt-12 flex items-center gap-4">
+                            <div className="flex -space-x-2">
+                                <div className="w-8 h-8 rounded-full bg-slate-900 flex items-center justify-center text-[10px] text-white border-2 border-white">React</div>
+                                <div className="w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center text-[10px] text-white border-2 border-white">AI</div>
+                            </div>
+                            <span className="text-xs font-black text-slate-400 uppercase tracking-widest">Only for Pro Members</span>
+                        </div>
+                    </div>
+
+                    <div className="bg-white p-12 rounded-[3.5rem] border border-gray-100 shadow-sm flex flex-col justify-between relative overflow-hidden group">
+                        <div className="relative z-10">
+                            <span className="text-[10px] font-black text-emerald-500 uppercase tracking-[0.3em] bg-emerald-50 px-5 py-2 rounded-full mb-8 inline-block">Elite Community</span>
+                            <h3 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tighter leading-none mb-6">
+                                Real-Time Dev <br /> <span className="text-emerald-400">Collaborations.</span>
+                            </h3>
+                            <p className="text-slate-500 text-lg font-medium leading-relaxed max-w-md">
+                                Access private chat channels where senior engineers share insights, debug complex logic, and release exclusive early-access drops.
+                            </p>
+                        </div>
+                        <div className="mt-12">
+                             <Link to="/chat" className="text-slate-900 font-black flex items-center gap-3 hover:translate-x-2 transition-transform duration-300">
+                                Open Community Chat <span>→</span>
+                             </Link>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <FeaturesGrid />

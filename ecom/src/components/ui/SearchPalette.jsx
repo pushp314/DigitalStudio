@@ -4,28 +4,30 @@ import { useQuery } from '@tanstack/react-query';
 import productService from '../../services/productService';
 import { normalizeProduct } from '../../utils/normalizers';
 import docService from '../../services/docService';
+import { useDebounce } from '../../hooks/useDebounce';
 
 const SearchPalette = ({ isOpen, onClose }) => {
     const [query, setQuery] = useState('');
+    const debouncedQuery = useDebounce(query, 300);
     const [selectedIndex, setSelectedIndex] = useState(0);
     const inputRef = useRef(null);
     const navigate = useNavigate();
 
-    // Fetch products and docs based on query
+    // Fetch products and docs based on debounced query
     const { data, isLoading } = useQuery({
-        queryKey: ['search-palette', query],
+        queryKey: ['search-palette', debouncedQuery],
         queryFn: async () => {
-            if (query.length < 2) return { products: [], docs: [] };
+            if (debouncedQuery.length < 2) return { products: [], docs: [] };
             const [productsRes, docsRes] = await Promise.all([
-                productService.getAll(query),
-                docService.getAll('', query)
+                productService.getAll(debouncedQuery),
+                docService.getAll('', debouncedQuery)
             ]);
             return {
                 products: Array.isArray(productsRes) ? productsRes.map(normalizeProduct) : [],
                 docs: Array.isArray(docsRes) ? docsRes : []
             };
         },
-        enabled: isOpen && query.length > 1
+        enabled: isOpen && debouncedQuery.length > 1
     });
 
     const products = data?.products || [];
@@ -211,7 +213,7 @@ const SearchPalette = ({ isOpen, onClose }) => {
                     
                     <div className="flex items-center gap-2">
                         <span className="text-[11px] font-bold text-gray-400">Powered by</span>
-                        <span className="text-[11px] font-black text-primary tracking-tight">CODESTUDIO</span>
+                        <span className="text-[11px] font-black text-primary tracking-tight">DIGITALSTUDIO</span>
                     </div>
                 </div>
             </div>

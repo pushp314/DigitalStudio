@@ -92,7 +92,7 @@ const TemplateDetails = ({ product }) => {
           {/* Protocol Updates (Changelog) */}
           {product?.changelog?.length > 0 && (
             <div className="mt-12">
-              <h3 className="text-2xl font-black text-slate-900 mb-8 tracking-tight uppercase text-[10px] tracking-[0.3em]">Protocol Updates</h3>
+              <h3 className="text-2xl font-black text-slate-900 mb-8 tracking-tight uppercase text-[10px] tracking-[0.3em]">Product Updates</h3>
               <div className="space-y-8 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px before:h-full before:w-0.5 before:bg-slate-100">
                 {product.changelog.map((entry, index) => (
                   <div key={index} className="relative flex items-start pl-14 group">

@@ -9,12 +9,12 @@ import (
 	"net/url"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt/v5"
 	"github.com/pushp314/digitalstudio/go-server/config"
+	"github.com/pushp314/digitalstudio/go-server/middleware"
 	"github.com/pushp314/digitalstudio/go-server/models"
+	"github.com/pushp314/digitalstudio/go-server/utils"
 )
 
 type authResponse struct {
@@ -27,19 +27,7 @@ func respondError(c *gin.Context, status int, message string) {
 }
 
 func issueJWT(user models.User) (string, error) {
-	secret := os.Getenv("JWT_SECRET")
-	if secret == "" {
-		return "", errors.New("JWT secret is not configured")
-	}
-
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"user_id":          user.ID,
-		"role":             user.Role,
-		"subscriptionPlan": user.SubscriptionPlan,
-		"exp":              time.Now().Add(72 * time.Hour).Unix(),
-	})
-
-	return token.SignedString([]byte(secret))
+	return utils.IssueJWT(user)
 }
 
 func respondAuthSuccess(c *gin.Context, status int, user models.User) {
@@ -53,6 +41,7 @@ func respondAuthSuccess(c *gin.Context, status int, user models.User) {
 }
 
 func buildAuthResponse(user models.User) (authResponse, error) {
+	user = utils.NormalizeUserAccess(user)
 	token, err := issueJWT(user)
 	if err != nil {
 		return authResponse{}, errors.New("failed to generate token")
@@ -71,7 +60,7 @@ func redirectOAuthSuccess(c *gin.Context, user models.User) {
 		return
 	}
 
-	frontendURL := strings.TrimRight(os.Getenv("FRONTEND_URL"), "/")
+	frontendURL := getFrontendURL()
 	if frontendURL == "" {
 		c.JSON(http.StatusOK, payload)
 		return
@@ -97,42 +86,38 @@ func optionalAuthenticatedUser(c *gin.Context) (*models.User, error) {
 		return nil, nil
 	}
 
-	parts := strings.Split(authHeader, " ")
-	if len(parts) != 2 || parts[0] != "Bearer" {
+	tokenString := strings.TrimSpace(strings.TrimPrefix(authHeader, "Bearer "))
+	if tokenString == "" || !strings.HasPrefix(authHeader, "Bearer ") {
 		return nil, errors.New("invalid authorization header format")
 	}
 
-	secret := os.Getenv("JWT_SECRET")
-	token, err := jwt.Parse(parts[1], func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, errors.New("unexpected signing method")
-		}
-
-		return []byte(secret), nil
-	})
-	if err != nil || !token.Valid {
+	claims, err := utils.ParseJWT(tokenString)
+	if err != nil {
 		return nil, errors.New("invalid token")
 	}
 
-	claims, ok := token.Claims.(jwt.MapClaims)
-	if !ok {
-		return nil, errors.New("invalid token claims")
-	}
-
-	userIDFloat, ok := claims["user_id"].(float64)
-	if !ok {
-		return nil, errors.New("user id not found in token")
-	}
-
 	var user models.User
-	if err := config.DB.First(&user, uint(userIDFloat)).Error; err != nil {
+	if err := config.DB.First(&user, claims.UserID).Error; err != nil {
 		return nil, err
 	}
 	if user.Suspended {
 		return nil, errors.New("account suspended")
 	}
 
-	return &user, nil
+	normalized := utils.NormalizeUserAccess(user)
+	return &normalized, nil
+}
+
+func requestIDFromContext(c *gin.Context) string {
+	if c == nil {
+		return ""
+	}
+	if requestID, ok := c.Get(middleware.RequestIDKey); ok {
+		if value, valid := requestID.(string); valid {
+			return value
+		}
+	}
+	return ""
 }
 
 func aiServiceURL() string {
@@ -157,6 +142,24 @@ func aiEnabled() bool {
 	}
 
 	return true
+}
+
+func getFrontendURL() string {
+	var siteConfig models.SiteConfig
+	if config.DB != nil {
+		// Ensure schema is up to date for this struct to avoid 500 errors on missing columns
+		_ = config.DB.AutoMigrate(&models.SiteConfig{})
+		if config.DB.First(&siteConfig).Error == nil {
+			if url := strings.TrimRight(strings.TrimSpace(siteConfig.FrontendURL), "/"); url != "" {
+				return url
+			}
+		}
+	}
+	url := strings.TrimRight(os.Getenv("FRONTEND_URL"), "/")
+	if url == "" {
+		return "http://localhost:5173" // Default fallback
+	}
+	return url
 }
 
 func aiModel() string {

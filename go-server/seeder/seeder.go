@@ -14,6 +14,9 @@ func Run() {
 		log.Println("Seeder disabled. Set ENABLE_SEEDER=true to seed default data.")
 		return
 	}
+	if os.Getenv("APP_ENV") == "production" {
+		log.Fatal("ENABLE_SEEDER must remain disabled in production")
+	}
 	log.Println("Seeder started...")
 	
 	// Clear existing configuration and docs to ensure fresh state with new schema
@@ -116,6 +119,7 @@ func Run() {
 				Enabled: true,
 				Model:   "qwen2.5:1.5b",
 			},
+			FrontendURL: os.Getenv("FRONTEND_URL"),
 		}
 		config.DB.Create(&siteConfig)
 		log.Println("Advanced Site Config Seeded")
@@ -316,6 +320,68 @@ Our team is available for technical support Monday through Friday via the dashbo
 			config.DB.Create(&d)
 		}
 		log.Println("Premium docs seeded")
+	}
+
+	// 6. Testimonials
+	var testimonyCount int64
+	config.DB.Model(&models.Testimonial{}).Count(&testimonyCount)
+	if testimonyCount == 0 {
+		jamesEmail := "james@example.com"
+		sarahEmail := "sarah@example.com"
+		
+		var james models.User
+		if err := config.DB.Where("email = ?", jamesEmail).First(&james).Error; err != nil {
+			pass, _ := bcrypt.GenerateFromPassword([]byte("user123"), bcrypt.DefaultCost)
+			james = models.User{Name: "James Wilson", Email: jamesEmail, Password: string(pass), Role: models.RoleUser, SubscriptionPlan: "pro"}
+			config.DB.Create(&james)
+		}
+
+		var sarah models.User
+		if err := config.DB.Where("email = ?", sarahEmail).First(&sarah).Error; err != nil {
+			pass, _ := bcrypt.GenerateFromPassword([]byte("user123"), bcrypt.DefaultCost)
+			sarah = models.User{Name: "Sarah Chen", Email: sarahEmail, Password: string(pass), Role: models.RoleUser, SubscriptionPlan: "free"}
+			config.DB.Create(&sarah)
+		}
+		
+		var horizon models.Product
+		if err := config.DB.Where("slug = ?", "horizon-ai").First(&horizon).Error; err != nil {
+			log.Println("Skipping testimonial seeding: horizon-ai product not found")
+			return
+		}
+
+		var nexus models.Product
+		if err := config.DB.Where("slug = ?", "nexus-portfolio").First(&nexus).Error; err != nil {
+			log.Println("Skipping testimonial seeding: nexus-portfolio product not found")
+			return
+		}
+
+		testimonies := []models.Testimonial{
+			{
+				UserID: james.ID,
+				ProductID: horizon.ID,
+				Content: "The Horizon AI dashboard saved us weeks of development. The Go- Gin integration is flawlessly implemented and extremely scalable.",
+				Rating: 5,
+				Status: "approved",
+			},
+			{
+				UserID: sarah.ID,
+				ProductID: nexus.ID,
+				Content: "Minimalist yet powerful. The Nexus Portfolio's GSAP animations are buttery smooth. Highly recommended for creative devs!",
+				Rating: 5,
+				Status: "approved",
+			},
+			{
+				UserID: james.ID,
+				ProductID: nexus.ID,
+				Content: "Excellent code quality. The clean architecture patterns helped our team standardize our internal tools quickly.",
+				Rating: 4,
+				Status: "approved",
+			},
+		}
+		for _, t := range testimonies {
+			config.DB.Create(&t)
+		}
+		log.Println("Verified Testimonials Seeded")
 	}
 
 	log.Println("Seeder finished successfully")

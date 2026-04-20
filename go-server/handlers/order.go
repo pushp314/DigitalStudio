@@ -1,12 +1,12 @@
 package handlers
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/pushp314/digitalstudio/go-server/config"
 	"github.com/pushp314/digitalstudio/go-server/models"
+	"github.com/pushp314/digitalstudio/go-server/services"
 )
 
 type OrderItemReq struct {
@@ -31,37 +31,27 @@ func CreateOrder(c *gin.Context) {
 		return
 	}
 
-	var total float64
-	var orderItems []models.OrderItem
-
+	items := make([]services.DraftOrderItemInput, 0, len(req.Items))
 	for _, itemReq := range req.Items {
-		var product models.Product
-		if err := config.DB.First(&product, itemReq.ProductID).Error; err != nil {
-			respondError(c, http.StatusBadRequest, fmt.Sprintf("Product ID %d not found", itemReq.ProductID))
-			return
-		}
-
-		price := product.Price
-		total += price * float64(itemReq.Quantity)
-
-		orderItems = append(orderItems, models.OrderItem{
-			ProductID: product.ID,
+		items = append(items, services.DraftOrderItemInput{
+			ProductID: itemReq.ProductID,
 			Quantity:  itemReq.Quantity,
-			Price:     price,
 		})
 	}
 
-	order := models.Order{
-		UserID:            userID.(uint),
-		TotalPrice:        total,
-		Status:            "pending",
-		PaymentStatus:     "pending",
-		EntitlementStatus: "auto",
-		OrderItems:        orderItems,
-	}
-
-	if err := config.DB.Create(&order).Error; err != nil {
-		respondError(c, http.StatusInternalServerError, "Failed to create order")
+	order, err := services.CreateDraftOrder(c.Request.Context(), services.DraftOrderInput{
+		UserID:    userID.(uint),
+		Items:     items,
+		Currency:  "INR",
+		RequestID: requestIDFromContext(c),
+	})
+	if err != nil {
+		switch err {
+		case services.ErrInvalidOrderItems:
+			respondError(c, http.StatusBadRequest, err.Error())
+		default:
+			respondError(c, http.StatusInternalServerError, "Failed to create order")
+		}
 		return
 	}
 
@@ -88,7 +78,6 @@ func MyOrders(c *gin.Context) {
 	}
 
 	for idx := range orders {
-		_ = issueMissingLicensesForOrder(orders[idx].ID)
 		orders[idx].Entitled = computeOrderEntitled(orders[idx])
 	}
 

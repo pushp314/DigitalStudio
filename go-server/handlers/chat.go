@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 	"sync"
 	"time"
 
@@ -12,11 +13,12 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/pushp314/digitalstudio/go-server/config"
 	"github.com/pushp314/digitalstudio/go-server/models"
+	"strings"
 )
 
 var upgrader = websocket.Upgrader{
-	ReadBufferSize:  1024,
-	WriteBufferSize: 1024,
+	ReadBufferSize:  4096,
+	WriteBufferSize: 4096,
 	CheckOrigin: func(r *http.Request) bool {
 		return true // Allow cross-origin for development
 	},
@@ -51,6 +53,12 @@ func NewHub() *Hub {
 }
 
 func (h *Hub) Run() {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Printf("Recovering from Hub Panic: %v. Restarting Hub...", r)
+			go h.Run()
+		}
+	}()
 	for {
 		select {
 		case client := <-h.Register:
@@ -156,7 +164,7 @@ func ServeChatWs(c *gin.Context) {
 	client := &Client{
 		Hub:      GlobalHub,
 		Conn:     conn,
-		Send:     make(chan []byte, 256),
+		Send:     make(chan []byte, 512),
 		UserID:   userID,
 		UserName: user.Name,
 		IsPro:    user.IsPro,
@@ -176,10 +184,6 @@ func (c *Client) readPump() {
 		c.Conn.Close()
 	}()
 
-	// Simple Rate Limiting State
-	messageCount := 0
-	lastReset := time.Now()
-
 	for {
 		_, message, err := c.Conn.ReadMessage()
 		if err != nil {
@@ -189,51 +193,34 @@ func (c *Client) readPump() {
 			break
 		}
 
-		// Rate Limiting Logic
-		if time.Since(lastReset) > time.Minute {
-			messageCount = 0
-			lastReset = time.Now()
-		}
+		// 1. Pre-Processing: Extract content and identify if it's a signal
+		content := string(message)
 
-		limit := 5 // Free users: 5 messages per minute
-		if c.IsPro {
-			limit = 50 // Pro users: 50 messages per minute
-		}
-
-		if messageCount >= limit {
-			systemMsg := models.ChatMessage{
-				UserName:  "System",
-				Content:   "Rate limit exceeded. Upgrade to Pro for high-velocity chat.",
-				Type:      "system",
-				CreatedAt: time.Now(),
+		// 2. Signal Interception (Does NOT count towards rate limit)
+		if strings.HasPrefix(content, "@typing:") {
+			typingMsg := gin.H{
+				"userId":    c.UserID,
+				"userName":  c.UserName,
+				"type":      "typing",
+				"createdAt": time.Now(),
 			}
-			payload, _ := json.Marshal(systemMsg)
-			c.Send <- payload
+			p, _ := json.Marshal(typingMsg)
+			c.Hub.Broadcast <- p
 			continue
 		}
 
-		messageCount++
-
-		// Persistence
-		dbMsg := models.ChatMessage{
-			UserID:    c.UserID,
-			UserName:  c.UserName,
-			Content:   string(message),
-			IsPro:     c.IsPro,
-			Type:      "text",
-			CreatedAt: time.Now(),
+		if strings.HasPrefix(content, "@read:") {
+			readMsg := gin.H{
+				"userId":    c.UserID,
+				"userName":  c.UserName,
+				"type":      "read",
+				"createdAt": time.Now(),
+			}
+			p, _ := json.Marshal(readMsg)
+			c.Hub.Broadcast <- p
+			continue
 		}
 
-		// If message starts with "```", mark as code type (Advanced Feature)
-		if len(message) > 3 && string(message[:3]) == "```" {
-			dbMsg.Type = "code"
-		}
-
-		config.DB.Create(&dbMsg)
-
-		// Broadcast
-		payload, _ := json.Marshal(dbMsg)
-		c.Hub.Broadcast <- payload
 	}
 }
 
@@ -278,8 +265,31 @@ func (c *Client) writePump() {
 }
 
 func GetChatHistory(c *gin.Context) {
+	limitStr := c.DefaultQuery("limit", "50")
+	lastIDStr := c.Query("lastId")
+
+	limit, err := strconv.Atoi(limitStr)
+	if err != nil || limit > 100 {
+		limit = 50
+	}
+
 	var messages []models.ChatMessage
-	config.DB.Order("created_at desc").Limit(50).Find(&messages)
+	query := config.DB.Order("created_at desc").Limit(limit)
+
+	if lastIDStr != "" {
+		lastID, err := strconv.ParseUint(lastIDStr, 10, 32)
+		if err == nil {
+			var lastMsg models.ChatMessage
+			if err := config.DB.First(&lastMsg, lastID).Error; err == nil {
+				query = query.Where("created_at < ?", lastMsg.CreatedAt)
+			}
+		}
+	}
+
+	if err := query.Find(&messages).Error; err != nil {
+		respondError(c, http.StatusInternalServerError, "Failed to load history")
+		return
+	}
 	
 	// Reverse to show chronological order in UI
 	for i, j := 0, len(messages)-1; i < j; i, j = i+1, j-1 {
@@ -287,4 +297,66 @@ func GetChatHistory(c *gin.Context) {
 	}
 	
 	c.JSON(http.StatusOK, messages)
+}
+
+func SendChatMessage(c *gin.Context) {
+	userID, _ := c.Get("userID")
+	var user models.User
+	if err := config.DB.First(&user, userID).Error; err != nil {
+		respondError(c, http.StatusUnauthorized, "User session expired")
+		return
+	}
+
+	var req struct {
+		Content string `json:"content" binding:"required"`
+		CID     string `json:"cid"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		respondError(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	// Sanitization
+	content := strings.TrimSpace(req.Content)
+	if content == "" || strings.HasPrefix(content, "@") {
+		respondError(c, http.StatusBadRequest, "Invalid message content")
+		return
+	}
+
+	dbMsg := models.ChatMessage{
+		UserID:    user.ID,
+		UserName:  user.Name,
+		Content:   content,
+		IsPro:     user.SubscriptionPlan == "pro",
+		Type:      "text",
+		CreatedAt: time.Now(),
+	}
+
+	if len(content) > 3 && content[:3] == "```" {
+		dbMsg.Type = "code"
+	}
+
+	// Force migrate just in case
+	config.DB.AutoMigrate(&models.ChatMessage{})
+
+	if err := config.DB.Create(&dbMsg).Error; err != nil {
+		respondError(c, http.StatusInternalServerError, "Failed to persist message")
+		return
+	}
+
+	// Immediate Broadcast to all connected clients
+	broadcastMsg := gin.H{
+		"id":        dbMsg.ID,
+		"cid":       req.CID,
+		"userId":    dbMsg.UserID,
+		"userName":  dbMsg.UserName,
+		"content":   dbMsg.Content,
+		"type":      dbMsg.Type,
+		"isPro":     dbMsg.IsPro,
+		"createdAt": dbMsg.CreatedAt,
+	}
+	p, _ := json.Marshal(broadcastMsg)
+	GlobalHub.Broadcast <- p
+
+	c.JSON(http.StatusCreated, broadcastMsg)
 }

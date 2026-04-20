@@ -25,7 +25,7 @@ func ServeProductSEO(c *gin.Context) {
 	}
 	image := product.Image
 	price := fmt.Sprintf("₹%.2f", product.Price)
-	siteURL := "https://digitalstudio.com" // Update for production
+	siteURL := getFrontendURL()
 
 	html := fmt.Sprintf(`<!DOCTYPE html>
 <html lang="en">
@@ -52,8 +52,8 @@ func ServeProductSEO(c *gin.Context) {
     <!-- Pulse Redirect -->
     <script>
         setTimeout(function() {
-            window.location.href = "/templates/%s";
-        }, 300);
+            window.location.href = "%s/templates/%s";
+        }, 150);
     </script>
 </head>
 <body>
@@ -64,7 +64,7 @@ func ServeProductSEO(c *gin.Context) {
 </body>
 </html>`, 
 	title, siteURL, id, title, description, image, product.Price, 
-	siteURL, id, title, description, image, id, title, description, price, image, title)
+	siteURL, id, title, description, image, siteURL, id, title, description, price, image, title)
 
 	c.Data(http.StatusOK, "text/html; charset=utf-8", []byte(html))
 }

@@ -47,16 +47,30 @@ const HeroSection = () => {
                                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
                                 <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
                             </span>
-                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Marketplace Protocol: 50+ Verified Assets</span>
+                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Developer Marketplace: 50+ Premium Assets</span>
                         </div>
 
                         <h1 className="text-5xl md:text-7xl lg:text-[5.5rem] leading-[0.9] font-black text-slate-900 tracking-tighter mb-6">
-                            {config?.heroTitle || "High-Performance Marketplace for Modern Teams"}
+                            {config?.heroTitle || "Premium Code Assets for High-Performance Teams"}
                         </h1>
 
                         <p className="max-w-xl text-lg text-slate-400 font-medium leading-relaxed mb-10">
                             {config?.heroSubtitle || "Discover, acquire, and launch pixel-perfect React templates and SaaS modules in minutes."}
                         </p>
+
+                        <div className="flex items-center gap-6 mb-10 pt-2 grayscale opacity-60">
+                            <div className="flex -space-x-3">
+                                {[1,2,3,4].map(i => (
+                                    <div key={i} className="w-10 h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm">
+                                        <img src={`https://i.pravatar.cc/100?img=${i+20}`} alt="User" className="w-full h-full object-cover" />
+                                    </div>
+                                ))}
+                            </div>
+                            <div>
+                                <p className="text-slate-900 font-black text-sm tracking-tight">10,000+ Teams</p>
+                                <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">Building on DigitalStudio</p>
+                            </div>
+                        </div>
 
                         <div className="flex flex-wrap items-center gap-5">
                             <button 
@@ -73,7 +87,7 @@ const HeroSection = () => {
                                 className="px-8 py-4 bg-white border border-slate-100 text-slate-900 rounded-full font-bold text-lg flex items-center gap-3 hover:bg-slate-50 transition-all font-sans outline-none"
                             >
                                 <span className="w-2.5 h-2.5 bg-primary rounded-full animate-pulse"></span>
-                                Protocol
+                                Documentation
                             </button>
                         </div>
                     </div>
@@ -103,8 +117,8 @@ const HeroSection = () => {
                                 <img src={src} className="w-full h-full object-cover" alt={`Template ${idx}`} />
                                 <div className="absolute inset-0 bg-gradient-to-tr from-slate-900/40 via-transparent to-transparent"></div>
                                 <div className="absolute bottom-10 left-10 text-white animate-in slide-in-from-bottom-4 duration-1000">
-                                     <p className="text-[10px] font-black uppercase tracking-[0.4em] opacity-60 mb-2">Featured Intelligence</p>
-                                     <h3 className="text-3xl font-black tracking-tighter">Asset Node 0{idx + 1}</h3>
+                                     <p className="text-[10px] font-black uppercase tracking-[0.4em] opacity-60 mb-2">Featured Templates</p>
+                                     <h3 className="text-3xl font-black tracking-tighter">Premium Asset 0{idx + 1}</h3>
                                 </div>
                             </div>
                         ))}
@@ -146,7 +160,6 @@ const HeroSection = () => {
                         </div>
                     </div>
                 </div>
-
             </div>
 
             <style>{`

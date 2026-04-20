@@ -65,8 +65,15 @@ export const ConfigProvider = ({ children }) => {
         setConfig(normalizeSiteConfig(newConfig));
     };
 
+    const value = React.useMemo(() => ({ 
+        config, 
+        updateContextConfig, 
+        loading, 
+        fetchConfig 
+    }), [config, loading]);
+
     return (
-        <ConfigContext.Provider value={{ config, updateContextConfig, loading, fetchConfig }}>
+        <ConfigContext.Provider value={value}>
             {children}
         </ConfigContext.Provider>
     );

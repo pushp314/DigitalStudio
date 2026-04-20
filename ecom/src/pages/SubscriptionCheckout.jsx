@@ -118,7 +118,7 @@ const SubscriptionCheckout = () => {
                         <div>
                             <div className="flex items-center gap-3 mb-6">
                                 <span className="w-8 h-8 rounded-full bg-amber-400 flex items-center justify-center text-xs shadow-lg shadow-amber-500/20 text-white">💎</span>
-                                <span className="text-amber-600 font-bold uppercase text-[10px] tracking-[0.4em] block">Secure Intelligence Upgrade</span>
+                                <span className="text-amber-600 font-bold uppercase text-[10px] tracking-[0.4em] block">Secure Account Upgrade</span>
                             </div>
                             <h1 className="text-6xl md:text-7xl font-black text-slate-900 tracking-tighter leading-[0.95] mb-8">
                                 Refine your <br /> <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-500 to-amber-700">Production.</span>
@@ -197,8 +197,15 @@ const SubscriptionCheckout = () => {
                                     disabled={loading}
                                     className="w-full py-7 bg-slate-900 text-white rounded-[2rem] font-black uppercase text-[12px] tracking-[0.25em] shadow-2xl shadow-slate-900/20 hover:bg-slate-800 hover:-translate-y-1 active:scale-95 transition-all flex items-center justify-center gap-4 disabled:opacity-50 disabled:grayscale"
                                 >
-                                    {loading ? 'Processing...' : 'Activate Lifetime Pro'}
-                                    {!loading && <span className="text-xl">⚡</span>}
+                                {loading ? 'Processing...' : (
+                                    <span className="flex items-center gap-2">
+                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                        </svg>
+                                        Activate Pro Membership
+                                    </span>
+                                )}
+                                {!loading && <span className="text-xl">⚡</span>}
                                 </button>
 
                                 <div className="mt-10 flex flex-col items-center gap-4">

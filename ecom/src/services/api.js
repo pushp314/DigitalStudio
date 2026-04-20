@@ -1,4 +1,7 @@
 export const API_URL = (import.meta.env.VITE_API_URL || '/api').replace(/\/$/, '');
+export const WS_URL = API_URL.startsWith('http') 
+    ? API_URL.replace(/^http/, 'ws') 
+    : `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.hostname}${window.location.port ? ':' + window.location.port : ''}${API_URL}`;
 export const getOAuthLoginUrl = (provider) => `${API_URL}/auth/${provider}/login`;
 
 const isFormDataBody = (body) => typeof FormData !== 'undefined' && body instanceof FormData;
@@ -40,6 +43,9 @@ const api = {
                 if (res.status === 401) {
                     localStorage.removeItem('token');
                     window.location.href = '/login?session_expired=true';
+                }
+                if (res.status === 429) {
+                    throw new Error("Too many requests. Please wait a moment before trying again.");
                 }
                 if (res.status === 503 && data?.maintenance) {
                     // Dispatch global event for Maintenance UI

@@ -2,12 +2,18 @@ package handlers
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/pushp314/digitalstudio/go-server/services"
 )
 
 func UploadFile(c *gin.Context) {
+	scope := services.UploadScope(strings.TrimSpace(c.PostForm("scope")))
+	if scope == "" {
+		scope = services.UploadScopePublicImage
+	}
+
 	file, header, err := c.Request.FormFile("file")
 	if err != nil {
 		respondError(c, http.StatusBadRequest, "Failed to get file from request")
@@ -15,11 +21,15 @@ func UploadFile(c *gin.Context) {
 	}
 	defer file.Close()
 
-	url, err := services.UploadFile(file, header)
+	result, err := services.UploadValidatedFile(c.Request.Context(), file, header, scope)
 	if err != nil {
-		respondError(c, http.StatusInternalServerError, "Failed to upload file to R2: "+err.Error())
+		status := http.StatusBadRequest
+		if strings.Contains(err.Error(), "r2 client") || strings.Contains(err.Error(), "bucket") {
+			status = http.StatusInternalServerError
+		}
+		respondError(c, status, err.Error())
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"filePath": url})
+	c.JSON(http.StatusOK, result)
 }

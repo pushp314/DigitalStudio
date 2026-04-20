@@ -8,6 +8,7 @@ import (
 	"github.com/pushp314/digitalstudio/go-server/config"
 	"github.com/pushp314/digitalstudio/go-server/models"
 	"gorm.io/gorm"
+	"strconv"
 )
 
 type CreateTestimonialReq struct {
@@ -76,31 +77,58 @@ func CreateTestimonial(c *gin.Context) {
 }
 
 func GetApprovedTestimonials(c *gin.Context) {
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "12"))
+
+	if page < 1 { page = 1 }
+	if limit < 1 || limit > 50 { limit = 12 }
+	offset := (page - 1) * limit
+
 	var testimonials []models.Testimonial
-	if err := config.DB.
-		Where("status = ?", "approved").
+	query := config.DB.Where("status = ?", "approved")
+	
+	var total int64
+	query.Model(&models.Testimonial{}).Count(&total)
+
+	if err := query.
 		Preload("User").
 		Preload("Product").
 		Order("created_at desc").
+		Limit(limit).
+		Offset(offset).
 		Find(&testimonials).Error; err != nil {
 		respondError(c, http.StatusInternalServerError, "Failed to fetch testimonials")
 		return
 	}
+
+	c.Header("X-Total-Count", strconv.FormatInt(total, 10))
 	c.JSON(http.StatusOK, testimonials)
 }
 
 func AdminListTestimonials(c *gin.Context) {
 	status := strings.TrimSpace(strings.ToLower(c.Query("status")))
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "50"))
+
+	if page < 1 { page = 1 }
+	if limit < 1 || limit > 100 { limit = 50 }
+	offset := (page - 1) * limit
 
 	var testimonials []models.Testimonial
 	query := config.DB.Preload("User").Preload("Product").Order("created_at desc")
 	if status != "" && status != "all" {
 		query = query.Where("status = ?", status)
 	}
-	if err := query.Find(&testimonials).Error; err != nil {
+
+	var total int64
+	query.Model(&models.Testimonial{}).Count(&total)
+
+	if err := query.Limit(limit).Offset(offset).Find(&testimonials).Error; err != nil {
 		respondError(c, http.StatusInternalServerError, "Failed to fetch testimonials")
 		return
 	}
+
+	c.Header("X-Total-Count", strconv.FormatInt(total, 10))
 	c.JSON(http.StatusOK, testimonials)
 }
 

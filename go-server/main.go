@@ -1,8 +1,8 @@
 package main
 
 import (
-	"log/slog"
 	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"strconv"
@@ -32,13 +32,14 @@ func main() {
 
 	config.ConnectDB()
 	seeder.Run()
-	
+
 	if err := services.InitR2(); err != nil {
 		log.Println("Failed to initialize R2 S3 Client:", err)
 	}
 
 	r := gin.New()
 	r.Use(gin.Recovery())
+	r.Use(middleware.RequestIDMiddleware())
 	r.Use(middleware.RequestLogger())
 	r.Use(middleware.MaintenanceMiddleware())
 
@@ -72,13 +73,18 @@ func main() {
 	r.GET("/readyz", handlers.Readyz)
 	r.GET("/metrics", gin.WrapH(promhttp.Handler()))
 
-	publicLimiter := middleware.RateLimitMiddleware(getEnvInt("RATE_LIMIT_RPM", 120), time.Minute)
+	publicLimiter := middleware.RateLimitMiddleware("public", getEnvInt("RATE_LIMIT_RPM", 120), time.Minute)
+	authLimiter := middleware.RateLimitMiddleware("auth", getEnvInt("AUTH_RATE_LIMIT_RPM", 20), time.Minute)
+	paymentCreateLimiter := middleware.RateLimitMiddleware("payment_create", getEnvInt("PAYMENT_CREATE_RATE_LIMIT_RPM", 15), time.Minute)
+	paymentVerifyLimiter := middleware.RateLimitMiddleware("payment_verify", getEnvInt("PAYMENT_VERIFY_RATE_LIMIT_RPM", 20), time.Minute)
+	uploadLimiter := middleware.RateLimitMiddleware("upload", getEnvInt("UPLOAD_RATE_LIMIT_RPM", 30), time.Minute)
+	webhookLimiter := middleware.RateLimitMiddleware("webhook", getEnvInt("WEBHOOK_RATE_LIMIT_RPM", 120), time.Minute)
 	api := r.Group("/api")
-	
+
 	auth := api.Group("/auth")
 	{
-		auth.POST("/register", publicLimiter, handlers.Register)
-		auth.POST("/login", publicLimiter, handlers.Login)
+		auth.POST("/register", authLimiter, handlers.Register)
+		auth.POST("/login", authLimiter, handlers.Login)
 		auth.GET("/me", middleware.AuthMiddleware(), handlers.Me)
 	}
 
@@ -86,6 +92,7 @@ func main() {
 	{
 		products.GET("/", publicLimiter, handlers.ListProducts)
 		products.GET("/:id", publicLimiter, handlers.GetProduct)
+		products.GET("/owned", middleware.AuthMiddleware(), handlers.GetOwnedProducts)
 		products.GET("/:id/share", handlers.ServeProductSEO)
 		products.GET("/:id/download", middleware.AuthMiddleware(), handlers.DownloadSecureAsset)
 		products.POST("/", middleware.AuthMiddleware(), middleware.AdminMiddleware(), handlers.CreateProduct)
@@ -132,8 +139,7 @@ func main() {
 		docs.DELETE("/:id", middleware.AuthMiddleware(), middleware.AdminMiddleware(), handlers.DeleteDoc)
 	}
 
-
-	api.POST("/upload", middleware.AuthMiddleware(), middleware.AdminMiddleware(), handlers.UploadFile)
+	api.POST("/upload", uploadLimiter, middleware.AuthMiddleware(), middleware.AdminMiddleware(), handlers.UploadFile)
 
 	// OAuth
 	auth.GET("/google/login", handlers.GoogleLogin)
@@ -152,10 +158,10 @@ func main() {
 	}
 
 	chat := api.Group("/chat")
-	chat.Use(middleware.AuthMiddleware())
 	{
-		chat.GET("/ws", handlers.ServeChatWs)
-		chat.GET("/history", handlers.GetChatHistory)
+		chat.GET("/ws", middleware.WebsocketAuthMiddleware(), handlers.ServeChatWs)
+		chat.GET("/history", middleware.AuthMiddleware(), handlers.GetChatHistory)
+		chat.POST("/messages", middleware.AuthMiddleware(), handlers.SendChatMessage)
 	}
 
 	analytics := api.Group("/analytics")
@@ -180,8 +186,14 @@ func main() {
 	// Payments (Razorpay)
 	payments := api.Group("/payments")
 	{
-		payments.POST("/create-order", middleware.AuthMiddleware(), handlers.CreateRazorpayOrder)
-		payments.POST("/verify", middleware.AuthMiddleware(), handlers.VerifyRazorpayPayment)
+		payments.POST("/create-order", paymentCreateLimiter, middleware.AuthMiddleware(), handlers.CreateRazorpayOrder)
+		payments.POST("/verify", paymentVerifyLimiter, middleware.AuthMiddleware(), handlers.VerifyRazorpayPayment)
+	}
+
+	licenses := api.Group("/licenses")
+	{
+		licenses.GET("/my", middleware.AuthMiddleware(), handlers.MyLicenses)
+		licenses.POST("/validate", publicLimiter, handlers.ValidateLicense)
 	}
 
 	// Testimonials
@@ -198,7 +210,7 @@ func main() {
 	}
 
 	marketingHandler := handlers.NewMarketingHandler(config.DB)
-	
+
 	adminMarketing := api.Group("/admin/marketing")
 	adminMarketing.Use(middleware.AuthMiddleware(), middleware.AdminMiddleware())
 	{
@@ -231,7 +243,7 @@ func main() {
 
 	webhooks := api.Group("/webhooks")
 	{
-		webhooks.POST("/razorpay", handlers.RazorpayWebhook)
+		webhooks.POST("/razorpay", webhookLimiter, handlers.RazorpayWebhook)
 	}
 
 	// Contact Inquiries
@@ -255,7 +267,7 @@ func main() {
 	if port == "" {
 		port = "8080"
 	}
-	
+
 	log.Printf("Server starting on port %s", port)
 	if err := r.Run(":" + port); err != nil {
 		log.Fatal("Failed to start server:", err)

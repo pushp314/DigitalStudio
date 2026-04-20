@@ -57,7 +57,7 @@ func ValidateLicense(c *gin.Context) {
 		return
 	}
 
-	valid := strings.EqualFold(license.Status, "active") && (license.ExpiryDate == nil || license.ExpiryDate.After(time.Now()))
+	valid := strings.EqualFold(license.Status, string(models.LicenseStatusActive)) && (license.ExpiryDate == nil || license.ExpiryDate.After(time.Now()))
 	c.JSON(http.StatusOK, gin.H{
 		"valid":   valid,
 		"license": license,

@@ -1,33 +1,32 @@
 package middleware
 
 import (
-	"fmt"
 	"net/http"
-	"os"
 	"strings"
-	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt/v5"
 	"github.com/pushp314/digitalstudio/go-server/config"
 	"github.com/pushp314/digitalstudio/go-server/models"
+	"github.com/pushp314/digitalstudio/go-server/utils"
 )
 
+type authOptions struct {
+	allowQueryToken bool
+}
+
 func AuthMiddleware() gin.HandlerFunc {
+	return authMiddleware(authOptions{})
+}
+
+func WebsocketAuthMiddleware() gin.HandlerFunc {
+	return authMiddleware(authOptions{allowQueryToken: true})
+}
+
+func authMiddleware(options authOptions) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		authHeader := c.GetHeader("Authorization")
-		tokenString := ""
-
-		if authHeader != "" {
-			parts := strings.Split(authHeader, " ")
-			if len(parts) == 2 && parts[0] == "Bearer" {
-				tokenString = parts[1]
-			}
-		}
-
-		// Fallback to query parameter (crucial for WebSockets)
-		if tokenString == "" {
-			tokenString = c.Query("token")
+		tokenString := extractBearerToken(c.GetHeader("Authorization"))
+		if tokenString == "" && options.allowQueryToken {
+			tokenString = strings.TrimSpace(c.Query("token"))
 		}
 
 		if tokenString == "" {
@@ -35,65 +34,34 @@ func AuthMiddleware() gin.HandlerFunc {
 			c.Abort()
 			return
 		}
-		secret := os.Getenv("JWT_SECRET")
-
-		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-				return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
-			}
-			return []byte(secret), nil
-		})
-
-		if err != nil || !token.Valid {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
+		claims, err := utils.ParseJWT(tokenString)
+		if err != nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired token"})
 			c.Abort()
 			return
 		}
 
-		claims, ok := token.Claims.(jwt.MapClaims)
-		if !ok {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token claims"})
+		var user models.User
+		if err := config.DB.First(&user, claims.UserID).Error; err != nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "User not found"})
+			c.Abort()
+			return
+		}
+		if user.Suspended {
+			c.JSON(http.StatusForbidden, gin.H{"error": "Account suspended"})
 			c.Abort()
 			return
 		}
 
-		userIDFloat, ok := claims["user_id"].(float64)
-		if !ok {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "User ID not found in token"})
-			c.Abort()
-			return
-		}
+		user = utils.NormalizeUserAccess(user)
 
-			var user models.User
-			if err := config.DB.First(&user, uint(userIDFloat)).Error; err != nil {
-				c.JSON(http.StatusUnauthorized, gin.H{"error": "User not found"})
-				c.Abort()
-				return
-			}
-			if user.Suspended {
-				c.JSON(http.StatusForbidden, gin.H{"error": "Account suspended"})
-				c.Abort()
-				return
-			}
+		c.Set("user", user)
+		c.Set("userID", user.ID)
+		c.Set("userRole", user.Role)
+		c.Set("userPlan", user.SubscriptionPlan)
+		c.Set("isPro", user.IsPro)
 
-			// Self-Healing Subscription Logic
-			if user.IsPro && user.ProExpiresAt != nil {
-				if time.Now().After(*user.ProExpiresAt) {
-					user.IsPro = false
-					user.SubscriptionPlan = "free"
-					config.DB.Save(&user)
-					// Log for system audit
-					fmt.Printf("Subscription expired and revoked for user ID: %d\n", user.ID)
-				}
-			}
-
-			c.Set("user", user)
-			c.Set("userID", user.ID)
-			c.Set("userRole", user.Role)
-			c.Set("userPlan", user.SubscriptionPlan)
-			c.Set("isPro", user.IsPro)
-
-			c.Next()
+		c.Next()
 	}
 }
 
@@ -101,7 +69,7 @@ func ProMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		role, _ := c.Get("userRole")
 		isPro, _ := c.Get("isPro")
-		
+
 		if role == models.RoleAdmin {
 			c.Next()
 			return
@@ -115,6 +83,19 @@ func ProMiddleware() gin.HandlerFunc {
 
 		c.Next()
 	}
+}
+
+func extractBearerToken(authHeader string) string {
+	authHeader = strings.TrimSpace(authHeader)
+	if authHeader == "" {
+		return ""
+	}
+
+	parts := strings.SplitN(authHeader, " ", 2)
+	if len(parts) != 2 || !strings.EqualFold(parts[0], "Bearer") {
+		return ""
+	}
+	return strings.TrimSpace(parts[1])
 }
 
 func AdminMiddleware() gin.HandlerFunc {

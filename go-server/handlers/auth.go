@@ -2,13 +2,14 @@ package handlers
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/pushp314/digitalstudio/go-server/config"
 	"github.com/pushp314/digitalstudio/go-server/models"
 	"github.com/pushp314/digitalstudio/go-server/utils"
-	"time"
 	"golang.org/x/crypto/bcrypt"
+	"time"
 )
 
 type RegisterReq struct {
@@ -24,6 +25,8 @@ func Register(c *gin.Context) {
 		respondError(c, http.StatusBadRequest, err.Error())
 		return
 	}
+	req.Email = strings.ToLower(strings.TrimSpace(req.Email))
+	req.Name = strings.TrimSpace(req.Name)
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
@@ -72,6 +75,7 @@ func Login(c *gin.Context) {
 		respondError(c, http.StatusBadRequest, err.Error())
 		return
 	}
+	req.Email = strings.ToLower(strings.TrimSpace(req.Email))
 
 	var user models.User
 	if err := config.DB.Where("email = ?", req.Email).First(&user).Error; err != nil {

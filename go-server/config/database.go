@@ -23,6 +23,10 @@ func ConnectDB() {
 	}
 
 	if os.Getenv("ENABLE_AUTOMIGRATE") == "true" {
+		if os.Getenv("APP_ENV") == "production" {
+			log.Fatal("ENABLE_AUTOMIGRATE must remain disabled in production")
+		}
+
 		err = DB.AutoMigrate(
 			&models.User{},
 			&models.Tag{},
@@ -38,6 +42,7 @@ func ConnectDB() {
 			&models.Showcase{},
 			&models.ContactInquiry{},
 			&models.ChatMessage{},
+			&models.AuditLog{},
 		)
 		if err != nil {
 			log.Fatal("Failed to auto-migrate database:", err)

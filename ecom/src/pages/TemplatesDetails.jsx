@@ -9,6 +9,7 @@ import ProductReviews from '../components/ProductReviews';
 import productService from '../services/productService';
 import { normalizeProduct } from '../utils/normalizers';
 import ConfigContext from '../context/ConfigContext';
+import Meta from '../components/common/Meta';
 
 const TemplatesDetails = () => {
     const { id } = useParams();
@@ -56,6 +57,12 @@ const TemplatesDetails = () => {
 
     return (
         <div className="bg-[#F8FAFC]">
+            <Meta 
+                title={product.title}
+                description={product.description}
+                image={product.image}
+                type="product"
+            />
             <ProductHeader product={product} />
             <TemplateCarousel product={product} />
             <TemplateDetails product={product} />

@@ -67,6 +67,7 @@ type SiteConfig struct {
 	ShowcaseItems       []ShowcaseItem  `gorm:"serializer:json;type:jsonb" json:"showcaseItems,omitempty"`
 	Contact             ContactConfig   `gorm:"serializer:json;type:jsonb" json:"contact"`
 	AISettings          AISettings      `gorm:"serializer:json;type:jsonb" json:"aiSettings"`
+	FrontendURL         string          `gorm:"type:varchar(255)" json:"frontendUrl"`
 	MaintenanceMode     bool            `gorm:"default:false" json:"maintenanceMode"`
 	MaintenanceMessage  string          `gorm:"default:'We are currently performing a scheduled maintenance sequence. Please check back shortly.'" json:"maintenanceMessage"`
 	CreatedAt           time.Time       `json:"createdAt"`
