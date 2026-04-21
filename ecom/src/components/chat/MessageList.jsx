@@ -31,7 +31,7 @@ const MessageList = ({ messages, user, historyLoading, searchQuery, typingUsers 
                     <Terminal size={20} className="absolute inset-x-0 mx-auto top-3.5 text-blue-600 animate-bounce" />
                 </div>
                 <div className="text-center">
-                    <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.4em] animate-pulse">Syncing Conversation Buffers</p>
+                    <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.4em] animate-pulse">Loading Conversation</p>
                 </div>
             </div>
         );
@@ -58,9 +58,9 @@ const MessageList = ({ messages, user, historyLoading, searchQuery, typingUsers 
                         <Terminal size={48} strokeWidth={1.5} />
                     </div>
                 </div>
-                <h3 className="text-md font-black text-slate-900 tracking-tight mb-2">Protocol Stream Empty</h3>
+                <h3 className="text-md font-black text-slate-900 tracking-tight mb-2">Conversation Empty</h3>
                 <p className="text-xs text-slate-400 font-medium max-w-[240px] leading-relaxed mx-auto uppercase tracking-widest">
-                    Initialize the community matrix by transmitting your first data packet below.
+                    Start the community discussion by sending your first message below.
                 </p>
             </div>
         );

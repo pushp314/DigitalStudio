@@ -28,7 +28,7 @@ const OAuthButton = ({ provider, icon, onClick, variant = 'default' }) => {
             <span className="flex-shrink-0 flex items-center justify-center">
                 {getIcon()}
             </span>
-            <span className="text-[10px] font-black uppercase tracking-[0.1em]">Uplink with {provider}</span>
+            <span className="text-[10px] font-black uppercase tracking-[0.1em]">Continue with {provider}</span>
         </button>
     );
 };

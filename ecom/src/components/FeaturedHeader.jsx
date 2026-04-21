@@ -11,9 +11,9 @@ const FeaturedHeader = () => {
             <div className="ds-shell flex flex-col gap-6">
                 <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
                     <div>
-                        <p className="ds-eyebrow mb-2">Featured products</p>
+                        <p className="ds-eyebrow mb-2">Featured apps and kits</p>
                         <h2 className="text-3xl font-bold tracking-tight text-slate-900 md:text-4xl">
-                            Popular products from the marketplace
+                            Popular ready-to-use products
                         </h2>
                     </div>
                     {(socialProof.rating || socialProof.summary || socialProof.creatorsLabel) && (
@@ -36,7 +36,7 @@ const FeaturedHeader = () => {
                                 </div>
                             ))}
                         </div>
-                        <p className="text-sm text-slate-600">Used by teams looking for a faster path to production.</p>
+                        <p className="text-sm text-slate-600">Used by builders who want a faster path from idea to launch.</p>
                     </div>
                 )}
             </div>

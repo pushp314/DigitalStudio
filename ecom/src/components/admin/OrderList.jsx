@@ -68,7 +68,7 @@ const OrderList = () => {
                     <div className="w-full max-w-xl bg-white h-full relative z-10 shadow-2xl animate-in slide-in-from-right duration-500 flex flex-col border-l border-slate-200">
                         <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/30">
                             <div>
-                                <h3 className="text-base font-bold text-slate-900 tracking-tight">Audit Manifest</h3>
+                                <h3 className="text-base font-bold text-slate-900 tracking-tight">Order Details</h3>
                                 <p className="text-[10px] text-slate-400 font-mono tracking-tighter mt-0.5">TX_REF_{String(selectedOrder.id).toUpperCase()}</p>
                             </div>
                             <button onClick={() => setSelectedOrder(null)} className="p-2 text-slate-400 hover:text-slate-900 transition-all">
@@ -89,7 +89,7 @@ const OrderList = () => {
                                 </div>
                             </section>
 
-                            {/* Template Manifest */}
+                            {/* Product Summary */}
                             <section className="space-y-3">
                                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Settlement Breakdown</p>
                                 <div className="space-y-2">
@@ -97,7 +97,7 @@ const OrderList = () => {
                                         <div key={idx} className="flex justify-between items-center p-4 bg-white border border-slate-200 rounded-xl">
                                             <div className="flex items-center gap-3">
                                                 <Download size={14} className="text-slate-300" />
-                                                <p className="text-xs font-bold text-slate-900">{item.product?.title || 'Template_Bundle'}</p>
+                                                <p className="text-xs font-bold text-slate-900">{item.product?.title || 'Product Bundle'}</p>
                                             </div>
                                             <p className="text-sm font-bold text-slate-900">₹{item.price}</p>
                                         </div>

@@ -1,6 +1,6 @@
-# DigitalStudio AI Microservice
+# Devnity AI Microservice
 
-This service acts as a streaming, stateful middleware between the DigitalStudio marketplace and the Ollama AI engine. It provides documentation summaries and context-aware Q&A.
+This service acts as a streaming, stateful middleware between Devnity and the Ollama AI engine. It provides documentation summaries and context-aware Q&A.
 
 ## 🚀 Prerequisites
 

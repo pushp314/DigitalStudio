@@ -15,7 +15,7 @@ The routed MVP data contracts are now aligned across frontend state, backend han
 | Membership checkout | Checkout UI needs `name`, `period`, `price`, `features` | Pricing page sometimes passed a raw product instead of a full plan object | Added resolver that merges selected product data with configured plan metadata |
 | Wishlist deals | Handler expects auth + JSON body | Frontend used POST but backend only exposed GET | Added POST route; frontend body now matches the handler |
 | Admin AI helpers | Description/tags/pricing request bodies | Frontend called routes the backend did not expose | Added backend routes and handlers; kept response shapes tolerant with fallbacks |
-| Profile/account routing | Account page is `/account`; public profile is dynamic | Some success flows redirected to `/profile` | Updated redirects and navigation to `/account` |
+| Profile/account routing | Account page is `/account`; profile is dynamic | Some success flows redirected to `/profile` | Updated redirects and navigation to `/account` |
 
 ## Verified Backend Preview Contract
 - `GET /api/docs/:id` now cleanly supports gated docs:

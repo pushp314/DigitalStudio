@@ -25,7 +25,7 @@ Audit based on `go-server/main.go`, current routed frontend usage in `ecom/src`,
 | Orders | `POST /api/orders`, `GET /api/orders/myorders`, admin order list/detail/update | Auth / admin | Mapped in checkout, account, admin |
 | Payments | `POST /api/payments/create-order`, `POST /api/payments/verify`, `POST /api/webhooks/razorpay` | Auth / webhook | Mapped in checkout and membership checkout |
 | Licenses | `GET /api/licenses/my`, `POST /api/licenses/validate`, `POST /api/admin/licenses/issue` | Mixed | Mapped in account/admin |
-| Profile | `GET /api/profile/:id`, `GET /api/users/:id/profile`, `GET /api/profile`, `PUT /api/profile`, `POST /api/profile/upload-avatar`, GitHub request endpoints | Mixed | Mapped in account, public profile, chat username bootstrap, admin identity |
+| Profile | `GET /api/profile/:id`, `GET /api/users/:id/profile`, `GET /api/profile`, `PUT /api/profile`, `POST /api/profile/upload-avatar`, GitHub request endpoints | Mixed | Mapped in account, profile, chat username bootstrap, admin identity |
 | Config | `GET /api/config`, `GET /api/config/admin`, `PUT /api/config` | Mixed | Mapped in public shell and admin settings |
 | Docs | `GET /api/docs`, `GET /api/docs/:id`, admin docs CRUD | Mixed | Mapped in docs listing/viewer and admin docs editor |
 | AI | `POST /api/ai/generate-description`, `POST /api/ai/suggest-tags`, `POST /api/ai/recommend-pricing`, `GET /api/ai/recommend`, `POST /api/ai/roadmap`, `POST /api/ai/docsummary`, `POST /api/ai/doc-universal`, `POST /api/ai/chat` | Auth / pro for protected routes | Mapped in admin editors, templates AI modal, docs assistant |

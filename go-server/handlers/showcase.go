@@ -39,7 +39,7 @@ func SubmitShowcase(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, gin.H{
-		"message": "Protocol Submitted: Our intelligence unit will verify your deployment shortly.",
+		"message": "Showcase submitted. Our team will verify your deployment shortly.",
 		"showcase": showcase,
 	})
 }
@@ -80,7 +80,7 @@ func AdminUpdateShowcaseStatus(c *gin.Context) {
 			services.AwardXP(&user, services.XPDeployment)
 			config.DB.Save(&user)
 			showcase.RewardPaid = true
-			fmt.Printf("Growth Matrix: Credited ₹50 and 1000 XP to UserID %d for Verified Implementation %d\n", user.ID, showcase.ID)
+			fmt.Printf("Reward credited: ₹50 and 1000 XP to UserID %d for verified implementation %d\n", user.ID, showcase.ID)
 		}
 	}
 

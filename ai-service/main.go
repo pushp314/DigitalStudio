@@ -261,7 +261,7 @@ func handleGroqUplink(w http.ResponseWriter, pReq PromptRequest, apiKey string) 
 	payload := map[string]interface{}{
 		"model": "llama3-8b-8192", // High-speed, high-fidelity
 		"messages": []map[string]string{
-			{"role": "system", "content": "You are an elite Technical Assistant for DigitalStudio. Answer based on provided manifest context. Be concise and professional."},
+			{"role": "system", "content": "You are a senior technical assistant for Devnity. Answer based on the provided product or guide context. Be concise and professional."},
 			{"role": "user", "content": pReq.Prompt},
 		},
 		"stream": pReq.Stream,

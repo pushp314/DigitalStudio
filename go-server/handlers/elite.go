@@ -35,7 +35,7 @@ func RegisterEliteRoutes(r *gin.RouterGroup) {
 	}
 }
 
-// CreateNegotiationOrder creates a Razorpay order for the ₹9 negotiation fee.
+// CreateNegotiationOrder creates a Razorpay order for the low-entry expert help fee.
 // If the user already has an active session for this product, returns it instead.
 func CreateNegotiationOrder(c *gin.Context) {
 	val, exists := c.Get("userID")
@@ -80,7 +80,7 @@ func CreateNegotiationOrder(c *gin.Context) {
 		if productID > 0 {
 			var product models.Product
 			if err := config.DB.First(&product, productID).Error; err == nil {
-				title = "Expert Negotiation: " + product.Title
+				title = "Expert Help: " + product.Title
 			}
 		}
 
@@ -94,7 +94,7 @@ func CreateNegotiationOrder(c *gin.Context) {
 		}
 
 		if err := config.DB.Create(&session).Error; err != nil {
-			respondError(c, http.StatusInternalServerError, "Failed to instantiate free support node")
+			respondError(c, http.StatusInternalServerError, "Failed to create priority support session")
 			return
 		}
 
@@ -106,7 +106,7 @@ func CreateNegotiationOrder(c *gin.Context) {
 		return
 	}
 
-	// 4. Non-Pro flow: Get negotiation fee and validate optional Coupon
+	// 4. Non-Pro flow: get expert help fee and validate optional coupon.
 	var siteConfig models.SiteConfig
 	config.DB.First(&siteConfig)
 	fee := siteConfig.EliteSettings.NegotiationFee
@@ -170,7 +170,7 @@ func CreateNegotiationOrder(c *gin.Context) {
 		if productID > 0 {
 			var product models.Product
 			if err := config.DB.First(&product, productID).Error; err == nil {
-				title = "Negotiation: " + product.Title
+				title = "Expert Help: " + product.Title
 			}
 		}
 		
@@ -179,7 +179,7 @@ func CreateNegotiationOrder(c *gin.Context) {
 			ProductID: productID,
 			Title:     title,
 			Status:    "active",
-			Source:    "negotiation_coupon",
+			Source:    "expert_help_coupon",
 			PaymentID: &order.ID,
 			ExpiresAt: time.Now().Add(30 * 24 * time.Hour),
 		}
@@ -199,10 +199,10 @@ func CreateNegotiationOrder(c *gin.Context) {
 	data := map[string]interface{}{
 		"amount":          amountPaise,
 		"currency":        "INR",
-		"receipt":         fmt.Sprintf("negotiate_order_%d", order.ID),
+		"receipt":         fmt.Sprintf("support_order_%d", order.ID),
 		"payment_capture": 1,
 		"notes": map[string]interface{}{
-			"type":      "negotiation",
+			"type":      "expert_help",
 			"productId": productID,
 			"userId":    userID,
 		},
@@ -229,7 +229,7 @@ func CreateNegotiationOrder(c *gin.Context) {
 	})
 }
 
-// VerifyNegotiationPayment verifies Razorpay payment and creates the chat session
+// VerifyNegotiationPayment verifies Razorpay payment and creates the support session.
 func VerifyNegotiationPayment(c *gin.Context) {
 	val, exists := c.Get("userID")
 	if !exists {
@@ -307,7 +307,7 @@ func VerifyNegotiationPayment(c *gin.Context) {
 	if productID > 0 {
 		var product models.Product
 		if err := config.DB.First(&product, productID).Error; err == nil {
-			title = "Negotiation: " + product.Title
+			title = "Expert Help: " + product.Title
 		}
 	}
 
@@ -335,7 +335,7 @@ func VerifyNegotiationPayment(c *gin.Context) {
 		ProductID: productID,
 		Title:     title,
 		Status:    "active",
-		Source:    "negotiation",
+		Source:    "expert_help",
 		PaymentID: &orderID,
 		ExpiresAt: time.Now().Add(time.Duration(days) * 24 * time.Hour),
 	}

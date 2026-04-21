@@ -33,7 +33,7 @@ Public-facing copy was simplified and standardized to plain SaaS language.
 
 ## Locked-Route Constraint
 - `/chat`
-- public profile route
+-  profile route
 - `/account`
 - `/admin`
 

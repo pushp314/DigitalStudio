@@ -161,7 +161,7 @@ func GetAIRecommendation(c *gin.Context) {
 		return
 	}
 
-	prompt := fmt.Sprintf("Given a catalogue of templates and a tech stack of %s, recommend three relevant products with IDs and one-sentence descriptions.", techStack)
+	prompt := fmt.Sprintf("Given a catalogue of ready apps, templates, and software kits and a tech stack of %s, recommend three relevant products with IDs and one-sentence descriptions.", techStack)
 
 	aiReqBody, _ := json.Marshal(map[string]string{
 		"prompt": prompt,
@@ -240,7 +240,7 @@ func GetUserRoadmap(c *gin.Context) {
 	profileContext := fmt.Sprintf("User Profile: Purchases: [%s], Wishlist: [%s].", 
 		strings.Join(purchases, ", "), strings.Join(wishlistNames, ", "))
 	
-	prompt := fmt.Sprintf("%s\n\nTask: Generate a strategic 3-step 'Elite Roadmap' for this creator. What should they build next? Which documentation should they read? Suggest one specific template they don't own that would complete their toolkit. Keep it professional, encouraging, and high-density (max 150 words).", profileContext)
+	prompt := fmt.Sprintf("%s\n\nTask: Generate a strategic 3-step implementation roadmap for this creator. What should they build next? Which documentation should they read? Suggest one specific ready product they don't own that would complete their toolkit. Keep it professional, encouraging, and high-density (max 150 words).", profileContext)
 
 	aiReqBody, _ := json.Marshal(map[string]string{
 		"prompt": prompt,

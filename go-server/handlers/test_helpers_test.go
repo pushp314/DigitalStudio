@@ -40,7 +40,8 @@ func setupTestDB(t *testing.T) {
 		&models.License{},
 		&models.Coupon{},
 		&models.Testimonial{},
-		&models.ContactInquiry{},
+		&models.HireDeveloperRequest{},
+		&models.ExpertHelpRequest{},
 		&models.ChatMessage{},
 		&models.AuditLog{},
 	); err != nil {

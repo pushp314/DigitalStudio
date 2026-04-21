@@ -24,10 +24,11 @@ const ProductHeader = ({ product }) => {
 
     const id = normalizedProduct?.id ?? null;
     const title = normalizedProduct?.title || 'Untitled product';
-    const description = normalizedProduct?.description || 'Review the included files, features, and setup notes for this product.';
+    const description = normalizedProduct?.description || 'A ready-to-use product with source files, setup guidance, and a clear path to customization.';
     const price = normalizedProduct?.formattedPrice || '₹0';
     const isPurchased = purchasedProductIds.includes(id);
     const inWishlist = isInWishlist(id);
+    const supportDays = config?.eliteSettings?.serviceBenefitDays || 30;
 
     const handleAddToCart = () => {
         addToCart(normalizedProduct);
@@ -78,7 +79,7 @@ const ProductHeader = ({ product }) => {
                     <div className="flex flex-wrap gap-2">
                         <span className="ds-chip">{normalizedProduct.productType || 'Product'}</span>
                         {normalizedProduct.category && <span className="ds-chip">{normalizedProduct.category}</span>}
-                        {normalizedProduct.requiresSubscription && <span className="ds-chip">Member access available</span>}
+                        {normalizedProduct.requiresSubscription && <span className="ds-chip">Pro access option</span>}
                     </div>
 
                     <div className="space-y-4">
@@ -109,6 +110,9 @@ const ProductHeader = ({ product }) => {
                                         {isDownloading ? 'Preparing download...' : 'Download'}
                                     </button>
                                 )}
+                                <button type="button" onClick={() => navigate('/support')} className="ds-button-secondary">
+                                    Open support request
+                                </button>
                             </>
                         ) : user?.subscriptionPlan === 'pro' && (normalizedProduct.requiresSubscription || normalizedProduct.isFree) ? (
                             <>
@@ -122,7 +126,7 @@ const ProductHeader = ({ product }) => {
                         ) : (
                             <>
                                 <button type="button" onClick={handleBuyNow} className="ds-button-primary">
-                                    {normalizedProduct.isFree ? 'Get product' : `Buy now · ${price}`}
+                                    {normalizedProduct.isFree ? 'Get product' : `Buy product · ${price}`}
                                 </button>
                                 <button type="button" onClick={handleAddToCart} className="ds-button-secondary">
                                     Add to cart
@@ -155,12 +159,19 @@ const ProductHeader = ({ product }) => {
                             type="button" 
                             onClick={() => {
                                 navigator.clipboard.writeText(window.location.href);
-                                success("Technical blueprint link shared.");
+                                success("Product link copied.");
                             }}
                             className="ds-button-ghost flex items-center gap-2"
-                            title="Share Matrix Node"
+                            title="Share product"
                         >
                             <Share2 size={16} /> Share
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => navigate('/hire-developer')}
+                            className="ds-button-ghost flex items-center gap-2 border border-slate-200"
+                        >
+                            <Zap size={14} className="text-emerald-500" /> Hire us to customize
                         </button>
                         {!isPurchased && config?.eliteSettings?.negotiationEnabled && (
                             <button 
@@ -168,7 +179,7 @@ const ProductHeader = ({ product }) => {
                                 disabled={paying}
                                 onClick={async () => {
                                     if (!user) {
-                                        toastError("Please log in to negotiate.");
+                                        toastError("Please log in to talk to an expert.");
                                         navigate('/login');
                                         return;
                                     }
@@ -177,7 +188,7 @@ const ProductHeader = ({ product }) => {
                                         const orderData = await api.post(`/support/create-order/${id}`);
 
                                         if (orderData.alreadyActive) {
-                                            success("You already have an active chat for this product.");
+                                            success("You already have an active support chat for this product.");
                                             navigate(`/support/chat/${orderData.sessionId}`);
                                             return;
                                         }
@@ -187,7 +198,7 @@ const ProductHeader = ({ product }) => {
                                             amount: orderData.amount,
                                             currency: orderData.currency,
                                             name: "DigitalStudio",
-                                            description: `Negotiate: ${title}`,
+                                            description: `Expert help for ${title}`,
                                             order_id: orderData.orderId,
                                             handler: async function (response) {
                                                 try {
@@ -198,7 +209,7 @@ const ProductHeader = ({ product }) => {
                                                         productId: id,
                                                     });
                                                     if (verifyData.sessionId) {
-                                                        success("Payment verified! Opening your chat.");
+                                                        success("Payment verified. Opening your expert chat.");
                                                         navigate(`/support/chat/${verifyData.sessionId}`);
                                                     }
                                                 } catch (err) {
@@ -212,7 +223,7 @@ const ProductHeader = ({ product }) => {
                                         const rzp = new window.Razorpay(options);
                                         rzp.open();
                                     } catch (err) {
-                                        toastError(err.message || "Failed to start negotiation.");
+                                        toastError(err.message || "Failed to start expert help.");
                                     } finally {
                                         setPaying(false);
                                     }
@@ -220,9 +231,24 @@ const ProductHeader = ({ product }) => {
                                 className="ds-button-ghost gap-2 border-slate-200 border text-slate-900 hover:bg-slate-50 disabled:opacity-50"
                             >
                                 <MessageSquare size={14} className="text-amber-500" /> 
-                                {paying ? 'Processing...' : `Negotiate Price (₹${config?.eliteSettings?.negotiationFee || 9})`}
+                                {paying ? 'Processing...' : `Ask an expert (₹${config?.eliteSettings?.negotiationFee || 9})`}
                             </button>
                         )}
+                    </div>
+
+                    <div className="grid gap-3 pt-2 sm:grid-cols-3">
+                        <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">After purchase</p>
+                            <p className="mt-2 text-xs font-medium leading-5 text-slate-600">Download source files from your account.</p>
+                        </div>
+                        <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Setup help</p>
+                            <p className="mt-2 text-xs font-medium leading-5 text-slate-600">{supportDays} days of product support are created automatically.</p>
+                        </div>
+                        <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Need changes?</p>
+                            <p className="mt-2 text-xs font-medium leading-5 text-slate-600">Request customization or a full custom build.</p>
+                        </div>
                     </div>
 
                     <p className="text-sm text-slate-500">Payments are processed securely through Razorpay. Downloads use authenticated links.</p>

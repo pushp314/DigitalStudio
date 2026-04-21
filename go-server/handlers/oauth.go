@@ -157,7 +157,7 @@ func GithubCallback(c *gin.Context) {
 			return
 		}
 
-		// Duplicate Account Check: If this GitHub ID is already linked to ANOTHER DigitalStudio account
+		// Duplicate account check: if this GitHub ID is already linked to another DigitalStudio account.
 		var existingUser models.User
 		if err := config.DB.Where("github_id = ? AND id != ?", ghIDStr, user.ID).First(&existingUser).Error; err == nil {
 			frontendURL := os.Getenv("FRONTEND_URL")

@@ -52,7 +52,7 @@ const TestimonialsGrid = () => {
                                 </div>
                                 <div>
                                     <p className="text-sm font-semibold text-slate-900">{item.user?.name || 'Verified customer'}</p>
-                                    <p className="text-sm text-slate-500">{item.product?.title || 'Marketplace purchase'}</p>
+                                    <p className="text-sm text-slate-500">{item.product?.title || 'DigitalStudio purchase'}</p>
                                 </div>
                             </div>
                             <div className="flex gap-1 text-amber-500">

@@ -104,8 +104,8 @@ const ChatSidebar = ({ user, onlineCount, onlineUsers }) => {
                             <span className="text-[11px] font-bold">Documentation</span>
                             <ArrowRight size={12} className="text-slate-300" />
                         </button>
-                        <button onClick={() => navigate('/templates')} className="w-full flex items-center justify-between px-3 py-2 text-slate-500 hover:bg-slate-50 hover:text-slate-900 rounded-lg transition-all group">
-                            <span className="text-[11px] font-bold">Template Catalog</span>
+                        <button onClick={() => navigate('/apps')} className="w-full flex items-center justify-between px-3 py-2 text-slate-500 hover:bg-slate-50 hover:text-slate-900 rounded-lg transition-all group">
+                            <span className="text-[11px] font-bold">Ready App Catalog</span>
                             <ArrowRight size={12} className="text-slate-300" />
                         </button>
                     </div>

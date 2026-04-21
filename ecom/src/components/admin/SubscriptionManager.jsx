@@ -32,7 +32,7 @@ const SubscriptionManager = () => {
                 </div>
                 <div className="relative z-10 flex items-center gap-2.5 bg-black text-white px-5 py-2.5 rounded-xl shadow-lg shadow-black/10">
                     <span className="text-base leading-none">💎</span>
-                    <span className="text-[9px] font-black uppercase tracking-[0.2em]">{subscribers?.length || 0} Pro Elite</span>
+                    <span className="text-[9px] font-black uppercase tracking-[0.2em]">{subscribers?.length || 0} Pro Members</span>
                 </div>
             </div>
 
@@ -49,7 +49,7 @@ const SubscriptionManager = () => {
                             <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2.5 mb-1.5">
                                     <h3 className="text-base font-black text-black tracking-tight leading-none">{user.name}</h3>
-                                    <span className="px-2 py-0.5 bg-amber-50 text-amber-600 text-[8px] font-black uppercase rounded-lg border border-amber-100">Pro Elite</span>
+                                    <span className="px-2 py-0.5 bg-amber-50 text-amber-600 text-[8px] font-black uppercase rounded-lg border border-amber-100">Pro Member</span>
                                 </div>
                                 <p className="text-[10px] font-bold text-gray-400 mb-3">{user.email}</p>
                                 
@@ -85,7 +85,7 @@ const SubscriptionManager = () => {
                 {(!subscribers || subscribers.length === 0) && (
                     <div className="py-24 text-center bg-gray-50/50 rounded-3xl border border-dashed border-gray-100">
                         <div className="text-4xl mb-4 grayscale opacity-20">💎</div>
-                        <p className="text-[9px] font-black text-gray-300 uppercase tracking-[0.4em]">Elite Registry Exhausted</p>
+                        <p className="text-[9px] font-black text-gray-300 uppercase tracking-[0.4em]">No Pro members yet</p>
                     </div>
                 )}
             </div>

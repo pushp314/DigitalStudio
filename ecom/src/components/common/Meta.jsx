@@ -3,7 +3,7 @@ import React, { useEffect } from 'react';
 const Meta = ({ title, description, image, url, type = 'website' }) => {
     const siteName = 'DigitalStudio';
     const fullTitle = title ? `${title} | ${siteName}` : siteName;
-    const defaultDescription = 'DigitalStudio offers developer templates, documentation, and code assets for product teams.';
+    const defaultDescription = 'DigitalStudio helps you buy ready apps, customize them, or hire developers to build for you.';
     const defaultImage = 'https://digitalstudio.dev/og-image.png';
     const defaultUrl = window.location.href;
 

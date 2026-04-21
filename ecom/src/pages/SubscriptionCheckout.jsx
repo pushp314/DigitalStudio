@@ -76,9 +76,9 @@ const SubscriptionCheckout = () => {
             const data = await api.get(`/marketing/validate?code=${couponCode}&totalAmount=${resolvedPlan.price}&scope=membership`);
             setAppliedCoupon(data);
             setDiscountAmount(data.discount);
-            success(`Protocol Activated: ${couponCode} Applied.`);
+            success(`Promo code applied: ${couponCode}.`);
         } catch (err) {
-            toastError(err.response?.data?.error || "Invalid or expired protocol code.");
+            toastError(err.response?.data?.error || "Invalid or expired promo code.");
             setAppliedCoupon(null);
             setDiscountAmount(0);
         } finally {
@@ -90,7 +90,7 @@ const SubscriptionCheckout = () => {
         setAppliedCoupon(null);
         setDiscountAmount(0);
         setCouponCode('');
-        info("Protocol code removed.");
+        info("Promo code removed.");
     };
 
     const finalPrice = Math.max(0, (resolvedPlan?.price || 0) - discountAmount);
@@ -122,7 +122,7 @@ const SubscriptionCheckout = () => {
                 );
                 
                 if (!fallbackProduct) {
-                    throw new Error('Pro Membership protocol not found in the asset matrix.');
+                    throw new Error('Pro Membership product is not available right now.');
                 }
                 return await proceedWithOrder(fallbackProduct);
             }
@@ -195,7 +195,7 @@ const SubscriptionCheckout = () => {
                             Finalize your <span className="text-slate-500">Membership.</span>
                         </h1>
                         <p className="text-slate-500 text-sm leading-relaxed max-w-xl font-medium">
-                            Unlock unrestricted community access, private negotiations, and priority technical deployments for your workspace.
+                            Activate Pro benefits for premium guides, priority help, community chat, and smoother setup support.
                         </p>
                     </div>
 
@@ -203,7 +203,7 @@ const SubscriptionCheckout = () => {
                         <div className="flex items-center justify-between mb-8 pb-6 border-b border-slate-100">
                             <div>
                                 <h2 className="text-lg font-black text-slate-900 uppercase tracking-tight">{resolvedPlan.name}</h2>
-                                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Institutional Access Level</p>
+                                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Membership access</p>
                             </div>
                             <div className="text-right">
                                 <p className="text-2xl font-black text-slate-900 tracking-tight">{formatCurrency(resolvedPlan.price)}</p>
@@ -225,7 +225,7 @@ const SubscriptionCheckout = () => {
                 {/* Right: Order Summary & Coupon */}
                 <aside className="space-y-6">
                     <div className="bg-white rounded-[2rem] border border-slate-200 p-8 shadow-2xl shadow-slate-200/50 sticky top-32">
-                        <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-8">Order Logistics</h3>
+                        <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-8">Order Summary</h3>
                         
                         <div className="space-y-6">
                             <div className="flex justify-between text-sm">
@@ -276,7 +276,7 @@ const SubscriptionCheckout = () => {
                             <div className="h-px bg-slate-100" />
                             
                             <div className="flex justify-between items-end">
-                                <span className="text-slate-900 font-black uppercase tracking-widest text-[10px]">Total Due Today</span>
+                                <span className="text-slate-900 font-black uppercase tracking-widest text-[10px]">Total due today</span>
                                 <span className="text-3xl font-black text-slate-900 tracking-tighter">{formatCurrency(finalPrice)}</span>
                             </div>
 
@@ -286,12 +286,12 @@ const SubscriptionCheckout = () => {
                                 disabled={loading}
                                 className="w-full py-5 bg-slate-900 text-white rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] shadow-xl shadow-slate-900/10 hover:shadow-2xl hover:shadow-slate-900/20 active:scale-95 transition-all disabled:opacity-50"
                             >
-                                {loading ? 'Initializing Secure Uplink...' : 'Finalize Payment'}
+                                {loading ? 'Preparing payment...' : 'Finalize payment'}
                             </button>
                             
                             <div className="flex flex-col items-center gap-4 pt-4">
                                 <p className="text-[8px] text-slate-400 font-bold uppercase tracking-widest text-center">
-                                    Encrypted Transactions Processed via Razorpay
+                                    Payments processed securely via Razorpay
                                 </p>
                             </div>
                         </div>

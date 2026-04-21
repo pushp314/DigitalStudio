@@ -51,6 +51,19 @@ func DownloadSecureAsset(c *gin.Context) {
 	return
 
 generateUrl:
+	// Audit Trail: Log the fulfillment of a secure download request
+	services.WriteAuditLog(config.DB, services.AuditEvent{
+		ActorUserID:  func() *uint { id := userID.(uint); return &id }(),
+		EventType:    "asset.download_initiated",
+		ResourceType: "product",
+		ResourceID:   func() *uint { pid, _ := strconv.ParseUint(productID, 10, 32); uid := uint(pid); return &uid }(),
+		Message:      "Secure presigned URL generated for entitlement holder",
+		Metadata: map[string]interface{}{
+			"productId": product.ID,
+			"title":     product.Title,
+			"userRole":  c.GetString("userRole"),
+		},
+	})
 	if fileKey, managed := services.StorageKeyFromURL(product.FileURL); managed {
 		if services.IsManagedPrivateAssetKey(fileKey) {
 			url, err := services.GeneratePresignedURL(fileKey)
@@ -92,6 +105,7 @@ type CreateProductReq struct {
 	LongDescription      string                  `json:"longDescription"`
 	Price                float64                 `json:"price"`
 	Category             string                  `json:"category"`
+	CategoryID           *uint                   `json:"categoryId"`
 	Type                 models.ProductType      `json:"productType"`
 	StatusFlags          string                  `json:"statusFlags"`
 	Image                string                  `json:"image"`
@@ -129,6 +143,7 @@ type salesMetric struct {
 func ListProducts(c *gin.Context) {
 	keyword := strings.TrimSpace(c.Query("keyword"))
 	category := strings.TrimSpace(c.Query("category"))
+	categorySlug := strings.TrimSpace(c.Query("categorySlug"))
 	priceMin := strings.TrimSpace(c.Query("priceMin"))
 	priceMax := strings.TrimSpace(c.Query("priceMax"))
 	productType := strings.TrimSpace(c.Query("productType"))
@@ -138,7 +153,7 @@ func ListProducts(c *gin.Context) {
 	limitValue := strings.TrimSpace(c.Query("limit"))
 
 	var products []models.Product
-	query := config.DB.Preload("Tags")
+	query := config.DB.Preload("Tags").Preload("CategoryRel")
 
 	if !canViewAllProducts(c, includeAll) {
 		query = query.Where("moderation_status = ? AND status_flags NOT ILIKE ?", models.ModStatusApproved, "%archived%")
@@ -149,6 +164,9 @@ func ListProducts(c *gin.Context) {
 	}
 	if category != "" {
 		query = query.Where("category = ?", category)
+	}
+	if categorySlug != "" {
+		query = query.Joins("JOIN product_categories ON product_categories.id = products.category_id").Where("product_categories.slug = ?", categorySlug)
 	}
 	if productType != "" {
 		query = query.Where("type = ?", productType)
@@ -189,6 +207,7 @@ func GetOwnedProducts(c *gin.Context) {
 
 	var products []models.Product
 	config.DB.Model(&models.Product{}).
+		Preload("CategoryRel").
 		Select("products.*").
 		Joins("JOIN order_items ON order_items.product_id = products.id").
 		Joins("JOIN orders ON orders.id = order_items.order_id").
@@ -203,7 +222,7 @@ func GetOwnedProducts(c *gin.Context) {
 func GetProduct(c *gin.Context) {
 	id := c.Param("id")
 	var product models.Product
-	query := config.DB.Preload("Tags")
+	query := config.DB.Preload("Tags").Preload("CategoryRel")
 	if !canViewAllProducts(c, strings.EqualFold(c.Query("includeAll"), "true")) {
 		query = query.Where("moderation_status = ? AND status_flags NOT ILIKE ?", models.ModStatusApproved, "%archived%")
 	}
@@ -240,6 +259,7 @@ func CreateProduct(c *gin.Context) {
 		LongDescription:      req.LongDescription,
 		Price:                req.Price,
 		Category:             req.Category,
+		CategoryID:           req.CategoryID,
 		Type:                 req.Type,
 		StatusFlags:          req.StatusFlags,
 		Image:                req.Image,
@@ -335,6 +355,9 @@ func UpdateProduct(c *gin.Context) {
 	}
 	if req.Category != "" {
 		product.Category = req.Category
+	}
+	if req.CategoryID != nil {
+		product.CategoryID = req.CategoryID
 	}
 	if req.Type != "" {
 		product.Type = req.Type

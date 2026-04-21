@@ -16,9 +16,10 @@ export const ConfigProvider = ({ children }) => {
             analytics: true,
             ai: true,
             payments: true,
-            subscriptions: false,
+            subscriptions: true,
             licenses: true,
             testimonials: true,
+            profiles: true,
         },
         faqs: [],
         socialProof: {

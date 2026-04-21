@@ -1,4 +1,4 @@
-import { createContext, useState, useEffect, useCallback } from 'react';
+import { createContext, useState, useEffect, useCallback, useMemo } from 'react';
 import authService from '../services/authService';
 import orderService from '../services/orderService';
 import { normalizeUser, normalizeId } from '../utils/normalizers';
@@ -110,19 +110,21 @@ export const AuthProvider = ({ children }) => {
         localStorage.removeItem('token');
     }, []);
 
+    const value = useMemo(() => ({ 
+        user, 
+        setUser, 
+        login, 
+        register, 
+        logout, 
+        loading, 
+        completeOAuth, 
+        purchasedProductIds, 
+        refreshPurchases: fetchPurchasedProducts,
+        refreshUser: checkUserLoggedIn 
+    }), [user, loading, login, register, logout, completeOAuth, purchasedProductIds, fetchPurchasedProducts, checkUserLoggedIn]);
+
     return (
-        <AuthContext.Provider value={{ 
-            user, 
-            setUser, 
-            login, 
-            register, 
-            logout, 
-            loading, 
-            completeOAuth, 
-            purchasedProductIds, 
-            refreshPurchases: fetchPurchasedProducts,
-            refreshUser: checkUserLoggedIn 
-        }}>
+        <AuthContext.Provider value={value}>
             {children}
         </AuthContext.Provider>
     );

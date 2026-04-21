@@ -39,6 +39,18 @@ const Profile = () => {
     const queryParams = new URLSearchParams(location.search);
     const activeTab = queryParams.get('tab') || 'overview';
 
+    const tabNames = {
+        overview: 'Account Overview',
+        assets: 'My Products',
+        billing: 'Billing & Invoices',
+        studio: 'Sell Your Project',
+        messages: 'Support Inbox',
+        settings: 'Profile Settings',
+        security: 'Security & Privacy',
+        notifications: 'Notifications',
+        referral: 'Referral Program'
+    };
+
     const [isEditing, setIsEditing] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
     const [formData, setFormData] = useState({
@@ -139,16 +151,16 @@ const Profile = () => {
 
     const handleAIsuggestUsername = async () => {
         if (!formData.name) {
-            info("Identity synthesis requires a legal name.");
+            info("Profile setup requires your full name.");
             return;
         }
         setIsSuggesting(true);
         try {
             const res = await api.post('/ai/suggest-usernames', { name: formData.name });
             if (res.suggestions) setSuggestions(res.suggestions);
-            success("Identity variants synthesized.");
+            success("Profile handle suggestions generated.");
         } catch (err) {
-            toastError("Matrix synthesis failed.");
+            toastError("Could not generate username ideas.");
         } finally {
             setIsSuggesting(false);
         }
@@ -157,6 +169,18 @@ const Profile = () => {
     const handleLogout = () => {
         logout();
         navigate('/login');
+    };
+
+    const handleDownloadAsset = async (asset) => {
+        try {
+            const response = await api.get(`/products/${asset.id}/download`);
+            if (!response?.downloadUrl) {
+                throw new Error('Download link is unavailable right now.');
+            }
+            window.location.assign(response.downloadUrl);
+        } catch (err) {
+            toastError(err.message || 'Unable to start the download.');
+        }
     };
 
     const setTab = (tab) => navigate(`/account?tab=${tab}`);
@@ -173,19 +197,19 @@ const Profile = () => {
     const unpublishTemplate = useMutation({
         mutationFn: (id) => api.put(`/products/${id}`, { moderationStatus: 'pending' }),
         onSuccess: () => {
-            success("Template unpublished and moved to pending for review.");
+            success("Project unpublished and moved to pending review.");
             refetchAuthored();
         },
-        onError: (err) => toastError(err.message || "Failed to unpublish template.")
+        onError: (err) => toastError(err.message || "Failed to unpublish project.")
     });
 
     const deleteTemplate = useMutation({
         mutationFn: (id) => api.delete(`/products/${id}`),
         onSuccess: () => {
-            success("Template record purged from ledger.");
+            success("Project record deleted.");
             refetchAuthored();
         },
-        onError: (err) => toastError(err.message || "Failed to delete template.")
+        onError: (err) => toastError(err.message || "Failed to delete project.")
     });
 
     const OverviewTab = () => (
@@ -193,7 +217,7 @@ const Profile = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <StatCard label="Account Level" value={user?.rank || 'Member'} change="Active" sub={`Member ID: ${user?.id}`} icon={<Crown size={18} />} color="text-slate-900" />
                 <StatCard label="Reward Points" value={(user?.xp || 0).toLocaleString()} change="+5%" sub="Community Experience" icon={<Zap size={18} />} color="text-blue-600" />
-                <StatCard label="Owned Items" value={ownedAssets?.length || 0} change="Verified" sub="Purchased Templates" icon={<Package size={18} />} color="text-emerald-500" />
+                <StatCard label="Owned Products" value={ownedAssets?.length || 0} change="Verified" sub="Purchased apps and kits" icon={<Package size={18} />} color="text-emerald-500" />
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -258,8 +282,8 @@ const Profile = () => {
                         </div>
                         <div className="relative z-10">
                             <p className="text-[10px] font-bold text-blue-400 uppercase tracking-widest mb-4">Pro Membership</p>
-                            <h4 className="text-xl font-bold tracking-tight mb-8 leading-tight">Get unlimited access to all platform templates.</h4>
-                            <Link to="/pricing" className="block w-full py-4 bg-white text-slate-900 rounded-2xl text-[10px] font-bold text-center uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-xl">Upgrade Now</Link>
+                            <h4 className="text-xl font-bold tracking-tight mb-8 leading-tight">Get priority help, premium guides, and better community access.</h4>
+                            <Link to="/pricing" className="block w-full py-4 bg-white text-slate-900 rounded-2xl text-[10px] font-bold text-center uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-xl">Compare Plans</Link>
                         </div>
                     </div>
                     
@@ -268,8 +292,8 @@ const Profile = () => {
                              <HelpCircle size={20} />
                         </div>
                         <h5 className="text-[11px] font-bold text-slate-900 uppercase tracking-widest mb-2">Need Help?</h5>
-                        <p className="text-[10px] text-slate-400 font-medium mb-6">Our support team is available 24/7</p>
-                        <button onClick={() => setTab('messages')} className="w-full py-3 border-2 border-slate-100 rounded-xl text-[10px] font-bold text-slate-900 uppercase tracking-widest hover:border-slate-900 transition-all">Support Inbox</button>
+                        <p className="text-[10px] text-slate-400 font-medium mb-6">Open help for setup, deployment, or purchase questions.</p>
+                        <button onClick={() => navigate('/support')} className="w-full py-3 border-2 border-slate-100 rounded-xl text-[10px] font-bold text-slate-900 uppercase tracking-widest hover:border-slate-900 transition-all">Open Support Request</button>
                     </div>
                 </div>
             </div>
@@ -280,8 +304,8 @@ const Profile = () => {
         <div className="space-y-8 animate-in fade-in duration-500 pb-20">
             <div className="flex items-center justify-between mb-8">
                 <div>
-                    <h3 className="text-xl font-bold text-slate-900 uppercase tracking-tight">Purchased Assets</h3>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Templates and components you have purchased.</p>
+                    <h3 className="text-xl font-bold text-slate-900 uppercase tracking-tight">My Products</h3>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Apps, kits, dashboards, and assets you have purchased.</p>
                 </div>
                 <div className="px-6 py-3 bg-white border border-slate-200 rounded-2xl flex items-center gap-3">
                     <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
@@ -290,10 +314,17 @@ const Profile = () => {
             </div>
 
             {!ownedAssets || ownedAssets.length === 0 ? (
-                <div className="py-40 text-center bg-white rounded-[3rem] border border-slate-100 shadow-sm">
-                     <Package size={48} className="mx-auto text-slate-100 mb-6" />
-                     <h4 className="text-lg font-bold text-slate-300 uppercase tracking-[0.2em]">No assets found</h4>
-                     <Link to="/" className="mt-8 inline-block px-10 py-4 bg-slate-900 text-white rounded-2xl text-[11px] font-bold uppercase tracking-widest hover:scale-105 transition-all">Browse Templates</Link>
+                <div className="py-32 px-10 text-center bg-white rounded-[3rem] border border-slate-100 shadow-sm max-w-4xl mx-auto">
+                     <Package size={48} className="mx-auto text-slate-100 mb-8" />
+                     <h4 className="text-2xl font-bold text-slate-900 uppercase tracking-tight mb-4">No ready products in your vault</h4>
+                     <p className="text-sm text-slate-500 max-w-lg mx-auto mb-10 leading-relaxed">
+                        You haven't purchased any ready-to-use apps or assets yet. You can explore our catalog, compare membership plans for better pricing, or ask us for a custom recommendation.
+                     </p>
+                     <div className="flex flex-wrap justify-center gap-4">
+                        <Link to="/apps" className="px-10 py-4 bg-slate-900 text-white rounded-2xl text-[11px] font-bold uppercase tracking-widest hover:scale-105 transition-all">Explore Apps</Link>
+                        <Link to="/pricing" className="px-10 py-4 bg-white border border-slate-200 text-slate-900 rounded-2xl text-[11px] font-bold uppercase tracking-widest hover:bg-slate-50 transition-all">Compare Plans</Link>
+                        <Link to="/contact" className="w-full mt-4 text-[11px] font-bold text-blue-600 hover:underline uppercase tracking-widest">Get help choosing a product</Link>
+                     </div>
                 </div>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -317,16 +348,45 @@ const Profile = () => {
                                      <Check size={12} className="text-emerald-500" /> Active License
                                 </p>
                                 <div className="mt-auto flex items-center gap-3">
-                                    <Link to={`/templates/${asset.id}`} className="flex-1 py-3 bg-slate-900 text-white rounded-xl text-[10px] font-bold uppercase tracking-widest text-center hover:bg-blue-600 transition-all">
-                                         View Details
+                                    <Link to={`/apps/${asset.id}`} className="flex-1 py-3 bg-slate-900 text-white rounded-xl text-[10px] font-bold uppercase tracking-widest text-center hover:bg-blue-600 transition-all">
+                                         View Product
                                     </Link>
-                                    <button className="p-3 bg-slate-50 text-slate-400 rounded-xl hover:bg-slate-900 hover:text-white transition-all">
+                                    <button onClick={() => handleDownloadAsset(asset)} className="p-3 bg-slate-50 text-slate-400 rounded-xl hover:bg-slate-900 hover:text-white transition-all" title="Download product">
                                          <Download size={16} />
                                     </button>
                                 </div>
                             </div>
                         </div>
                     ))}
+                </div>
+            )}
+
+            {ownedAssets?.length > 0 && (
+                <div className="grid md:grid-cols-3 gap-6 pt-12 border-t border-slate-100">
+                    <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100">
+                        <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-slate-900 shadow-sm mb-4">
+                            <ExternalLink size={18} />
+                        </div>
+                        <h4 className="text-[11px] font-bold text-slate-900 uppercase tracking-widest mb-2">1. Deployment Guides</h4>
+                        <p className="text-[10px] text-slate-500 font-medium mb-4 leading-relaxed">Read technical documentation for setup, environment config, and cloud deployment.</p>
+                        <Link to="/docs" className="text-[10px] font-bold text-blue-600 uppercase hover:underline">Browse Docs</Link>
+                    </div>
+                    <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100">
+                        <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-slate-900 shadow-sm mb-4">
+                            <MessageSquare size={18} />
+                        </div>
+                        <h4 className="text-[11px] font-bold text-slate-900 uppercase tracking-widest mb-2">2. Community Chat</h4>
+                        <p className="text-[10px] text-slate-500 font-medium mb-4 leading-relaxed">Connect with other builders and get informal help in the community chat.</p>
+                        <Link to="/chat" className="text-[10px] font-bold text-blue-600 uppercase hover:underline">Open Chat</Link>
+                    </div>
+                    <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100">
+                        <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-slate-900 shadow-sm mb-4">
+                            <HelpCircle size={18} />
+                        </div>
+                        <h4 className="text-[11px] font-bold text-slate-900 uppercase tracking-widest mb-2">3. Setup Assistance</h4>
+                        <p className="text-[10px] text-slate-500 font-medium mb-4 leading-relaxed">Need us to handle it? Request expert setup or customization services.</p>
+                        <Link to="/support" className="text-[10px] font-bold text-blue-600 uppercase hover:underline">Get Expert Help</Link>
+                    </div>
                 </div>
             )}
         </div>
@@ -365,8 +425,8 @@ const Profile = () => {
                                         disabled={isSuggesting}
                                         className="text-[9px] font-bold text-blue-600 hover:text-blue-700 uppercase tracking-widest flex items-center gap-1.5 transition-all"
                                     >
-                                        {isSuggesting ? <RefreshCw size={10} className="animate-spin" /> : <Zap size={10} />} Synthesize Identity
-                                    </button>
+                                        {isSuggesting ? <RefreshCw size={10} className="animate-spin" /> : <Zap size={10} />} Suggest Handle
+                                </button>
                                 )}
                             </div>
                             <div className="relative">
@@ -410,7 +470,7 @@ const Profile = () => {
                         <Field label="Website Portfolio" icon={<Globe size={14} />} value={formData.website} onChange={v => setFormData({...formData, website: v})} disabled={!isEditing} placeholder="https://example.com" />
                     </div>
                     <div className="space-y-3">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-2">Personal Biography</label>
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-2">Bio / Professional Summary</label>
                         <textarea disabled={!isEditing} value={formData.bio} onChange={(e) => setFormData({...formData, bio: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-5 text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/5 min-h-[160px] resize-none transition-all placeholder:text-slate-300" placeholder="Tell us about yourself..." />
                     </div>
                 </div>
@@ -706,13 +766,13 @@ const Profile = () => {
                             <div className="space-y-4">
                                 <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-900 text-lg font-bold text-white">D</div>
                                 <div>
-                                    <h2 className="text-xl font-bold text-slate-900">Devnity</h2>
-                                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Managed by Appnity Softwares</p>
+                                    <h2 className="text-xl font-bold text-slate-900">DigitalStudio</h2>
+                                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Premium Apps & Services</p>
                                 </div>
                             </div>
                             <div className="text-right">
                                 <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Invoice #</h4>
-                                <p className="text-lg font-bold text-slate-900">DEVNITY-{(order.id + 1000).toString()}</p>
+                                <p className="text-lg font-bold text-slate-900">DS-{(order.id + 1000).toString()}</p>
                                 <p className="text-[10px] text-slate-400 font-medium uppercase tracking-widest mt-1">Date: {new Date(order.createdAt).toLocaleDateString()}</p>
                             </div>
                         </div>
@@ -779,7 +839,7 @@ const Profile = () => {
                         </div>
 
                         <div className="mt-12 text-center">
-                            <p className="text-[9px] text-slate-300 font-bold uppercase tracking-widest">Thank you for accelerating development with Devnity.</p>
+                            <p className="text-[9px] text-slate-300 font-bold uppercase tracking-widest">Thank you for accelerating development with DigitalStudio.</p>
                         </div>
                     </div>
                 </div>
@@ -828,8 +888,8 @@ const Profile = () => {
                 <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden p-10">
                     <div className="flex items-center justify-between mb-10">
                         <div>
-                             <h3 className="text-lg font-bold text-slate-900 uppercase tracking-tight mb-2">Message History</h3>
-                             <p className="text-[10px] font-medium text-slate-400 uppercase tracking-widest">Support conversations and inquiries.</p>
+                             <h3 className="text-lg font-bold text-slate-900 uppercase tracking-tight mb-2">Expert Inbox</h3>
+                             <p className="text-[10px] font-medium text-slate-400 uppercase tracking-widest">Inquiries and requests for technical help.</p>
                         </div>
                         <div className="w-12 h-12 bg-amber-50 text-amber-500 rounded-2xl flex items-center justify-center">
                              <MessageSquare size={20} />
@@ -838,10 +898,16 @@ const Profile = () => {
 
                     <div className="space-y-6">
                         {!inquiries || inquiries.length === 0 ? (
-                            <div className="text-center py-24 border-2 border-dashed border-slate-50 rounded-3xl">
-                                 <Send size={32} className="mx-auto text-slate-100 mb-6" />
-                                 <p className="text-[10px] font-bold text-slate-300 uppercase tracking-[0.2em]">No support messages found.</p>
-                                 <Link to="/contact" className="mt-6 inline-block text-[10px] font-bold text-blue-600 hover:underline uppercase tracking-widest">Contact Support</Link>
+                            <div className="text-center py-32 px-10 border-2 border-dashed border-slate-100 rounded-[3rem] bg-slate-50/30">
+                                 <Send size={48} className="mx-auto text-slate-200 mb-8" />
+                                 <h4 className="text-xl font-bold text-slate-900 uppercase tracking-tight mb-4">Your Inbox is empty</h4>
+                                 <p className="text-sm text-slate-500 max-w-md mx-auto mb-10 leading-relaxed">
+                                    You don't have any active support requests or technical inquiries. If you need help with a purchase or have a pre-purchase question, our experts are ready to assist.
+                                 </p>
+                                 <div className="flex flex-wrap justify-center gap-4">
+                                     <Link to="/support" className="px-10 py-4 bg-slate-900 text-white rounded-2xl text-[11px] font-bold uppercase tracking-widest hover:scale-105 transition-all">Open Support Request</Link>
+                                     <Link to="/contact" className="px-10 py-4 bg-white border border-slate-200 text-slate-900 rounded-2xl text-[11px] font-bold uppercase tracking-widest hover:bg-slate-50 transition-all">Ask a Question</Link>
+                                 </div>
                             </div>
                         ) : (
                             inquiries.map(inq => (
@@ -870,7 +936,7 @@ const Profile = () => {
                                                      <Check size={14} className="text-white" />
                                                 </div>
                                                 <div className="flex-1 whitespace-pre-line">
-                                                    <p className="text-[9px] font-bold text-blue-400 uppercase tracking-widest mb-2">Support Representative</p>
+                                                    <p className="text-[9px] font-bold text-blue-400 uppercase tracking-widest mb-2">Technical Assistant</p>
                                                     {inq.reply}
                                                 </div>
                                             </div>
@@ -907,11 +973,11 @@ const Profile = () => {
         <div className="space-y-8 animate-in fade-in duration-500 pb-20">
             <div className="flex items-center justify-between mb-8">
                 <div>
-                    <h3 className="text-xl font-bold text-slate-900 uppercase tracking-tight">Creator Studio</h3>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Manage your authored templates and submissions.</p>
+                    <h3 className="text-xl font-bold text-slate-900 uppercase tracking-tight">Sell Your Project</h3>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Submit apps, templates, and software kits for approval-based listing.</p>
                 </div>
                 <Link to="/account/submit" className="px-8 py-3 bg-slate-900 text-white rounded-2xl text-[10px] font-bold uppercase tracking-widest hover:bg-blue-600 transition-all shadow-xl">
-                    Submit New Template
+                    Submit New Project
                 </Link>
             </div>
 
@@ -919,8 +985,8 @@ const Profile = () => {
                 <div className="py-40 text-center bg-white rounded-[3rem] border border-slate-100 shadow-sm">
                      <Zap size={48} className="mx-auto text-slate-100 mb-6" />
                      <h4 className="text-lg font-bold text-slate-300 uppercase tracking-[0.2em]">No submissions yet</h4>
-                     <p className="text-[10px] text-slate-400 font-medium mb-8 uppercase tracking-widest">Start your journey as a Devnity creator.</p>
-                     <Link to="/account/submit" className="inline-block px-10 py-4 bg-blue-600 text-white rounded-2xl text-[11px] font-bold uppercase tracking-widest hover:scale-105 transition-all">Submit First Template</Link>
+                     <p className="text-[10px] text-slate-400 font-medium mb-8 uppercase tracking-widest">Submit your first project for review.</p>
+                     <Link to="/account/submit" className="inline-block px-10 py-4 bg-blue-600 text-white rounded-2xl text-[11px] font-bold uppercase tracking-widest hover:scale-105 transition-all">Submit First Project</Link>
                 </div>
             ) : (
                 <div className="grid grid-cols-1 gap-4">
@@ -941,15 +1007,15 @@ const Profile = () => {
                                 </div>
                             </div>
                             <div className="flex items-center gap-2">
-                                <Link to={`/account/templates/${asset.id}/edit`} title="Edit Template" className="p-3 bg-slate-50 text-slate-400 rounded-xl hover:bg-slate-900 hover:text-white transition-all">
+                                <Link to={`/account/templates/${asset.id}/edit`} title="Edit Project" className="p-3 bg-slate-50 text-slate-400 rounded-xl hover:bg-slate-900 hover:text-white transition-all">
                                      <Edit3 size={16} />
                                 </Link>
                                 {asset.moderationStatus === 'approved' && (
                                     <button 
                                         onClick={() => setConfirmModal({
                                             isOpen: true,
-                                            title: "Unpublish Template?",
-                                            message: "This will immediately hide this template from the marketplace. You can republish it after review.",
+                                            title: "Unpublish Project?",
+                                            message: "This will immediately hide this project from the catalog. You can republish it after review.",
                                             confirmText: "Unpublish",
                                             type: "warning",
                                             onConfirm: () => {
@@ -957,7 +1023,7 @@ const Profile = () => {
                                                 setConfirmModal(p => ({ ...p, isOpen: false }));
                                             }
                                         })} 
-                                        title="Unpublish Template" 
+                                        title="Unpublish Project" 
                                         className="p-3 bg-slate-50 text-slate-400 rounded-xl hover:bg-amber-500 hover:text-white transition-all"
                                     >
                                          <Eye size={16} />
@@ -967,7 +1033,7 @@ const Profile = () => {
                                     onClick={() => setConfirmModal({
                                         isOpen: true,
                                         title: "Delete Forever?",
-                                        message: "This record and all associated metadata will be purged. This action is irreversible.",
+                                            message: "This product record and all associated metadata will be deleted. This action is irreversible.",
                                         confirmText: "Delete Record",
                                         type: "danger",
                                         onConfirm: () => {
@@ -975,7 +1041,7 @@ const Profile = () => {
                                             setConfirmModal(p => ({ ...p, isOpen: false }));
                                         }
                                     })} 
-                                    title="Delete Template" 
+                                    title="Delete Project" 
                                     className="p-3 bg-slate-50 text-slate-400 rounded-xl hover:bg-rose-500 hover:text-white transition-all"
                                 >
                                      <Trash2 size={16} />
@@ -994,19 +1060,19 @@ const Profile = () => {
 
             <aside className="w-64 bg-white border-r border-slate-200 flex flex-col pt-8 flex-shrink-0">
                 <Link to="/account?tab=overview" className="flex items-center gap-3 px-6 mb-10 group/brand hover:opacity-80 transition-opacity">
-                    <div className="w-9 h-9 bg-slate-900 rounded-xl flex items-center justify-center font-bold text-white text-base group-hover/brand:scale-110 transition-transform shadow-xl shadow-slate-900/20">N</div>
+                    <div className="w-9 h-9 bg-slate-900 rounded-xl flex items-center justify-center font-bold text-white text-base group-hover/brand:scale-110 transition-transform shadow-xl shadow-slate-900/20">D</div>
                     <div>
-                        <h1 className="text-[11px] font-bold text-slate-900 uppercase tracking-[0.2em] leading-none mb-1">User Dashboard</h1>
-                        <p className="text-[8px] text-slate-400 font-bold uppercase tracking-widest">Account Settings</p>
+                        <h1 className="text-[11px] font-bold text-slate-900 uppercase tracking-[0.2em] leading-none mb-1">DigitalStudio Account</h1>
+                        <p className="text-[8px] text-slate-400 font-bold uppercase tracking-widest">Products, support, billing</p>
                     </div>
                 </Link>
 
                 <nav className="flex-1 px-4 space-y-1 overflow-y-auto custom-scrollbar">
                     <NavLink active={activeTab === 'overview'} onClick={() => setTab('overview')} icon={<LayoutDashboard size={18} />} label="Account Overview" />
-                    <NavLink active={activeTab === 'assets'} onClick={() => setTab('assets')} icon={<Package size={18} />} label="My Assets" />
+                    <NavLink active={activeTab === 'assets'} onClick={() => setTab('assets')} icon={<Package size={18} />} label="My Products" />
                     <NavLink active={activeTab === 'billing'} onClick={() => setTab('billing')} icon={<CreditCard size={18} />} label="Billing & Invoices" />
-                    <NavLink active={activeTab === 'studio'} onClick={() => setTab('studio')} icon={<Zap size={18} />} label="Creator Studio" />
-                    <NavLink active={activeTab === 'messages'} onClick={() => setTab('messages')} icon={<MessageSquare size={18} />} label="Message History" />
+                    <NavLink active={activeTab === 'studio'} onClick={() => setTab('studio')} icon={<Zap size={18} />} label="Sell Your Project" />
+                    <NavLink active={activeTab === 'messages'} onClick={() => setTab('messages')} icon={<MessageSquare size={18} />} label="Support Inbox" />
                     <div className="h-4"></div>
                     <p className="text-[8px] font-bold text-slate-300 uppercase tracking-widest ml-4 mb-2">Account Settings</p>
                     <NavLink active={activeTab === 'settings'} onClick={() => setTab('settings')} icon={<Settings size={18} />} label="Profile Settings" />
@@ -1026,7 +1092,7 @@ const Profile = () => {
                         </div>
                         <div className="min-w-0 flex-1">
                             <p className="text-[11px] font-bold text-slate-900 truncate uppercase tracking-tight">{user?.name}</p>
-                            <Link to={`/@${user?.username}`} className="text-[9px] text-blue-600 font-bold uppercase tracking-widest flex items-center gap-1 hover:underline">View Public Profile <ArrowUpRight size={8} /></Link>
+                            <Link to={`/@${user?.username}`} className="text-[9px] text-blue-600 font-bold uppercase tracking-widest flex items-center gap-1 hover:underline">View Profile <ArrowUpRight size={8} /></Link>
                         </div>
                     </div>
 
@@ -1040,18 +1106,18 @@ const Profile = () => {
                 <header className="fixed top-0 right-0 left-64 z-40 h-20 bg-white/40 backdrop-blur-3xl border-b border-slate-100 px-10 flex items-center justify-between">
                     <div className="flex items-center gap-8">
                         <div className="flex flex-col">
-                            <h2 className="text-xs font-bold text-slate-900 uppercase tracking-[0.2em]">{activeTab.replace('-', ' ')}</h2>
+                            <h2 className="text-xs font-bold text-slate-900 uppercase tracking-[0.2em]">{tabNames[activeTab] || activeTab}</h2>
                             <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-1">Status: Online</p>
                         </div>
                         <div className="h-6 w-px bg-slate-200"></div>
                         <Link to="/" className="text-[10px] font-bold text-slate-400 hover:text-slate-900 uppercase tracking-widest flex items-center gap-2 group">
-                             <Home size={14} className="group-hover:-translate-y-0.5 transition-transform" /> Back to Store
+                             <Home size={14} className="group-hover:-translate-y-0.5 transition-transform" /> Back to DigitalStudio
                         </Link>
                     </div>
 
                     <div className="flex items-center gap-6">
                          <Link to={`/@${user?.username || user?.id}`} className="px-4 py-2 bg-slate-50 border border-slate-100 rounded-xl text-[9px] font-bold text-slate-400 hover:text-slate-900 hover:border-slate-300 transition-all uppercase tracking-widest flex items-center gap-2">
-                             <ExternalLink size={12} /> View Public Profile
+                             <ExternalLink size={12} /> View Profile
                          </Link>
                          <div className="flex items-center gap-2 px-4 py-2 bg-emerald-50 border border-emerald-100 rounded-xl">
                               <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>

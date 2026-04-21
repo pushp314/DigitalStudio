@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import AuthContext from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
-import { Send, ArrowLeft, Shield, Terminal, RefreshCcw, User, Lock, Clock, Info, ExternalLink, Paperclip, Smile, Loader2 } from 'lucide-react';
+import { Send, Shield, Terminal, User, Lock, Clock, Info, ExternalLink, Paperclip, Smile, Loader2, ChevronLeft } from 'lucide-react';
 
 const EliteChat = () => {
     const { id: sessionId } = useParams();
@@ -20,6 +20,40 @@ const EliteChat = () => {
     const fileInputRef = useRef(null);
     const navigate = useNavigate();
     const { error: toastError, info, success } = useToast();
+
+    const playReceiveSound = () => {
+        try {
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(400, audioCtx.currentTime);
+            oscillator.frequency.exponentialRampToValueAtTime(150, audioCtx.currentTime + 0.1);
+            gainNode.gain.setValueAtTime(0.015, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.1);
+            oscillator.start();
+            oscillator.stop(audioCtx.currentTime + 0.1);
+        } catch (e) {}
+    };
+
+    const playSendSound = () => {
+        try {
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(600, audioCtx.currentTime);
+            oscillator.frequency.exponentialRampToValueAtTime(1000, audioCtx.currentTime + 0.05);
+            gainNode.gain.setValueAtTime(0.01, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.05);
+            oscillator.start();
+            oscillator.stop(audioCtx.currentTime + 0.05);
+        } catch (e) {}
+    };
 
     const isSessionActive = (s) => {
         if (!s) return false;
@@ -44,6 +78,10 @@ const EliteChat = () => {
                 // If we got more messages than before, mark as read
                 if (newMsgs.length > messages.length) {
                     markRead();
+                    const lastMsg = newMsgs[newMsgs.length - 1];
+                    if (lastMsg.senderId !== user?.id) {
+                        playReceiveSound();
+                    }
                 }
                 setMessages(newMsgs);
             }
@@ -99,6 +137,7 @@ const EliteChat = () => {
             setMessages(prev => [...prev, data]);
             setNewMessage('');
             setIsEmojiOpen(false);
+            playSendSound();
         } catch (err) {
             toastError("Failed to deliver message.");
         } finally {
@@ -133,6 +172,7 @@ const EliteChat = () => {
                 message: imgMsg
             });
             setMessages(prev => [...prev, data]);
+            playSendSound();
             success("Visual asset transmitted.");
         } catch (err) {
             toastError("Asset uplink failed.");
@@ -144,10 +184,12 @@ const EliteChat = () => {
 
     if (loading) {
         return (
-            <div className="h-screen bg-slate-50 flex items-center justify-center">
+            <div className="h-screen bg-[#F5F5F7] flex items-center justify-center">
                 <div className="flex flex-col items-center gap-4">
-                    <RefreshCcw className="text-slate-900 animate-spin" size={32} />
-                    <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Entering Secure Workspace...</div>
+                    <div className="h-2 w-24 bg-slate-200 rounded-full overflow-hidden">
+                        <div className="h-full bg-indigo-600 animate-progress w-full origin-left" />
+                    </div>
+                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Opening support workspace...</div>
                 </div>
             </div>
         );
@@ -167,22 +209,27 @@ const EliteChat = () => {
     };
 
     return (
-        <div className="h-screen bg-white text-slate-900 flex flex-col font-sans selection:bg-amber-100">
+        <div className="h-screen bg-[#F5F5F7] text-slate-900 flex flex-col font-sans selection:bg-indigo-100 overflow-hidden">
             {/* Minimal Sub-Header */}
-            <header className="h-16 border-b border-slate-200 flex items-center justify-between px-6 bg-white/80 backdrop-blur-md shrink-0 z-30">
-                <div className="flex items-center gap-4">
+            <header className="h-20 border-b border-slate-200 flex items-center justify-between px-8 bg-white shrink-0 z-30">
+                <div className="flex items-center gap-6">
                     <button 
                         onClick={() => navigate('/support')}
-                        className="h-10 w-10 flex items-center justify-center rounded-xl bg-slate-50 border border-slate-200 hover:bg-slate-100 transition-all text-slate-900"
+                        className="group p-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl transition-all text-slate-500 hover:text-slate-900 shadow-sm"
                     >
-                        <ArrowLeft size={18} />
+                        <ChevronLeft size={20} className="group-hover:-translate-x-0.5 transition-transform" />
                     </button>
-                    <div>
-                        <div className="text-[10px] text-amber-600 font-black uppercase tracking-widest flex items-center gap-2">
-                            <Shield size={10} fill="currentColor" /> Premium Support
+                    <div className="h-8 w-px bg-slate-200" />
+                    <nav className="flex items-center gap-3 text-[10px] font-bold uppercase tracking-widest">
+                        <button onClick={() => navigate('/')} className="text-slate-400 hover:text-slate-900 transition-colors">Hub</button>
+                        <span className="text-slate-300 text-[14px] font-light">/</span>
+                        <button onClick={() => navigate('/support')} className="text-slate-400 hover:text-slate-900 transition-colors">Support Center</button>
+                        <span className="text-slate-300 text-[14px] font-light">/</span>
+                        <div className="flex items-center gap-2.5 px-3 py-1.5 bg-indigo-50/50 text-indigo-600 rounded-xl border border-indigo-100/30 backdrop-blur-sm">
+                            <Terminal size={12} className="opacity-80" />
+                            <span>Case #{String(sessionId).padStart(6, '0')}</span>
                         </div>
-                        <h1 className="text-sm font-black text-slate-900 tracking-tight">{session?.title || "Project Support"}</h1>
-                    </div>
+                    </nav>
                 </div>
                 
                 <div className="flex items-center gap-4">
@@ -195,7 +242,7 @@ const EliteChat = () => {
                     <div className="hidden md:flex items-center gap-3">
                         <div className="text-right">
                             <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Support Lead</div>
-                            <div className="text-[11px] text-slate-900 font-bold">Specialist Node</div>
+                            <div className="text-[11px] text-slate-900 font-bold">DigitalStudio Specialist</div>
                         </div>
                         <div className="h-10 w-10 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-900 overflow-hidden">
                            <User size={20} />
@@ -236,10 +283,10 @@ const EliteChat = () => {
                             </h3>
                             <div className="space-y-4">
                                 {[
-                                    'Fixed Price Negotiation',
-                                    'Free Code Deployments',
-                                    'Priority Support Tickets',
-                                    '1-on-1 Senior Guidance'
+                                    'Product fit and customization guidance',
+                                    'Deployment guidance',
+                                    'Priority support requests',
+                                    '1-on-1 senior technical help'
                                 ].map((benefit) => (
                                     <div key={benefit} className="flex items-center gap-3 text-[11px] font-bold text-slate-600">
                                         <div className="h-1.5 w-1.5 rounded-full bg-slate-900" />
@@ -253,7 +300,7 @@ const EliteChat = () => {
                             <div className="p-5 rounded-2xl bg-amber-50 border border-amber-100">
                                 <div className="text-[10px] text-amber-700 font-black uppercase tracking-widest mb-2">Technical Note</div>
                                 <p className="text-[11px] text-amber-800/70 leading-relaxed font-medium">
-                                    Include project snippets or terminal output for faster issue resolution.
+                                    Include project snippets, screenshots, or terminal output for faster resolution.
                                 </p>
                             </div>
                         </div>
@@ -266,7 +313,7 @@ const EliteChat = () => {
                         <div className="max-w-3xl mx-auto">
                             <div className="text-center py-12">
                                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white border border-slate-200 text-[10px] font-black uppercase tracking-widest text-slate-400 shadow-sm">
-                                    <Clock size={10} /> Beginning of Correspondence
+                                    <Clock size={10} /> Beginning of support thread
                                 </div>
                                 <div className="h-px bg-slate-200 mt-6" />
                             </div>
@@ -386,20 +433,20 @@ const EliteChat = () => {
                                             <Lock size={24} />
                                         </div>
                                         <div>
-                                            <h4 className="text-white text-sm font-bold uppercase tracking-widest">Workspace Read-Only</h4>
-                                            <p className="text-slate-400 text-[11px] mt-1 font-medium">Access for this session has expired or been finalized.</p>
+                                            <h4 className="text-white text-sm font-bold uppercase tracking-widest">Support Thread Read-Only</h4>
+                                            <p className="text-slate-400 text-[11px] mt-1 font-medium">Access for this support session has expired or been finalized.</p>
                                         </div>
                                     </div>
                                     <button 
                                         onClick={() => navigate('/support')}
                                         className="px-6 py-3 bg-white text-black text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-slate-100 transition-all shadow-xl shadow-white/10 flex items-center gap-2"
                                     >
-                                        Renew Access <ExternalLink size={14} />
+                                        Open New Request <ExternalLink size={14} />
                                     </button>
                                 </div>
                             )}
                             <div className="mt-4 text-center">
-                                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em]">Encrypted End-to-End Tunnel</p>
+                                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em]">Private support conversation</p>
                             </div>
                         </div>
                     </div>

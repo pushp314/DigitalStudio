@@ -37,7 +37,7 @@ const AdminSearchPalette = ({ isOpen, onClose }) => {
     const flatResults = [
         ...(results?.users || []).map(u => ({ ...u, type: 'user', icon: '👤', label: u.name, sub: u.email })),
         ...(results?.orders || []).map(o => ({ ...o, type: 'order', icon: '💳', label: `Order #${String(o.id).slice(-8)}`, sub: `Value: ₹${o.totalPrice}` })),
-        ...(results?.products || []).map(p => ({ ...p, type: 'product', icon: '💎', label: p.title, sub: `Product Template` })),
+        ...(results?.products || []).map(p => ({ ...p, type: 'product', icon: '💎', label: p.title, sub: `Product` })),
         ...(results?.docs || []).map(d => ({ ...d, type: 'doc', icon: '📚', label: d.title, sub: `Documentation` })),
     ];
 

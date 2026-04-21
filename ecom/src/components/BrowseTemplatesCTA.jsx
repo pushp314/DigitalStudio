@@ -10,33 +10,33 @@ const BrowseTemplatesCTA = () => {
                         <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-100">
                             <img
                                 src="https://images.unsplash.com/photo-1510915361894-db8b60106cb1?auto=format&fit=crop&q=80&w=800"
-                                alt="Portfolio template preview"
+                                alt="Portfolio kit preview"
                                 className="aspect-[4/3] w-full object-cover"
                             />
                         </div>
                         <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-100">
                             <img
                                 src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&q=80&w=800"
-                                alt="Dashboard template preview"
+                                alt="Dashboard app preview"
                                 className="aspect-[4/3] w-full object-cover"
                             />
                         </div>
                     </div>
 
                     <div className="space-y-5">
-                        <p className="ds-eyebrow">Browse the catalog</p>
+                        <p className="ds-eyebrow">Start with a ready product</p>
                         <h2 className="text-3xl font-bold tracking-tight text-slate-900 md:text-4xl">
-                            Find a practical starting point for your next product
+                            Find an app, customize it, or ask us what fits
                         </h2>
                         <p className="text-base leading-7 text-slate-600">
-                            Explore templates, UI kits, and product assets with clean layouts, clear documentation, and production-friendly structure.
+                            Explore apps, dashboards, UI kits, APIs, and software assets with clear pricing, documentation, and support paths after purchase.
                         </p>
                         <div className="flex flex-wrap gap-3">
-                            <Link to="/templates" className="ds-button-primary">
-                                Browse templates
+                            <Link to="/apps" className="ds-button-primary">
+                                Explore apps
                             </Link>
-                            <Link to="/contact" className="ds-button-secondary">
-                                Ask a question
+                            <Link to="/hire-developer" className="ds-button-secondary">
+                                Talk to an expert
                             </Link>
                         </div>
                     </div>

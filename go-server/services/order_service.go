@@ -243,6 +243,7 @@ func FinalizePaidOrder(ctx context.Context, input SettleOrderInput) (*SettleOrde
 
 	err := config.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var order models.Order
+		// 1. Pessimistic Lock on the Order to prevent race conditions during settlement
 		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
 			Preload("OrderItems").
 			Where("razorpay_order_id = ?", strings.TrimSpace(input.RazorpayOrderID)).
@@ -253,12 +254,26 @@ func FinalizePaidOrder(ctx context.Context, input SettleOrderInput) (*SettleOrde
 			return err
 		}
 
+		// 2. Idempotency Check: Verify if this specific PaymentID was already used
+		var duplicateCount int64
+		if input.RazorpayPaymentID != "" {
+			tx.Model(&models.Order{}).Where("razorpay_payment_id = ? AND id != ?", input.RazorpayPaymentID, order.ID).Count(&duplicateCount)
+			if duplicateCount > 0 {
+				return errors.New("idempotency violation: payment already associated with another transaction")
+			}
+		}
+
 		orderID := order.ID
 		alreadySettled := strings.EqualFold(order.PaymentStatus, string(models.PaymentStatusPaid)) || strings.EqualFold(order.Status, string(models.OrderStatusPaid))
+		
 		if alreadySettled {
 			result.AlreadySettled = true
-		} else {
-			now := time.Now()
+			result.Order = order
+			return nil // Exit early but successfully 
+		}
+
+		// 3. Status Transition
+		now := time.Now()
 			order.Status = string(models.OrderStatusPaid)
 			order.PaymentStatus = string(models.PaymentStatusPaid)
 			order.RazorpayPaymentID = strings.TrimSpace(input.RazorpayPaymentID)
@@ -286,7 +301,6 @@ func FinalizePaidOrder(ctx context.Context, input SettleOrderInput) (*SettleOrde
 					"currency":          order.Currency,
 				},
 			})
-		}
 
 		rewardCredited, err := ensurePartnerReward(tx, &order, input.RequestID)
 		if err != nil {

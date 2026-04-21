@@ -170,7 +170,7 @@ const SiteConfigForm = ({ initialSection = 'general' }) => {
         { id: 'carousel', label: 'Carousel Stack', icon: <Layout size={16} /> },
         { id: 'faqs', label: 'Queries', icon: <HelpCircle size={16} /> },
         { id: 'intelligence', label: 'AI Settings', icon: <Database size={16} /> },
-        { id: 'elite', label: 'Support & Negotiation', icon: <MessageSquare size={16} /> },
+        { id: 'elite', label: 'Expert Support', icon: <MessageSquare size={16} /> },
         { id: 'features', label: 'Operational Nodes', icon: <Zap size={16} /> },
         { id: 'contact', label: 'Contact Center', icon: <Mail size={16} /> },
         { id: 'plans', label: 'Membership', icon: <CreditCard size={16} /> },
@@ -208,7 +208,7 @@ const SiteConfigForm = ({ initialSection = 'general' }) => {
                             disabled={loading}
                             className="w-full py-2.5 bg-slate-900 text-white rounded-lg text-[11px] font-bold uppercase tracking-widest hover:bg-slate-800 disabled:opacity-30 transition-all shadow-sm"
                         >
-                            {loading ? 'Synchronizing...' : 'Sync Manifest'}
+                            {loading ? 'Saving...' : 'Save Config'}
                         </button>
                     </div>
                 </aside>
@@ -421,8 +421,8 @@ const SiteConfigForm = ({ initialSection = 'general' }) => {
                             <div className="space-y-10 animate-in fade-in duration-500">
                                 <div className="flex justify-between items-center">
                                     <div>
-                                        <h2 className="text-xl font-bold text-slate-900 tracking-tight mb-1">Support & Negotiation</h2>
-                                        <p className="text-xs text-slate-500">Manage price negotiations and premium chat support sessions.</p>
+                                        <h2 className="text-xl font-bold text-slate-900 tracking-tight mb-1">Expert Support</h2>
+                                        <p className="text-xs text-slate-500">Manage paid expert help and post-purchase support sessions.</p>
                                     </div>
                                     <Toggle 
                                         checked={formData.eliteSettings?.negotiationEnabled} 
@@ -431,7 +431,7 @@ const SiteConfigForm = ({ initialSection = 'general' }) => {
                                 </div>
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                    <Field label="Negotiation Fee (₹)">
+                                    <Field label="Expert Help Fee (₹)">
                                         <div className="relative">
                                             <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" size={14} />
                                             <input 
@@ -464,7 +464,7 @@ const SiteConfigForm = ({ initialSection = 'general' }) => {
                                     <div>
                                         <h3 className="text-sm font-bold text-slate-900 uppercase tracking-widest mb-2">Support Policy</h3>
                                         <p className="text-xs text-slate-500 leading-relaxed">
-                                            Enabling negotiation will allow users to pay a ₹{formData.eliteSettings?.negotiationFee} fee to start a direct chat with you. Buyers automatically receive {formData.eliteSettings?.serviceBenefitDays} days of dedicated direct support for every product they buy.
+                                            Enabling expert help lets users pay a ₹{formData.eliteSettings?.negotiationFee} fee to start a direct support chat. Buyers automatically receive {formData.eliteSettings?.serviceBenefitDays} days of dedicated direct support for every product they buy.
                                         </p>
                                     </div>
                                 </div>
@@ -475,8 +475,8 @@ const SiteConfigForm = ({ initialSection = 'general' }) => {
                             <div className="space-y-10 animate-in fade-in duration-500">
                                 <div className="flex justify-between items-center">
                                     <div>
-                                        <h2 className="text-xl font-bold text-slate-900 tracking-tight mb-1">Intelligence Matrix</h2>
-                                        <p className="text-xs text-slate-500">Orchestrate technical analysis providers and model deployments.</p>
+                                        <h2 className="text-xl font-bold text-slate-900 tracking-tight mb-1">AI Settings</h2>
+                                        <p className="text-xs text-slate-500">Configure documentation assistants, chat helpers, providers, and models.</p>
                                     </div>
                                     <Toggle 
                                         checked={formData.aiSettings.enabled} 
@@ -487,7 +487,7 @@ const SiteConfigForm = ({ initialSection = 'general' }) => {
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 p-6 rounded-2xl border border-slate-100">
                                     <div className="flex items-center justify-between p-3 bg-white rounded-xl border border-slate-100 shadow-sm">
                                         <div>
-                                            <p className="text-[10px] font-bold text-slate-900 uppercase tracking-widest">Manifest Analysis</p>
+                                            <p className="text-[10px] font-bold text-slate-900 uppercase tracking-widest">Guide Analysis</p>
                                             <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Docs AI Assistant</p>
                                         </div>
                                         <Toggle 
@@ -508,7 +508,7 @@ const SiteConfigForm = ({ initialSection = 'general' }) => {
                                 </div>
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                    <Field label="Intelligence Tier (Provider)">
+                                    <Field label="AI Provider">
                                         <select 
                                             value={formData.aiSettings.provider} 
                                             onChange={(e) => handleNestedChange('aiSettings', 'provider', e.target.value)}
@@ -516,10 +516,10 @@ const SiteConfigForm = ({ initialSection = 'general' }) => {
                                         >
                                             <option value="ollama">Ollama (Local Node)</option>
                                             <option value="groq">Groq (Deep-Speed Cloud)</option>
-                                            <option value="gemini">Gemini (Free Tier Uplink)</option>
+                                            <option value="gemini">Gemini (free tier)</option>
                                         </select>
                                     </Field>
-                                    <Field label="Analytical Model Manifest">
+                                    <Field label="AI Model">
                                         <input 
                                             type="text" 
                                             value={formData.aiSettings.model} 
@@ -531,7 +531,7 @@ const SiteConfigForm = ({ initialSection = 'general' }) => {
                                 </div>
 
                                 <div className="grid grid-cols-1 gap-8">
-                                    <Field label="Uplink Service URL (Ollama)">
+                                    <Field label="AI Service URL (Ollama)">
                                         <div className="relative">
                                             <Database className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" size={14} />
                                             <input 
@@ -543,7 +543,7 @@ const SiteConfigForm = ({ initialSection = 'general' }) => {
                                             />
                                         </div>
                                     </Field>
-                                    <Field label="Deep-Speed Authentication (API Key)">
+                                    <Field label="Provider API Key">
                                         <div className="relative">
                                             <ShieldAlert className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" size={14} />
                                             <input 
@@ -554,7 +554,7 @@ const SiteConfigForm = ({ initialSection = 'general' }) => {
                                                 placeholder="••••••••••••••••••••••••••••••••"
                                             />
                                         </div>
-                                        <p className="text-[10px] text-slate-400 font-medium mt-2">API keys are stored in the secure technical manifest. Leave blank to use environment defaults.</p>
+                                        <p className="text-[10px] text-slate-400 font-medium mt-2">API keys are stored securely. Leave blank to use environment defaults.</p>
                                     </Field>
                                 </div>
                             </div>
@@ -564,16 +564,16 @@ const SiteConfigForm = ({ initialSection = 'general' }) => {
                             <div className="space-y-10 animate-in fade-in duration-500">
                                 <div className="flex justify-between items-end">
                                     <div>
-                                        <h2 className="text-xl font-bold text-slate-900 tracking-tight mb-1">Inquiry Matrix</h2>
-                                        <p className="text-xs text-slate-500">Manage frequently asked questions and technical logic.</p>
+                                        <h2 className="text-xl font-bold text-slate-900 tracking-tight mb-1">FAQs</h2>
+                                        <p className="text-xs text-slate-500">Manage buyer questions, support expectations, and product guidance.</p>
                                     </div>
-                                    <button type="button" onClick={() => addArrayItem('faqs', { question: '', answer: '' })} className="px-4 py-2 bg-slate-900 text-white rounded-lg text-[10px] font-bold uppercase tracking-widest flex items-center gap-2"><Plus size={14} /> New Query</button>
+                                    <button type="button" onClick={() => addArrayItem('faqs', { question: '', answer: '' })} className="px-4 py-2 bg-slate-900 text-white rounded-lg text-[10px] font-bold uppercase tracking-widest flex items-center gap-2"><Plus size={14} /> New FAQ</button>
                                 </div>
                                 <div className="space-y-6">
                                     {formData.faqs.map((faq, idx) => (
                                         <div key={idx} className="p-8 border border-slate-200 rounded-2xl bg-white relative group space-y-6">
                                             <button type="button" onClick={() => removeArrayItem('faqs', idx)} className="absolute top-4 right-4 p-1.5 text-slate-300 hover:text-red-500 transition-all"><Trash2 size={16} /></button>
-                                            <Field label={`Query Node ${idx + 1}`}>
+                                            <Field label={`Question ${idx + 1}`}>
                                                 <input value={faq.question} onChange={(e) => {
                                                     const newFaqs = [...formData.faqs];
                                                     newFaqs[idx] = { ...newFaqs[idx], question: e.target.value };
@@ -600,7 +600,7 @@ const SiteConfigForm = ({ initialSection = 'general' }) => {
                                     <p className="text-xs text-slate-500">Enable or disable core system operational nodes.</p>
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    {['payments', 'licenses', 'reviews', 'subscriptions', 'ai', 'wishlist', 'testimonials', 'docs'].map(feature => (
+                                    {['payments', 'licenses', 'reviews', 'subscriptions', 'ai', 'wishlist', 'testimonials', 'docs', 'profiles'].map(feature => (
                                         <div key={feature} className="flex items-center justify-between p-4 border border-slate-200 rounded-xl bg-white hover:bg-slate-50/50 transition-all">
                                             <div className="flex items-center gap-3">
                                                 <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-[10px] ${formData.features[feature] ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-400'}`}>
@@ -647,7 +647,7 @@ const SiteConfigForm = ({ initialSection = 'general' }) => {
                                                     value={formData.contact.email} 
                                                     onChange={(e) => handleNestedChange('contact', 'email', e.target.value)} 
                                                     className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-lg text-sm font-medium" 
-                                                    placeholder="contact@devnity.com"
+                                                    placeholder="contact@digitalstudio.app"
                                                 />
                                             </div>
                                         </Field>

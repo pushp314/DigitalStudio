@@ -140,7 +140,7 @@ const EliteAdminManager = () => {
                         <h2 className="text-2xl font-black text-slate-900 tracking-tight">Support Operations</h2>
                     </div>
                     <p className="text-xs text-slate-400 font-bold uppercase tracking-widest leading-relaxed">
-                        Manage private negotiation tunnels and elite support sessions.
+                        Manage paid expert help and post-purchase support sessions.
                     </p>
                 </div>
                 

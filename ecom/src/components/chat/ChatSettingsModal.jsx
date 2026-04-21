@@ -50,9 +50,9 @@ const ChatSettingsModal = ({ isOpen, onClose, settings, onUpdate, user }) => {
                     <div>
                         <div className="flex items-center gap-2 mb-1">
                             <Settings size={16} className="text-slate-900" />
-                            <h2 className="text-xs font-bold text-slate-900 uppercase tracking-[0.2em]">Matrix Protocols</h2>
+                            <h2 className="text-xs font-bold text-slate-900 uppercase tracking-[0.2em]">Chat Settings</h2>
                         </div>
-                        <p className="text-[10px] text-slate-400 font-bold uppercase">Node Configuration Console</p>
+                        <p className="text-[10px] text-slate-400 font-bold uppercase">Community preferences</p>
                     </div>
                     <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-900 transition-colors border border-transparent hover:border-slate-200 rounded-lg">
                         <X size={18} strokeWidth={2.5} />
@@ -64,7 +64,7 @@ const ChatSettingsModal = ({ isOpen, onClose, settings, onUpdate, user }) => {
                         <h3 className="text-[9px] font-bold text-slate-300 uppercase tracking-[0.3em] mb-6">Environment Audio</h3>
                         <SettingToggle 
                             label="Auditory Notifications"
-                            description="Authorize sound effects for incoming data packets."
+                            description="Play sound effects for incoming messages."
                             active={settings.sounds}
                             onChange={(val) => onUpdate('sounds', val)}
                         />
@@ -74,15 +74,15 @@ const ChatSettingsModal = ({ isOpen, onClose, settings, onUpdate, user }) => {
                         <h3 className="text-[9px] font-bold text-slate-300 uppercase tracking-[0.3em] mb-6">Identity Privacy</h3>
                         <div className="space-y-4">
                             <SettingToggle 
-                                label="Presence Masking"
-                                description="Secure your activity state and typing markers."
+                            label="Hide Typing Status"
+                            description="Keep your typing activity private."
                                 active={settings.hideTyping}
                                 onChange={(val) => onUpdate('hideTyping', val)}
                                 proOnly
                             />
                             <SettingToggle 
-                                label="Privacy Manifest"
-                                description="Suppress read receipts when auditing the message stream."
+                                label="Hide Read Receipts"
+                                description="Suppress read receipts in community chat."
                                 active={settings.hideReadReceipts}
                                 onChange={(val) => onUpdate('hideReadReceipts', val)}
                                 proOnly
@@ -94,7 +94,7 @@ const ChatSettingsModal = ({ isOpen, onClose, settings, onUpdate, user }) => {
                         <h3 className="text-[9px] font-bold text-slate-300 uppercase tracking-[0.3em] mb-6">Interface Layout</h3>
                         <SettingToggle 
                             label="Compact Mode"
-                            description="Increase information density for high-fidelity code transmission."
+                            description="Increase information density for faster scanning."
                             active={settings.compactMode}
                             onChange={(val) => onUpdate('compactMode', val)}
                             proOnly
@@ -107,13 +107,13 @@ const ChatSettingsModal = ({ isOpen, onClose, settings, onUpdate, user }) => {
                         <div className="bg-slate-900 rounded-xl p-6 text-white relative overflow-hidden shadow-xl">
                             <div className="relative z-10">
                                 <h4 className="text-[10px] font-bold tracking-[0.2em] text-blue-400 uppercase mb-2 flex items-center gap-2">
-                                     Full Uplink Authorization <Crown size={12} />
+                                     Pro Chat Controls <Crown size={12} />
                                 </h4>
                                 <p className="text-[10px] text-slate-400 font-medium mb-6 leading-relaxed">
-                                    Establish full control over stealth and density matrix sub-protocols.
+                                    Upgrade to unlock advanced community chat controls and unlimited messaging.
                                 </p>
                                 <button className="w-full py-2.5 bg-white text-slate-900 text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-slate-100 transition-all shadow-lg active:scale-95">
-                                    Elevate to Pro
+                                    Upgrade to Pro
                                 </button>
                             </div>
                         </div>
@@ -123,8 +123,8 @@ const ChatSettingsModal = ({ isOpen, onClose, settings, onUpdate, user }) => {
                                 <Shield size={16} />
                             </div>
                             <div>
-                                <p className="text-[11px] font-bold uppercase tracking-tight">Node Integrity: Verified</p>
-                                <p className="text-[9px] font-bold opacity-60">All professional sub-systems are currently live.</p>
+                                <p className="text-[11px] font-bold uppercase tracking-tight">Pro access active</p>
+                                <p className="text-[9px] font-bold opacity-60">Advanced chat controls are available.</p>
                             </div>
                         </div>
                     )}

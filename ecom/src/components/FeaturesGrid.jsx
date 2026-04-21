@@ -20,7 +20,7 @@ const FeaturesGrid = () => {
         <section className="ds-page px-6 py-16">
             <div className="ds-shell space-y-8">
                 <div className="space-y-3">
-                    <p className="ds-eyebrow">Why DigitalStudio</p>
+                    <p className="ds-eyebrow text-center">DigitalStudio Advantage</p>
                     <h2 className="text-3xl font-bold tracking-tight text-slate-900 md:text-4xl">
                         A simpler path from discovery to launch
                     </h2>

@@ -71,7 +71,7 @@ const TemplateGrid = ({ items, limit }) => {
                         return (
                             <article
                                 key={template.id}
-                                onClick={() => navigate(`/templates/${template.id}`)}
+                                onClick={() => navigate(`/apps/${template.id}`)}
                                 className="ds-card group cursor-pointer overflow-hidden"
                             >
                                 <div className="relative overflow-hidden border-b border-slate-200 bg-slate-100">
@@ -110,7 +110,7 @@ const TemplateGrid = ({ items, limit }) => {
                                             <div className="min-w-0">
                                                 <h3 className="text-xl font-semibold tracking-tight text-slate-900">{template.title}</h3>
                                                 <p className="mt-1 line-clamp-2 text-sm leading-6 text-slate-600">
-                                                    {template.description || 'A practical starting point for shipping faster.'}
+                                                    {template.description || 'A ready product you can customize and launch faster.'}
                                                 </p>
                                             </div>
                                             <span className="whitespace-nowrap text-lg font-semibold text-slate-900">{template.formattedPrice}</span>
@@ -147,7 +147,7 @@ const TemplateGrid = ({ items, limit }) => {
                                                 }}
                                                 className="ds-button-secondary"
                                             >
-                                                View account
+                                                View my products
                                             </button>
                                         ) : (
                                             <button
@@ -177,11 +177,11 @@ const TemplateGrid = ({ items, limit }) => {
                                             onClick={(event) => {
                                                 event.preventDefault();
                                                 event.stopPropagation();
-                                                navigator.clipboard.writeText(`${window.location.origin}/templates/${template.id}`);
-                                                success("Template link copied.");
+                                                navigator.clipboard.writeText(`${window.location.origin}/apps/${template.id}`);
+                                                success("Product link copied.");
                                             }}
                                             className="ds-button-ghost p-2.5 flex items-center justify-center border border-slate-200"
-                                            title="Share Template Identity"
+                                            title="Share product"
                                         >
                                             <Share2 size={16} />
                                         </button>
@@ -194,8 +194,8 @@ const TemplateGrid = ({ items, limit }) => {
 
                 {limit && (
                     <div className="mt-10 flex justify-center">
-                        <Link to="/templates" className="ds-button-secondary">
-                            View all templates
+                        <Link to="/apps" className="ds-button-secondary">
+                            View all apps
                         </Link>
                     </div>
                 )}

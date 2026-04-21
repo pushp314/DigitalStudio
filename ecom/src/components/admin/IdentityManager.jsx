@@ -48,7 +48,7 @@ const IdentityManager = () => {
             queryClient.invalidateQueries({ queryKey: ['admin-github-requests'] });
         },
         onError: () => {
-            toastError("Resolution protocol failed.");
+            toastError("Could not resolve this request.");
         }
     });
 
@@ -56,7 +56,7 @@ const IdentityManager = () => {
         return (
             <div className="py-20 flex flex-col items-center justify-center space-y-4">
                 <div className="w-8 h-8 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
-                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Scanning Identity Matrix...</p>
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Loading Identity Requests...</p>
             </div>
         );
     }

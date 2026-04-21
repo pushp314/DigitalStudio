@@ -113,7 +113,7 @@ func AskDocAI(c *gin.Context) {
 	}
 
 	// 3. Orchestrate AI Prompt
-	prompt := fmt.Sprintf("You are an elite Technical Assistant for DigitalStudio. Use the provided documentation MANIFEST and previous CONVERSATION HISTORY to answer the user inquiry accurately.\n\n[MANIFEST]\n%s\n\n[HISTORY]\n%s\n\n[USER INQUIRY]\n%s", req.Markdown, historyContext, req.Question)
+	prompt := fmt.Sprintf("You are a senior technical assistant for Devnity. Use the provided documentation and previous conversation history to answer the user inquiry accurately.\n\n[DOCUMENTATION]\n%s\n\n[HISTORY]\n%s\n\n[USER INQUIRY]\n%s", req.Markdown, historyContext, req.Question)
 	
 	aiReqBody, _ := json.Marshal(map[string]interface{}{
 		"prompt":         prompt,
@@ -125,15 +125,15 @@ func AskDocAI(c *gin.Context) {
 
 	resp, err := http.Post(aiServiceURL()+"/ai/prompt", "application/json", bytes.NewBuffer(aiReqBody))
 	if err != nil {
-		fmt.Printf("[AI_DOC_ERROR] Uplink Connection Failed: %v\n", err)
-		respondError(c, http.StatusInternalServerError, "AI intelligence node offline")
+		fmt.Printf("[AI_DOC_ERROR] AI service connection failed: %v\n", err)
+		respondError(c, http.StatusInternalServerError, "AI service offline")
 		return
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		fmt.Printf("[AI_DOC_ERROR] Uplink Status Error: %d\n", resp.StatusCode)
-		respondError(c, http.StatusBadGateway, "Intelligence node synchronization failure")
+		fmt.Printf("[AI_DOC_ERROR] AI service status error: %d\n", resp.StatusCode)
+		respondError(c, http.StatusBadGateway, "AI service response failed")
 		return
 	}
 
@@ -237,11 +237,11 @@ func DeleteDocChat(c *gin.Context) {
 	docID := c.Param("id")
 
 	if err := config.DB.Where("user_id = ? AND doc_id = ?", currentUser.ID, docID).Delete(&models.DocChatSession{}).Error; err != nil {
-		respondError(c, http.StatusInternalServerError, "Failed to clear terminal history")
+		respondError(c, http.StatusInternalServerError, "Failed to clear guide history")
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Terminal history purged successfully"})
+	c.JSON(http.StatusOK, gin.H{"message": "Guide history cleared successfully"})
 }
 
 func UniversalDocSearchChat(c *gin.Context) {
@@ -274,7 +274,7 @@ func UniversalDocSearchChat(c *gin.Context) {
 	// 2. Aggregate Context
 	context := "Here are relevant documentation snippets to help you answer:\n\n"
 	if len(docs) == 0 {
-		context = "No specific documentation matches found. Use your general knowledge about our platform DigitalStudio to help."
+		context = "No specific documentation matches found. Use your general knowledge about Devnity, ready apps, implementation support, and custom builds to help."
 	} else {
 		for _, doc := range docs {
 			context += fmt.Sprintf("DOC [%s]: %s\n\n", doc.Title, doc.Content)
@@ -282,7 +282,7 @@ func UniversalDocSearchChat(c *gin.Context) {
 	}
 
 	// 3. AI Stream Request
-	prompt := fmt.Sprintf("You are an elite DigitalStudio Support AI. Use the provided INTERNAL CONTEXT to answer the user's question. If the context doesn't have the answer, use your technical knowledge but mention it's general guidance.\n\n[INTERNAL CONTEXT]\n%s\n\n[USER QUESTION]\n%s", context, req.Question)
+	prompt := fmt.Sprintf("You are a Devnity support assistant. Use the provided internal context to answer the user's question. If the context does not have the answer, use your technical knowledge but mention it is general guidance.\n\n[INTERNAL CONTEXT]\n%s\n\n[USER QUESTION]\n%s", context, req.Question)
 	
 	aiReqBody, _ := json.Marshal(map[string]interface{}{
 		"prompt":         prompt,

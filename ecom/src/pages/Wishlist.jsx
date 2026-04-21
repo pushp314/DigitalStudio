@@ -44,9 +44,9 @@ const Wishlist = () => {
         return (
             <div className="ds-page flex min-h-[60vh] flex-col items-center justify-center px-6 py-16 text-center">
                 <h1 className="text-3xl font-semibold tracking-tight text-slate-900">Your wishlist is empty</h1>
-                <p className="mt-3 max-w-md text-sm leading-6 text-slate-600">Save products here so you can revisit them later.</p>
-                <Link to="/templates" className="ds-button-primary mt-6">
-                    Browse templates
+                <p className="mt-3 max-w-md text-sm leading-6 text-slate-600">Save ready products here so you can compare them later.</p>
+                <Link to="/apps" className="ds-button-primary mt-6">
+                    Explore apps
                 </Link>
             </div>
         );
@@ -65,7 +65,7 @@ const Wishlist = () => {
                         const deal = deals[item.id];
                         return (
                             <article key={item.id} className="ds-card overflow-hidden">
-                                <Link to={`/templates/${item.id}`} className="block border-b border-slate-200 bg-slate-100">
+                                <Link to={`/apps/${item.id}`} className="block border-b border-slate-200 bg-slate-100">
                                     <img src={item.image} alt={item.title} className="aspect-[4/3] w-full object-cover" />
                                 </Link>
                                 <div className="space-y-4 p-6">

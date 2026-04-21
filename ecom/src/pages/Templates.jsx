@@ -1,7 +1,8 @@
-import React, { useContext, useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import React, { useContext, useMemo, useState, useEffect } from 'react';
+import { Link, useSearchParams, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import productService from '../services/productService';
+import api from '../services/api';
 import BuildSitesHeader from '../components/BuildSitesHeader';
 import TemplateGrid from '../components/TemplateGrid';
 import LoadingSkeleton from '../components/ui/LoadingSkeleton';
@@ -9,19 +10,22 @@ import AIRecommendationModal from '../components/ui/AIRecommendationModal';
 import { FEATURES } from '../config/features';
 import { normalizeProduct } from '../utils/normalizers';
 import ConfigContext from '../context/ConfigContext';
+import { Search, ArrowRight } from 'lucide-react';
 
 const PRODUCT_TYPES = [
     { value: 'all', label: 'All products' },
-    { value: 'fullstack', label: 'Full-stack' },
-    { value: 'api', label: 'API' },
+    { value: 'fullstack', label: 'Full-stack apps' },
+    { value: 'api', label: 'APIs and backend kits' },
     { value: 'component', label: 'Components' },
-    { value: 'mobile', label: 'Mobile' },
+    { value: 'ui_kit', label: 'UI kits' },
     { value: 'template', label: 'Templates' },
-    { value: 'tool', label: 'Tools' },
+    { value: 'code_snippet', label: 'Code snippets' },
+    { value: 'edu_module', label: 'Learning modules' },
 ];
 
 const Templates = () => {
     const { config } = useContext(ConfigContext);
+    const { slug } = useParams();
     const [searchParams, setSearchParams] = useSearchParams();
     const keyword = searchParams.get('search') || '';
     const [isAIModalOpen, setIsAIModalOpen] = useState(false);
@@ -29,10 +33,20 @@ const Templates = () => {
     const [selectedProductType, setSelectedProductType] = useState('all');
     const [showMembersOnly, setShowMembersOnly] = useState(false);
     const [sortBy, setSortBy] = useState('newest');
+    const [categoryData, setCategoryData] = useState(null);
+
+    // Fetch category metadata if we are on a category page
+    useEffect(() => {
+        if (slug) {
+            api.get(`/categories/${slug}`).then(setCategoryData).catch(() => setCategoryData(null));
+        } else {
+            setCategoryData(null);
+        }
+    }, [slug]);
 
     const { data: rawTemplates, isLoading, error, refetch } = useQuery({
-        queryKey: ['templates', keyword],
-        queryFn: () => productService.getAll(keyword),
+        queryKey: ['templates', keyword, slug],
+        queryFn: () => productService.getAll(keyword, { categorySlug: slug }),
     });
 
     const templates = useMemo(
@@ -40,7 +54,7 @@ const Templates = () => {
         [rawTemplates],
     );
 
-    const categories = useMemo(
+    const categoriesList = useMemo(
         () => ['all', ...new Set(templates.map((template) => template.category).filter(Boolean))],
         [templates],
     );
@@ -87,10 +101,33 @@ const Templates = () => {
     return (
         <>
             <BuildSitesHeader
-                title="Browse practical"
-                highlight="products"
-                description="Find templates, components, and tools with clear pricing, clean previews, and product details that match what you receive."
+                title={categoryData ? categoryData.name : "Explore ready"}
+                highlight={categoryData ? "" : "apps and kits"}
+                description={categoryData ? categoryData.description : "Find production-ready apps, dashboards, APIs, UI kits, and technical assets with clear pricing, previews, documentation, and support options."}
             />
+
+            <section className="px-6 pb-8">
+                <div className="ds-shell grid gap-4 md:grid-cols-3">
+                    <div className="ds-card p-6 border-slate-200">
+                        <p className="ds-eyebrow mb-2">Know what you need?</p>
+                        <p className="text-[11px] leading-relaxed text-slate-500 font-medium tracking-tight">Filter our registry by product type, tech stack, and category to find your ready-to-launch starting point.</p>
+                    </div>
+                    <div className="ds-card p-6 border-indigo-100 bg-indigo-50/20">
+                        <p className="ds-eyebrow mb-2 text-indigo-600">Not sure yet?</p>
+                        <p className="text-[11px] leading-relaxed text-slate-500 font-medium tracking-tight">Talk to an expert about your goals, stack, and timeline. We'll help you pick the right product or guide your strategy.</p>
+                        <Link to="/support" className="inline-flex items-center gap-2 mt-5 text-[10px] font-black uppercase tracking-widest text-indigo-600 hover:text-indigo-800 transition-colors">
+                            Talk to an Expert <ArrowRight size={14} />
+                        </Link>
+                    </div>
+                    <div className="ds-card p-6 border-slate-200">
+                        <p className="ds-eyebrow mb-2">Need a custom build?</p>
+                        <p className="text-[11px] leading-relaxed text-slate-500 font-medium tracking-tight">If you need a specialized solution built from scratch or high-value customization, hire our core developers to lead the project.</p>
+                        <Link to="/hire-developer" className="inline-flex items-center gap-2 mt-5 text-[10px] font-black uppercase tracking-widest text-slate-900 hover:opacity-70 transition-all">
+                            Hire Developer <ArrowRight size={14} />
+                        </Link>
+                    </div>
+                </div>
+            </section>
 
             <section
                 className={`sticky z-40 border-y border-slate-200 bg-[#F5F5F7]/95 px-6 py-4 backdrop-blur ${
@@ -130,14 +167,14 @@ const Templates = () => {
                                 </div>
 
                                 <div className="flex flex-wrap gap-2">
-                                    {categories.slice(0, 6).map((category) => (
+                                    {categoriesList.slice(0, 6).map((category) => (
                                         <button
                                             key={category}
                                             type="button"
                                             onClick={() => setSelectedCategory(category)}
                                             className={selectedCategory === category ? 'ds-button-primary' : 'ds-button-secondary'}
                                         >
-                                            {category === 'all' ? 'All categories' : category}
+                                                {category === 'all' ? 'All use cases' : category}
                                         </button>
                                     ))}
                                 </div>
@@ -145,7 +182,7 @@ const Templates = () => {
 
                             <div className="flex flex-wrap items-center gap-3 lg:justify-end">
                                 <span className="text-sm text-slate-500" aria-live="polite">
-                                    {sortedTemplates.length} {sortedTemplates.length === 1 ? 'product' : 'products'}
+                                    {sortedTemplates.length} {sortedTemplates.length === 1 ? 'ready product' : 'ready products'}
                                 </span>
                                 <button type="button" onClick={clearFilters} className="ds-button-ghost">
                                     Clear filters
@@ -167,7 +204,7 @@ const Templates = () => {
                 <section className="ds-page px-6 py-16">
                     <div className="ds-shell">
                         <div className="ds-card p-8 text-center">
-                            <h2 className="text-2xl font-semibold tracking-tight text-slate-900">Products are temporarily unavailable</h2>
+                            <h2 className="text-2xl font-semibold tracking-tight text-slate-900">Ready products are temporarily unavailable</h2>
                             <p className="mt-3 text-sm leading-6 text-slate-600">
                                 We could not load the catalog from the API. Please try again.
                             </p>
@@ -180,14 +217,29 @@ const Templates = () => {
             ) : sortedTemplates.length === 0 ? (
                 <section className="ds-page px-6 py-16">
                     <div className="ds-shell">
-                        <div className="ds-card p-8 text-center">
-                            <h2 className="text-2xl font-semibold tracking-tight text-slate-900">No matching products</h2>
-                            <p className="mt-3 text-sm leading-6 text-slate-600">
-                                Adjust your filters or search terms to see more results.
+                        <div className="ds-panel p-10 md:p-16 text-center max-w-4xl mx-auto border-dashed border-2 bg-white">
+                            <div className="w-16 h-16 bg-slate-50 text-slate-300 rounded-2xl flex items-center justify-center mx-auto mb-8">
+                                <Search size={32} />
+                            </div>
+                            <h2 className="text-3xl font-bold tracking-tight text-slate-900">No matching ready products</h2>
+                            <p className="mt-4 text-base leading-7 text-slate-600 max-w-2xl mx-auto">
+                                We couldn't find a ready-to-use product matching your current filters. You can reset your search, or if you need something specific, our experts can help you choose or build a custom solution.
                             </p>
-                            <button type="button" onClick={clearFilters} className="ds-button-primary mt-6">
-                                Reset filters
-                            </button>
+                            
+                            <div className="mt-10 grid gap-4 sm:grid-cols-3 max-w-3xl mx-auto">
+                                <button type="button" onClick={clearFilters} className="ds-button-secondary py-6 flex flex-col items-center gap-3 bg-slate-50 border-slate-100 h-full">
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-blue-600">Option 1</span>
+                                    <span className="text-xs font-bold text-slate-900">Reset all filters</span>
+                                </button>
+                                <Link to="/hire-developer" className="ds-button-secondary py-6 flex flex-col items-center gap-3 bg-slate-50 border-slate-100 h-full">
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-blue-600">Option 2</span>
+                                    <span className="text-xs font-bold text-slate-900">Get expert advice</span>
+                                </Link>
+                                <Link to="/contact" className="ds-button-secondary py-6 flex flex-col items-center gap-3 bg-slate-50 border-slate-100 h-full">
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-blue-600">Option 3</span>
+                                    <span className="text-xs font-bold text-slate-900">Request custom build</span>
+                                </Link>
+                            </div>
                         </div>
                     </div>
                 </section>

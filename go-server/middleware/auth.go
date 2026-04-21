@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/pushp314/digitalstudio/go-server/config"
 	"github.com/pushp314/digitalstudio/go-server/models"
+	"github.com/pushp314/digitalstudio/go-server/services"
 	"github.com/pushp314/digitalstudio/go-server/utils"
 )
 
@@ -46,18 +47,27 @@ func authMiddleware(options authOptions) gin.HandlerFunc {
 		}
 
 		var user models.User
-		if err := config.DB.First(&user, claims.UserID).Error; err != nil {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "User not found"})
-			c.Abort()
-			return
+		var found bool
+
+		// 1. Check Global Cache first
+		if user, found = services.GlobalUserCache.Get(claims.UserID); !found {
+			// 2. Cache Miss: Hit DB
+			if err := config.DB.First(&user, claims.UserID).Error; err != nil {
+				c.JSON(http.StatusUnauthorized, gin.H{"error": "User not found or session revoked"})
+				c.Abort()
+				return
+			}
+			// Update Cache
+			services.GlobalUserCache.Set(user)
 		}
+
 		if user.Suspended {
-			c.JSON(http.StatusForbidden, gin.H{"error": "Account suspended"})
+			c.JSON(http.StatusForbidden, gin.H{"error": "Account suspended for policy violations"})
 			c.Abort()
 			return
 		}
 
-		// Capture state before normalization for lazy cleanup
+		// Capture state before normalization for lazy cleanup (handles expiry)
 		originalIsPro := user.IsPro
 
 		user = utils.NormalizeUserAccess(user)

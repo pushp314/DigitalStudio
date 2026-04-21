@@ -1,4 +1,4 @@
-# DigitalStudio Backend Integration Guide
+# Devnity Backend Integration Guide
 
 This document is for the frontend team integrating with the Go backend in `go-server/`.
 

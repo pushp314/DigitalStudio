@@ -37,10 +37,12 @@ import Marketing from './Marketing';
 import ShowcaseManager from '../../components/admin/ShowcaseManager';
 import LicenseManager from '../../components/admin/LicenseManager';
 import SubscriptionManager from '../../components/admin/SubscriptionManager';
+import CategoryManager from '../../components/admin/CategoryManager';
 import AdminSearchPalette from '../../components/admin/AdminSearchPalette';
 import ContactManager from '../../components/admin/ContactManager';
 import IdentityManager from '../../components/admin/IdentityManager';
 import EliteAdminManager from '../../components/admin/EliteAdminManager';
+import { Layers } from 'lucide-react';
 
 const Dashboard = ({ defaultTab }) => {
     const location = useLocation();
@@ -53,7 +55,7 @@ const Dashboard = ({ defaultTab }) => {
         if (defaultTab) return defaultTab;
         const path = location.pathname;
         const routes = [
-            'analytics', 'templates', 'orders', 'licenses', 'docs', 
+            'analytics', 'templates', 'architecture', 'orders', 'licenses', 'docs', 
             'marketing', 'testimonials', 'showcase', 'settings', 
             'config', 'maintenance', 'users', 'identity', 
             'subscriptions', 'messages', 'elite'
@@ -74,6 +76,7 @@ const Dashboard = ({ defaultTab }) => {
     const menuItems = [
         { id: 'analytics', label: 'Dashboard', icon: <BarChart3 size={18} /> },
         { id: 'templates', label: 'Inventory', icon: <Package size={18} /> },
+        { id: 'architecture', label: 'Architecture', icon: <Layers size={18} /> },
         { id: 'orders', label: 'Sales & Revenue', icon: <ShoppingCart size={18} /> },
         { id: 'users', label: 'User Management', icon: <Users size={18} /> },
         { id: 'identity', label: 'Profile Operations', icon: <Fingerprint size={18} /> },
@@ -84,7 +87,7 @@ const Dashboard = ({ defaultTab }) => {
         { id: 'docs', label: 'Documentation', icon: <BookOpen size={18} /> },
         { id: 'testimonials', label: 'Customer Reviews', icon: <Star size={18} /> },
         { id: 'messages', label: 'Support Inbox', icon: <Mail size={18} /> },
-        { id: 'elite', label: 'Support & Negotiation', icon: <MessageSquare size={18} /> },
+        { id: 'elite', label: 'Expert Support', icon: <MessageSquare size={18} /> },
         { id: 'maintenance', label: 'Security & Auth', icon: <Shield size={18} /> },
         { id: 'settings', label: 'Settings', icon: <SettingsIcon size={18} /> },
     ];
@@ -112,7 +115,7 @@ const Dashboard = ({ defaultTab }) => {
                     <div className="flex items-center gap-3 px-6 mb-10 overflow-hidden">
                         <div className="w-8 h-8 bg-slate-900 rounded-lg flex items-center justify-center font-bold text-white text-sm shrink-0">D</div>
                         <div className="min-w-0">
-                            <h1 className="text-xs font-bold text-slate-900 uppercase tracking-widest truncate">Devnity Admin</h1>
+                            <h1 className="text-xs font-bold text-slate-900 uppercase tracking-widest truncate">DigitalStudio Admin</h1>
                             <p className="text-[10px] text-slate-400 font-medium">Enterprise Suite V4.0</p>
                         </div>
                     </div>
@@ -234,6 +237,7 @@ const Dashboard = ({ defaultTab }) => {
 
                         <div className="min-h-[500px]">
                             {currentTab === 'templates' && <TemplatesManager />}
+                            {currentTab === 'architecture' && <CategoryManager />}
                             {currentTab === 'orders' && <OrderList />}
                             {currentTab === 'licenses' && <LicenseManager />}
                             {currentTab === 'marketing' && <Marketing />}

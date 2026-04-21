@@ -142,19 +142,37 @@ func init() {
 	go GlobalHub.Run()
 }
 
-// ServeWs handles websocket requests from the peer.
+func CreateChatTicket(c *gin.Context) {
+	userID, _ := c.Get("userID")
+	ticket := services.GlobalUserCache.IssueTicket(userID.(uint))
+	c.JSON(http.StatusOK, gin.H{"ticket": ticket})
+}
+
+// ServeChatWs handles websocket requests from the peer.
 func ServeChatWs(c *gin.Context) {
-	userIDValue, exists := c.Get("userID")
-	if !exists {
-		log.Println("WS Upgrade Error: user not authenticated")
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
-		return
+	var userID uint
+	var exists bool
+
+	// 1. Try Ticket authentication (Production Standard)
+	ticket := c.Query("ticket")
+	if ticket != "" {
+		if uid, valid := services.GlobalUserCache.VerifyTicket(ticket); valid {
+			userID = uid
+			exists = true
+		}
 	}
 
-	userID, ok := userIDValue.(uint)
-	if !ok {
-		log.Println("WS Upgrade Error: invalid userID type in context")
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal error"})
+	// 2. Fallback to Context (if middleware succeeded, though we prefer Ticket for WS)
+	if !exists {
+		if uidVal, ok := c.Get("userID"); ok {
+			userID = uidVal.(uint)
+			exists = true
+		}
+	}
+
+	if !exists {
+		log.Println("WS Upgrade Blocked: No valid security ticket or session context")
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized protocol access"})
 		return
 	}
 
@@ -448,10 +466,10 @@ func SendChatMessage(c *gin.Context) {
 		go func() {
 			botPrompt := strings.TrimSpace(strings.TrimPrefix(strings.ToLower(content), "@bot"))
 			if botPrompt == "" {
-				botPrompt = "Hello! I am your Technical Consultant. How can I assist you with your DigitalStudio assets today?"
+				botPrompt = "Hello! I am your DigitalStudio technical consultant. How can I help with a product, setup, deployment, or custom build today?"
 			} else {
 				// Augment prompt for technical context
-				botPrompt = "You are a Technical Consultant bot for DigitalStudio, a premium developer marketplace. A Pro Member asks: " + botPrompt + "\n\nProvide a technical, concise, and helpful response (max 100 words)."
+				botPrompt = "You are a technical consultant for DigitalStudio, a developer commerce and service platform for ready apps, implementation help, and custom builds. A Pro member asks: " + botPrompt + "\n\nProvide a technical, concise, and helpful response (max 100 words)."
 			}
 
 			botAnswer, err := requestAIAnswer(botPrompt)
@@ -460,7 +478,7 @@ func SendChatMessage(c *gin.Context) {
 			}
 
 			botMsg := models.ChatMessage{
-				UserName:   "DS Consultant @bot",
+				UserName:   "DigitalStudio Consultant @bot",
 				UserHandle: "bot",
 				Content:    botAnswer,
 				IsPro:      true,
@@ -579,7 +597,7 @@ func PinChatMessage(c *gin.Context) {
 
 	var msg models.ChatMessage
 	if err := config.DB.First(&msg, msgID).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Protocol node not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "Message not found"})
 		return
 	}
 
@@ -603,7 +621,7 @@ func ReportChatMessage(c *gin.Context) {
 
 	var msg models.ChatMessage
 	if err := config.DB.First(&msg, msgID).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Protocol node not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "Message not found"})
 		return
 	}
 
@@ -656,4 +674,3 @@ func BulkDeleteMessages(c *gin.Context) {
 
 	c.Status(http.StatusNoContent)
 }
-

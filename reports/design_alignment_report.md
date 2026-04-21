@@ -1,7 +1,7 @@
 # Design Alignment Report
 
 ## Locked-Route Reference System
-Reference pages preserved: `/chat`, public profile route, `/account`, `/admin`.
+Reference pages preserved: `/chat`, profile route, `/account`, `/admin`.
 
 ### Extracted System
 - Palette: white surfaces, `#fafafa` / `#F5F5F7` page backgrounds, slate text, restrained blue/emerald status accents

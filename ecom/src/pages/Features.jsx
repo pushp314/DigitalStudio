@@ -24,7 +24,7 @@ const Features = () => {
             <BuildSitesHeader
                 title="What the platform"
                 highlight="includes"
-                description="DigitalStudio is built to help customers evaluate products quickly, buy with confidence, and manage their access in one place."
+                description="DigitalStudio helps customers evaluate ready products quickly, buy with confidence, request expert help, and manage access in one place."
             />
 
             <section className="px-6 py-8 md:py-12">
@@ -46,15 +46,15 @@ const Features = () => {
                         <div className="space-y-3">
                             <p className="ds-eyebrow">Next step</p>
                             <h2 className="text-3xl font-semibold tracking-tight text-slate-900 md:text-4xl">
-                                Review the catalog or compare membership access
+                                Explore ready apps or compare membership access
                             </h2>
                             <p className="max-w-2xl text-base leading-7 text-slate-600">
-                                Start with individual products, or review pricing if your team needs broader access across the platform.
+                                Start with an individual product, ask for help choosing, or review pricing if your team needs broader access and support.
                             </p>
                         </div>
                         <div className="flex flex-wrap gap-3">
-                            <Link to="/templates" className="ds-button-primary">
-                                Browse products
+                            <Link to="/apps" className="ds-button-primary">
+                                Explore apps
                             </Link>
                             <Link to="/pricing" className="ds-button-secondary">
                                 View pricing

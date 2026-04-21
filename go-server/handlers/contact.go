@@ -9,121 +9,216 @@ import (
 )
 
 func CreateContactInquiry(c *gin.Context) {
-	var inquiry models.ContactInquiry
-	if err := c.ShouldBindJSON(&inquiry); err != nil {
+	var raw map[string]interface{}
+	if err := c.ShouldBindJSON(&raw); err != nil {
 		respondError(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	user, _ := optionalAuthenticatedUser(c)
-	if user != nil {
-		inquiry.UserID = &user.ID
-	}
-
-	if err := config.DB.Create(&inquiry).Error; err != nil {
-		respondError(c, http.StatusInternalServerError, "Failed to send message")
+	// Decision logic to route to correct handler/logic
+	if _, ok := raw["expertIntentId"]; ok {
+		// Expert Help Path
+		// Manually bind from raw map or use a re-binding trick
+		// For simplicity, I'll use gorm's ability to create from map with Table name specified
+		// But structs are better for hooks. I'll just manually call the logic here.
+		
+		user, _ := optionalAuthenticatedUser(c)
+		newReq := models.ExpertHelpRequest{
+			SharedInquiryFields: models.SharedInquiryFields{
+				Name: raw["name"].(string),
+				Email: raw["email"].(string),
+				Message: raw["message"].(string),
+			},
+		}
+		if s, ok := raw["subject"].(string); ok { newReq.Subject = s }
+		if eid, ok := raw["expertIntentId"].(float64); ok { 
+			val := uint(eid)
+			newReq.ExpertIntentID = &val 
+		}
+		if user != nil { newReq.UserID = &user.ID }
+		
+		if err := config.DB.Create(&newReq).Error; err != nil {
+			respondError(c, http.StatusInternalServerError, "Failed to save expert request")
+			return
+		}
+		backgroundAnalyzeInquiry("expert", newReq.ID, newReq.Message)
+		c.JSON(http.StatusOK, gin.H{"message": "Expert help request received"})
 		return
 	}
 
-	// 🧠 Advanced Trajectory: Asynchronous AI Enrichment
-	go func(id uint, msg string) {
-		sentiment, priority := AnalyzeInquiry(msg)
-		config.DB.Model(&models.ContactInquiry{}).Where("id = ?", id).Updates(map[string]interface{}{
+	// Assume Hire Developer Path or general inquiry
+	newReq := models.HireDeveloperRequest{
+		SharedInquiryFields: models.SharedInquiryFields{
+			Name: raw["name"].(string),
+			Email: raw["email"].(string),
+			Message: raw["message"].(string),
+		},
+	}
+	if s, ok := raw["subject"].(string); ok { newReq.Subject = s }
+	if sid, ok := raw["serviceIntentId"].(float64); ok { 
+		val := uint(sid)
+		newReq.ServiceIntentID = &val 
+	}
+	user, _ := optionalAuthenticatedUser(c)
+	if user != nil { newReq.UserID = &user.ID }
+
+	if err := config.DB.Create(&newReq).Error; err != nil {
+		respondError(c, http.StatusInternalServerError, "Failed to save hire request")
+		return
+	}
+	backgroundAnalyzeInquiry("hire", newReq.ID, newReq.Message)
+	c.JSON(http.StatusOK, gin.H{"message": "Hire developer request received"})
+}
+
+func CreateHireDeveloperRequest(c *gin.Context) {
+	var req models.HireDeveloperRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		respondError(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	user, _ := optionalAuthenticatedUser(c)
+	if user != nil {
+		req.UserID = &user.ID
+	}
+	if err := config.DB.Create(&req).Error; err != nil {
+		respondError(c, http.StatusInternalServerError, "Failed to save request")
+		return
+	}
+	
+	backgroundAnalyzeInquiry("hire", req.ID, req.Message)
+	c.JSON(http.StatusOK, gin.H{"message": "Request received"})
+}
+
+func CreateExpertHelpRequest(c *gin.Context) {
+	var req models.ExpertHelpRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		respondError(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	user, _ := optionalAuthenticatedUser(c)
+	if user != nil {
+		req.UserID = &user.ID
+	}
+	if err := config.DB.Create(&req).Error; err != nil {
+		respondError(c, http.StatusInternalServerError, "Failed to save request")
+		return
+	}
+	
+	backgroundAnalyzeInquiry("expert", req.ID, req.Message)
+	c.JSON(http.StatusOK, gin.H{"message": "Request received"})
+}
+
+func backgroundAnalyzeInquiry(table string, id uint, msg string) {
+	go func(t string, i uint, m string) {
+		sentiment, priority := AnalyzeInquiry(m)
+		targetTable := "hire_developer_requests"
+		if t == "expert" {
+			targetTable = "expert_help_requests"
+		}
+		config.DB.Table(targetTable).Where("id = ?", i).Updates(map[string]interface{}{
 			"sentiment": sentiment,
 			"priority":  priority,
 		})
-	}(inquiry.ID, inquiry.Message)
-
-	c.JSON(http.StatusOK, gin.H{"message": "Thank you! Your inquiry has been received. Our team will get back to you shortly."})
+	}(table, id, msg)
 }
 
 func AdminListInquiries(c *gin.Context) {
-	var inquiries []models.ContactInquiry
-	if err := config.DB.Order("created_at desc").Find(&inquiries).Error; err != nil {
-		respondError(c, http.StatusInternalServerError, "Failed to fetch inquiries")
+	// For admin, we might want to list both. Combined view or separate?
+	// The user asked for "Verify database tables actually exist: ... hire_developer_requests ... expert_help_requests"
+	// I'll provide separate list endpoints or one that combines them.
+	
+	var hireReqs []models.HireDeveloperRequest
+	var expertReqs []models.ExpertHelpRequest
+	
+	config.DB.Preload("ServiceIntent").Find(&hireReqs)
+	config.DB.Preload("ExpertIntent").Find(&expertReqs)
+	
+	c.JSON(http.StatusOK, gin.H{
+		"hireRequests": hireReqs,
+		"expertRequests": expertReqs,
+	})
+}
+func MyInquiries(c *gin.Context) {
+	user, _ := c.Get("user")
+	currUser := user.(models.User)
+
+	var hireReqs []models.HireDeveloperRequest
+	var expertReqs []models.ExpertHelpRequest
+
+	config.DB.Where("user_id = ?", currUser.ID).Preload("ServiceIntent").Find(&hireReqs)
+	config.DB.Where("user_id = ?", currUser.ID).Preload("ExpertIntent").Find(&expertReqs)
+
+	c.JSON(http.StatusOK, gin.H{
+		"hireRequests":   hireReqs,
+		"expertRequests": expertReqs,
+	})
+}
+
+func UserReplyToInquiry(c *gin.Context) {
+	id := c.Param("id")
+	user, _ := c.Get("user")
+	currUser := user.(models.User)
+
+	var body struct {
+		Message string `json:"message" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil {
+		respondError(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	c.JSON(http.StatusOK, inquiries)
+	// Try Expert Help Request First
+	var expertReq models.ExpertHelpRequest
+	if err := config.DB.Where("id = ? AND user_id = ?", id, currUser.ID).First(&expertReq).Error; err == nil {
+		expertReq.Message += "\n\nUser Update: " + body.Message
+		expertReq.Status = "pending" // reset if it was replied?
+		config.DB.Save(&expertReq)
+		c.JSON(http.StatusOK, gin.H{"message": "Expert request updated"})
+		return
+	}
+
+	// Try Hire Developer Request
+	var hireReq models.HireDeveloperRequest
+	if err := config.DB.Where("id = ? AND user_id = ?", id, currUser.ID).First(&hireReq).Error; err == nil {
+		hireReq.Message += "\n\nUser Update: " + body.Message
+		hireReq.Status = "pending"
+		config.DB.Save(&hireReq)
+		c.JSON(http.StatusOK, gin.H{"message": "Hire request updated"})
+		return
+	}
+
+	respondError(c, http.StatusNotFound, "Inquiry not found or access denied")
 }
 
 func AdminReplyToInquiry(c *gin.Context) {
 	id := c.Param("id")
-	var inquiry models.ContactInquiry
-	if err := config.DB.First(&inquiry, id).Error; err != nil {
-		respondError(c, http.StatusNotFound, "Inquiry not found")
-		return
-	}
-
-	var req struct {
+	var body struct {
 		Reply string `json:"reply" binding:"required"`
 	}
-	if err := c.ShouldBindJSON(&req); err != nil {
+	if err := c.ShouldBindJSON(&body); err != nil {
 		respondError(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	inquiry.Reply = req.Reply
-	inquiry.Status = "replied"
-
-	if err := config.DB.Save(&inquiry).Error; err != nil {
-		respondError(c, http.StatusInternalServerError, "Failed to save reply")
+	// Try Expert Help Request First
+	var expertReq models.ExpertHelpRequest
+	if err := config.DB.First(&expertReq, id).Error; err == nil {
+		expertReq.Reply = body.Reply
+		expertReq.Status = "replied"
+		config.DB.Save(&expertReq)
+		c.JSON(http.StatusOK, gin.H{"message": "Expert request replied"})
 		return
 	}
 
-	// Logic for "send them to their account" or "manually reply":
-	// In a real system, this would trigger an email or push notification.
-	// For this MVP, we simply store it. The frontend will show it in their dashboard if they are logged in.
-
-	c.JSON(http.StatusOK, gin.H{"message": "Reply sent successfully", "inquiry": inquiry})
-}
-
-func MyInquiries(c *gin.Context) {
-	user, err := optionalAuthenticatedUser(c)
-	if err != nil || user == nil {
-		respondError(c, http.StatusUnauthorized, "Unauthorized")
+	// Try Hire Developer Request
+	var hireReq models.HireDeveloperRequest
+	if err := config.DB.First(&hireReq, id).Error; err == nil {
+		hireReq.Reply = body.Reply
+		hireReq.Status = "replied"
+		config.DB.Save(&hireReq)
+		c.JSON(http.StatusOK, gin.H{"message": "Hire request replied"})
 		return
 	}
 
-	var inquiries []models.ContactInquiry
-	if err := config.DB.Where("user_id = ?", user.ID).Order("created_at desc").Find(&inquiries).Error; err != nil {
-		respondError(c, http.StatusInternalServerError, "Failed to fetch your inquiries")
-		return
-	}
-
-	c.JSON(http.StatusOK, inquiries)
-}
-
-func UserReplyToInquiry(c *gin.Context) {
-	user, err := optionalAuthenticatedUser(c)
-	if err != nil || user == nil {
-		respondError(c, http.StatusUnauthorized, "Unauthorized")
-		return
-	}
-
-	id := c.Param("id")
-	var inquiry models.ContactInquiry
-	if err := config.DB.Where("id = ? AND user_id = ?", id, user.ID).First(&inquiry).Error; err != nil {
-		respondError(c, http.StatusNotFound, "Inquiry not found or access denied")
-		return
-	}
-
-	var req struct {
-		Message string `json:"message" binding:"required"`
-	}
-	if err := c.ShouldBindJSON(&req); err != nil {
-		respondError(c, http.StatusBadRequest, err.Error())
-		return
-	}
-
-	// Append to message thread logic
-	inquiry.Message = inquiry.Message + "\n\nUser Reply: " + req.Message
-	inquiry.Status = "pending" // Set back to pending so admin sees it
-
-	if err := config.DB.Save(&inquiry).Error; err != nil {
-		respondError(c, http.StatusInternalServerError, "Failed to save reply")
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"message": "Reply sent to support", "inquiry": inquiry})
+	respondError(c, http.StatusNotFound, "Inquiry not found")
 }

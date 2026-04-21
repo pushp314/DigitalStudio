@@ -54,8 +54,8 @@ const TemplatesDetails = () => {
                         <p className="mt-3 text-sm leading-6 text-slate-600">
                             We could not load this product from the API.
                         </p>
-                        <Link to="/templates" className="ds-button-primary mt-6">
-                            Back to products
+                        <Link to="/apps" className="ds-button-primary mt-6">
+                            Back to apps
                         </Link>
                     </div>
                 </div>
@@ -84,11 +84,11 @@ const TemplatesDetails = () => {
                             <div className="space-y-2">
                                 <p className="ds-eyebrow">Related products</p>
                                 <h2 className="text-3xl font-semibold tracking-tight text-slate-900 md:text-4xl">
-                                    Similar options in the catalog
+                                    Similar ready products
                                 </h2>
                             </div>
-                            <Link to="/templates" className="ds-button-secondary">
-                                View all products
+                            <Link to="/apps" className="ds-button-secondary">
+                                View all apps
                             </Link>
                         </div>
                         <TemplateGrid items={filteredRelated} />

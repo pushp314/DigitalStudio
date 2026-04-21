@@ -39,7 +39,7 @@ const TemplatesManager = () => {
         mutationFn: (id) => productService.delete(id),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['products'] });
-            success('Template removed from registry.');
+            success('Product removed from catalog.');
         },
     });
 
@@ -65,13 +65,13 @@ const TemplatesManager = () => {
     if (loading) return (
         <div className="py-20 flex flex-col items-center justify-center space-y-4">
             <div className="w-8 h-8 border-2 border-slate-900 border-t-transparent rounded-full animate-spin"></div>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Querying Registry...</p>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Loading Products...</p>
         </div>
     );
 
     if (error) return (
         <div className="bg-red-50 border border-red-100 rounded-xl p-8 text-red-600">
-            <h3 className="text-xs font-bold uppercase tracking-widest mb-1">Registry Disconnect</h3>
+            <h3 className="text-xs font-bold uppercase tracking-widest mb-1">Catalog Error</h3>
             <p className="text-sm font-medium">{error.message}</p>
         </div>
     );
@@ -86,9 +86,9 @@ const TemplatesManager = () => {
                     deleteMutation.mutate(deleteModal.id);
                     setDeleteModal({ isOpen: false, id: null });
                 }}
-                title="Confirm Template Deletion"
-                message="Are you sure you want to permanently erase this template? All associated data will be purged from the technical registry."
-                confirmText="Purge Template"
+                title="Confirm Product Deletion"
+                message="Are you sure you want to permanently delete this product? Associated catalog data will be removed."
+                confirmText="Delete Product"
                 type="danger"
                 isLoading={deleteMutation.isPending}
             />
@@ -101,16 +101,16 @@ const TemplatesManager = () => {
                     setBulkDeleteModal(false);
                 }}
                 title="Confirm Batch Deletion"
-                message={`Permanently erase ${selectedIds.length} technical templates? This operation is irreversible and will impact the live marketplace catalog.`}
-                confirmText={`Batch Purge (${selectedIds.length})`}
+                message={`Permanently delete ${selectedIds.length} products? This operation is irreversible and will impact the live catalog.`}
+                confirmText={`Delete Selected (${selectedIds.length})`}
                 type="danger"
             />
 
             {/* Professional Toolbar */}
             <div className="flex flex-col md:flex-row justify-between items-center gap-6 bg-white p-6 rounded-xl border border-slate-200">
                 <div>
-                    <h2 className="text-base font-bold text-slate-900 tracking-tight mb-1">Template Registry</h2>
-                    <p className="text-xs text-slate-500">Manage technical templates, pricing models, and asset classifications.</p>
+                    <h2 className="text-base font-bold text-slate-900 tracking-tight mb-1">Product Catalog</h2>
+                    <p className="text-xs text-slate-500">Manage ready apps, software kits, pricing, and approval status.</p>
                 </div>
                 <div className="flex items-center gap-3">
                     {selectedIds.length > 0 && (
@@ -119,14 +119,14 @@ const TemplatesManager = () => {
                             className="px-6 py-2 bg-red-50 text-red-600 text-xs font-bold rounded-lg hover:bg-red-600 hover:text-white transition-all flex items-center gap-2 border border-red-100"
                         >
                             <Trash2 size={14} />
-                            Purge ({selectedIds.length})
+                            Delete ({selectedIds.length})
                         </button>
                     )}
                     <button 
                         onClick={() => navigate('/admin/templates/new')} 
                         className="px-6 py-2 bg-slate-900 text-white rounded-lg text-xs font-bold hover:bg-slate-800 transition-all flex items-center gap-2 shadow-sm"
                     >
-                        <Plus size={16} /> New Template
+                        <Plus size={16} /> New Product
                     </button>
                 </div>
             </div>
@@ -144,7 +144,7 @@ const TemplatesManager = () => {
                                         className="w-4 h-4 accent-slate-900 rounded border-slate-300" 
                                     />
                                 </th>
-                                <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Template Identity</th>
+                                <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Product Identity</th>
                                 <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Licensing</th>
                                 <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Classification</th>
                                 <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Status</th>
@@ -201,14 +201,14 @@ const TemplatesManager = () => {
                                                 <button
                                                     onClick={() => navigate(`/admin/templates/${product.id}/edit`)}
                                                     className="p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-all"
-                                                    title="Edit Template"
+                                                    title="Edit Product"
                                                 >
                                                     <Edit3 size={14} />
                                                 </button>
                                                 <button
                                                     onClick={() => setDeleteModal({ isOpen: true, id: product.id })}
                                                     className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
-                                                    title="Purge Template"
+                                                    title="Delete Product"
                                                 >
                                                     <Trash2 size={14} />
                                                 </button>
@@ -220,7 +220,7 @@ const TemplatesManager = () => {
                                 <tr>
                                     <td colSpan="6" className="px-6 py-40 text-center">
                                         <Archive size={40} className="mx-auto text-slate-200 mb-4" />
-                                        <p className="text-[10px] font-bold uppercase text-slate-300 tracking-[0.4em]">Template Registry Isolated</p>
+                                        <p className="text-[10px] font-bold uppercase text-slate-300 tracking-[0.4em]">Product catalog empty</p>
                                     </td>
                                 </tr>
                             )}
@@ -233,4 +233,3 @@ const TemplatesManager = () => {
 };
 
 export default TemplatesManager;
-

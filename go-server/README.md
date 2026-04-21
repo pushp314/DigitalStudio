@@ -1,6 +1,6 @@
-# DigitalStudio Go API
+# Devnity Go API
 
-This is the Go/Gin backend replacement for DigitalStudio.
+This is the Go/Gin backend for Devnity.
 
 ## Features
 - Framework: Gin

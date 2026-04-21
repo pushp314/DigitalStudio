@@ -52,12 +52,12 @@ const Docs = () => {
     }, [docs, filter, searchQuery]);
 
     const membershipPerks = [
-        { icon: <Crown size={14} />, label: "Premium Templates" },
-        { icon: <ShieldCheck size={14} />, label: "Verified Technical Notes" },
+        { icon: <Crown size={14} />, label: "Premium Product Guides" },
+        { icon: <ShieldCheck size={14} />, label: "Verified Setup Notes" },
         { icon: <Zap size={14} />, label: "Implementation Guides" },
-        { icon: <Download size={14} />, label: "Source Asset Library" },
-        { icon: <Users size={14} />, label: "Private Member Support" },
-        { icon: <Lock size={14} />, label: "Encrypted Documentation" }
+        { icon: <Download size={14} />, label: "Product Delivery Help" },
+        { icon: <Users size={14} />, label: "Member Support" },
+        { icon: <Lock size={14} />, label: "Premium Documentation" }
     ];
 
     // Double for infinite scroll
@@ -77,7 +77,7 @@ const Docs = () => {
             {config?.carouselStack?.length > 0 && (
                 <div className="mb-24">
                     <div className="text-center mb-10">
-                        <span className="px-4 py-1.5 bg-blue-600 text-white text-[10px] font-black uppercase tracking-[0.3em] rounded-full shadow-lg shadow-blue-600/20">Featured Templates</span>
+                        <span className="px-4 py-1.5 bg-blue-600 text-white text-[10px] font-black uppercase tracking-[0.3em] rounded-full shadow-lg shadow-blue-600/20">Featured Products</span>
                     </div>
                     <CarouselStack items={config.carouselStack} />
                 </div>
@@ -99,8 +99,8 @@ const Docs = () => {
                 {/* Header Module - THE CONTEXT */}
                 <div className="mb-12 border-b border-slate-200 pb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
                     <div className="space-y-2">
-                        <h1 className="text-5xl font-black tracking-tight text-slate-900 md:text-6xl uppercase leading-none">Library</h1>
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] bg-slate-50 border border-slate-100 px-4 py-2 rounded-xl inline-block">Technical Intelligence Portal</p>
+                        <h1 className="text-5xl font-black tracking-tight text-slate-900 md:text-6xl uppercase leading-none">Technical Guides</h1>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] bg-slate-50 border border-slate-100 px-4 py-2 rounded-xl inline-block">Setup, deployment, and product implementation</p>
                     </div>
                     
                     <div className="flex bg-slate-100/50 p-1.5 rounded-2xl border border-slate-200/50 shadow-inner">
@@ -155,8 +155,8 @@ const Docs = () => {
                 {filteredDocs.length === 0 ? (
                     <div className="py-24 text-center border-t border-slate-200">
                         <FileText size={48} className="mx-auto text-slate-200 mb-6" />
-                        <h2 className="text-xl font-bold tracking-tight text-slate-900 uppercase">No Manuals Located</h2>
-                        <p className="mt-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest">Adjust your search parameters to find the doc.</p>
+                        <h2 className="text-xl font-bold tracking-tight text-slate-900 uppercase">No guides found</h2>
+                        <p className="mt-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest">Try another product, stack, or setup topic.</p>
                     </div>
                 ) : (
                     <div className={viewMode === 'grid' 
@@ -231,8 +231,7 @@ const Docs = () => {
             </div>
 
             {/* Persistent Infinite Membership Bar */}
-            {config?.features?.subscriptions && (
-                <div className="fixed bottom-0 left-0 right-0 z-50 bg-slate-900 border-t border-white/10 shadow-2xl backdrop-blur-xl">
+            <div className="fixed bottom-0 left-0 right-0 z-50 bg-slate-900 border-t border-white/10 shadow-2xl backdrop-blur-xl">
                     <div className="max-w-7xl mx-auto flex items-center justify-between px-6 py-4">
                         <div className="flex-1 overflow-hidden relative mr-12 hidden md:block">
                             <div className="absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-slate-900 to-transparent z-10" />
@@ -249,19 +248,18 @@ const Docs = () => {
 
                         <div className="flex items-center gap-6 shrink-0 w-full md:w-auto justify-between md:justify-end">
                             <div className="flex flex-col md:text-right">
-                                <p className="text-[10px] font-black text-white uppercase tracking-widest leading-none">Unlock Nexus-Pro Access</p>
-                                <p className="text-[9px] text-blue-400 font-bold uppercase tracking-[0.2em] mt-1">Starting from ₹499/mo</p>
+                                <p className="text-[10px] font-black text-white uppercase tracking-widest leading-none">Unlock Pro guides and priority help</p>
+                                <p className="text-[9px] text-blue-400 font-bold uppercase tracking-[0.2em] mt-1">Premium docs, community chat, and support benefits</p>
                             </div>
                             <Link 
                                 to="/pricing" 
                                 className="px-6 py-3 bg-white text-slate-900 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-50 transition-all shadow-xl hover:-translate-y-0.5 active:translate-y-0"
                             >
-                                View Plans
+                                Compare plans
                             </Link>
                         </div>
                     </div>
-                </div>
-            )}
+            </div>
         </div>
     );
 };

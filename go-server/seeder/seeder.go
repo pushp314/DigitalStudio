@@ -38,22 +38,119 @@ func Run() {
 			log.Println("Admin user created: admin@codestudio.com / admin123")
 		}
 	}
-	
+
+	// 1.5 Categories
+	var catCount int64
+	config.DB.Model(&models.ProductCategory{}).Count(&catCount)
+	if catCount == 0 {
+		cats := []models.ProductCategory{
+			{Name: "SaaS Starters", Slug: "saas-starters", SortOrder: 1, Description: "Full-stack apps ready to launch."},
+			{Name: "Dashboards", Slug: "dashboards", SortOrder: 2, Description: "Admin and analytical dashboards."},
+			{Name: "Website Kits", Slug: "website-kits", SortOrder: 3, Description: "High-quality landing page and website assets."},
+			{Name: "UI Systems", Slug: "ui-systems", SortOrder: 4, Description: "Reusable UI components and design systems."},
+		}
+		for _, c := range cats {
+			config.DB.Create(&c)
+		}
+	}
+
+	// 1.6 Service Intents
+	var serviceCount int64
+	config.DB.Model(&models.ServiceIntent{}).Count(&serviceCount)
+	if serviceCount == 0 {
+		intents := []models.ServiceIntent{
+			{
+				Name: "Custom Build",
+				Slug: "custom-build",
+				Headline: "End-to-End Product Engineering",
+				Subheadline: "From concept to production-ready system.",
+				Description: "Hire our core team to build your entire application with our signature high-fidelity architecture and performance standards.",
+				CTA: "Request Custom Quote",
+				SortOrder: 1,
+			},
+			{
+				Name: "Fix Existing Project",
+				Slug: "fix-existing-project",
+				Headline: "Expert Debugging & Optimization",
+				Subheadline: "Stable. Scaleable. Secure.",
+				Description: "Having trouble with your existing codebase? We specialize in refactoring, security hardening, and performance tuning for Go and React environments.",
+				CTA: "Open Support Request",
+				SortOrder: 2,
+			},
+			{
+				Name: "Consultation",
+				Slug: "consultation",
+				Headline: "Strategic Technical Advisory",
+				Subheadline: "Build with confidence.",
+				Description: "Not sure about your tech stack? Talk to our leads for a 1:1 strategy session on architecture, scaling, and deployment optimization.",
+				CTA: "Book Consultation",
+				SortOrder: 3,
+			},
+		}
+		for _, i := range intents {
+			config.DB.Create(&i)
+		}
+		log.Println("Service Intents Seeded")
+	}
+
+	// 1.7 Expert Intents
+	var expertCount int64
+	config.DB.Model(&models.ExpertIntent{}).Count(&expertCount)
+	if expertCount == 0 {
+		intents := []models.ExpertIntent{
+			{
+				Name: "Get Help Choosing",
+				Slug: "help-choosing",
+				Headline: "Expert Navigation",
+				Subheadline: "Find the perfect starting point.",
+				Description: "Unsure which ready-app or guide fits your project? Talk to an expert for a curated recommendation based on your technical goals.",
+				CTA: "Talk to Expert",
+				IsPaid: false,
+				SortOrder: 1,
+			},
+			{
+				Name: "Pre-Purchase Questions",
+				Slug: "pre-purchase-questions",
+				Headline: "Clarity & Confidence",
+				Subheadline: "Get all the details before you commit.",
+				Description: "Need specific technical details about a product's architecture or implementation? We're here to answer every pre-sales question.",
+				CTA: "Ask a Question",
+				IsPaid: false,
+				SortOrder: 2,
+			},
+			{
+				Name: "Product Recommendation",
+				Slug: "product-recommendation",
+				Headline: "Personalized Discovery",
+				Subheadline: "Tailored to your roadmap.",
+				Description: "Deep dive into your project requirements with a lead developer to receive a personalized asset list and implementation roadmap.",
+				CTA: "Get Recommendation",
+				IsPaid: true,
+				BaseFee: 99,
+				SortOrder: 3,
+			},
+		}
+		for _, i := range intents {
+			config.DB.Create(&i)
+		}
+		log.Println("Expert Intents Seeded")
+	}
+
 	// 2. Site Configuration
 	var configCount int64
 	config.DB.Model(&models.SiteConfig{}).Count(&configCount)
 	if configCount == 0 {
 		siteConfig := models.SiteConfig{
-			HeroTitle:           "High-Performance Marketplace for Modern Teams",
-			HeroSubtitle:        "Deploy premium React templates, technical docs, and AI-powered modules in minutes. Built for developers by developers.",
+			HeroTitle:           "Buy ready apps. Customize them. Or let us build for you.",
+			HeroSubtitle:        "Skip months of development with production-ready apps, technical guides, expert help, and custom build support in one place.",
 			Announcements: []string{
-				"✨ New Release: Horizon AI Analytics Dashboard is now available!",
-				"💎 Pro Member Sale: Save 20% on all licenses this week.",
-				"📚 Technical Manuals: Deep dive into React-Go Clean Architecture.",
-				"🚀 Join our Discord for exclusive product walkthroughs and support.",
+				"New ready app: Horizon AI Analytics Dashboard is now available.",
+				"Pro members get priority support and premium implementation guides.",
+				"Need changes? Request custom work from the DigitalStudio team.",
+				"Submit your own project for approval-based listing.",
 			},
 			ShowAnnouncement:    true,
-			SupportEmail:        "support@digitalstudio.com",
+			SupportEmail:        "support@digitalstudio.app",
 			Features: map[string]bool{
 				"docs":          true,
 				"reviews":       true,
@@ -68,11 +165,11 @@ func Run() {
 			MemberPlans: []models.MemberPlan{
 				{
 					Name:       "Standard",
-					Badge:      "Community",
+					Badge:      "Free",
 					Price:      0,
 					Period:     "forever",
-					Features:   []string{"Browse Marketplace", "Access Free Docs", "Public Community Support"},
-					ButtonText: "Explore Assets",
+					Features:   []string{"Browse ready apps", "Buy individual products", "Access free guides", "Use standard support"},
+					ButtonText: "Explore Apps",
 					IsPopular:  false,
 					IsPrimary:  false,
 				},
@@ -81,35 +178,35 @@ func Run() {
 					Badge:      "Most Popular",
 					Price:      1999,
 					Period:     "month",
-					Features:   []string{"Unlimited Premium Documentation", "Unlimited AI Recommendations", "Early Access to Drops", "Private Slack Community", "Priority Support"},
-					ButtonText: "Get All-Access Now",
+					Features:   []string{"Premium implementation guides", "Priority support", "Community chat access", "Product setup help"},
+					ButtonText: "Upgrade to Pro",
 					IsPopular:  true,
 					IsPrimary:  true,
 				},
 			},
 			FAQs: []models.FAQItem{
-				{Question: "What technologies do you support?", Answer: "Our marketplace primarily features React, Next.js, and Tailwind CSS templates, with Go and Node.js backend modules."},
+				{Question: "What technologies do you support?", Answer: "DigitalStudio lists ready apps, templates, fullstack projects, UI kits, and backend modules across React, Next.js, Tailwind CSS, Go, and Node.js."},
 				{Question: "Do I get free updates?", Answer: "Yes! Every purchase includes lifetime access to all future updates for that specific product."},
 				{Question: "How does the license work?", Answer: "Standard products come with a Commercial License for one project. Extended licenses are available for agency use."},
 			},
 			SocialProof: models.SocialProofConfig{
 				Rating:        "4.95/5",
-				Summary:       "Rated #1 for Code Quality in 2026",
-				CreatorsLabel: "Trusted by 2,000+ scaling engineering teams",
+				Summary:       "Trusted by builders who need production-ready systems",
+				CreatorsLabel: "Used by founders, agencies, and technical teams",
 				TrustedCompanies: []string{"Vercel", "Stripe", "Prisma", "Supabase"},
 			},
 			ShowcaseItems: []models.ShowcaseItem{
 				{
 					Title:       "Admin Experience",
 					Subtitle:    "Fully managed dashboards",
-					Description: "Our templates include full-featured admin surfaces for order tracking and user management.",
+					Description: "Our ready products include full-featured admin surfaces for order tracking and user management.",
 					Image:       "https://images.unsplash.com/photo-1551288049-bbbda536639a?q=80&w=1200",
 					Footer:      "Dashboard View",
 				},
 			},
 			Contact: models.ContactConfig{
 				Heading: "Get in touch",
-				Email:   "hello@digitalstudio.com",
+				Email:   "hello@digitalstudio.app",
 				Phone:   "+1 (555) 000-0000",
 				Address: "Global Studio HQ",
 			},
@@ -140,28 +237,34 @@ func Run() {
 	}
 
 	// 4. Products
+	var saasCat models.ProductCategory
+	config.DB.Where("slug = ?", "saas-starters").First(&saasCat)
+	var dashboardCat models.ProductCategory
+	config.DB.Where("slug = ?", "dashboards").First(&dashboardCat)
+
 	products := []models.Product{
 		{
 			AuthorID: admin.ID,
 			Title: "Horizon AI Dashboard",
 			Slug: "horizon-ai",
 			Category: "SaaS",
+			CategoryID: func() *uint { if saasCat.ID != 0 { return &saasCat.ID }; return nil }(),
 			Price: 4999,
 			Image: "https://images.unsplash.com/photo-1551288049-bbbda536639a?q=80&w=800",
-			Description: "Next-gen analytics dashboard with real-time AI processing hooks.",
-			Type: models.ProductTypeTemplate,
+			Description: "Production-ready analytics dashboard with real-time AI processing hooks, admin surfaces, and room for custom implementation.",
+			Type: models.ProductTypeFullstack,
 			StatusFlags: "featured,new",
 			TechStacks: []string{"React", "Next.js", "Go"},
 			FileURL: "https://github.com/pushp314/digitalstudio/archive/refs/heads/main.zip",
 		},
 		{
 			AuthorID: admin.ID,
-			Title: "Nexus Portfolio",
-			Slug: "nexus-portfolio",
+			Title: "Launch Portfolio Kit",
+			Slug: "launch-portfolio-kit",
 			Category: "Portfolio",
 			Price: 1999,
 			Image: "https://images.unsplash.com/photo-1467232004584-a241de8bcf5d?q=80&w=800",
-			Description: "Minimalist, high-performance portfolio for creative developers.",
+			Description: "Minimalist portfolio kit for founders, creators, and agencies who need a polished launch presence quickly.",
 			Type: models.ProductTypeTemplate,
 			StatusFlags: "trending",
 			TechStacks: []string{"React", "GSAP"},
@@ -169,12 +272,12 @@ func Run() {
 		},
 		{
 			AuthorID: admin.ID,
-			Title: "DigitalStudio Pro Pass",
+			Title: "DigitalStudio Pro Membership",
 			Slug: "pro-membership",
 			Category: "Membership",
 			Price: 29,
 			Image: "https://images.unsplash.com/photo-1579389083078-4e7018379f7e?q=80&w=800",
-			Description: "Unlimited access to all documents and premium template unlocks.",
+			Description: "Premium guides, community chat access, priority support, and implementation help for active builders.",
 			Type: models.ProductTypeSubscription,
 			StatusFlags: "featured",
 			RequiresSubscription: false,
@@ -182,12 +285,12 @@ func Run() {
 		},
 		{
 			AuthorID: admin.ID,
-			Title: "DigitalStudio Elite Pass",
+			Title: "DigitalStudio Team Support",
 			Slug: "institutional-membership",
 			Category: "Institutional",
 			Price: 59,
 			Image: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=800",
-			Description: "Institutional grade access for teams with dedicated CTO support.",
+			Description: "Team-oriented support for custom development, deployment planning, and technical handoff.",
 			Type: models.ProductTypeSubscription,
 			StatusFlags: "premium",
 			RequiresSubscription: false,
@@ -302,7 +405,7 @@ Don't just return errors. Wrap them with context using fmt.Errorf to ensure logs
 			},
 			{
 				Title:       "Getting Started with DigitalStudio",
-				Description: "The essential guide to using our marketplace templates effectively.",
+				Description: "The essential guide to buying ready products, requesting help, and using post-purchase support.",
 				Category:    "General",
 				IsPremium:   false,
 				Icon:        "🚀",
@@ -313,15 +416,15 @@ Don't just return errors. Wrap them with context using fmt.Errorf to ensure logs
 We are excited to help you ship your next big idea.
 
 ## Installation
-All our templates are delivered as ZIP files containing a standard React/Vite structure. Just run npm install to begin.
+Products are delivered through your account after payment verification. Many code products include a ZIP or repository-style structure with setup notes.
 
 ## Configuration
 Edit the .env file to add your API keys and environment variables.
 
 ## Support
-Our team is available for technical support Monday through Friday via the dashboard contact form.
+Our team can help with product fit, setup, deployment, implementation questions, and custom development requests.
 `,
-				PreviewContent: "Get up and running with your new templates in minutes. Basic installation, configuration, and support overview.",
+				PreviewContent: "Get up and running with your new product in minutes. Basic installation, configuration, and support overview.",
 				TableOfContents: []models.TOCItem{
 					{ID: "welcome-to-digitalstudio", Title: "Welcome to DigitalStudio", Level: 1},
 				},
@@ -360,9 +463,9 @@ Our team is available for technical support Monday through Friday via the dashbo
 			return
 		}
 
-		var nexus models.Product
-		if err := config.DB.Where("slug = ?", "nexus-portfolio").First(&nexus).Error; err != nil {
-			log.Println("Skipping testimonial seeding: nexus-portfolio product not found")
+		var portfolio models.Product
+		if err := config.DB.Where("slug = ?", "launch-portfolio-kit").First(&portfolio).Error; err != nil {
+			log.Println("Skipping testimonial seeding: launch-portfolio-kit product not found")
 			return
 		}
 
@@ -376,14 +479,14 @@ Our team is available for technical support Monday through Friday via the dashbo
 			},
 			{
 				UserID: sarah.ID,
-				ProductID: nexus.ID,
-				Content: "Minimalist yet powerful. The Nexus Portfolio's GSAP animations are buttery smooth. Highly recommended for creative devs!",
+				ProductID: portfolio.ID,
+				Content: "Minimalist yet powerful. The Launch Portfolio Kit helped us ship a polished launch presence quickly.",
 				Rating: 5,
 				Status: "approved",
 			},
 			{
 				UserID: james.ID,
-				ProductID: nexus.ID,
+				ProductID: portfolio.ID,
 				Content: "Excellent code quality. The clean architecture patterns helped our team standardize our internal tools quickly.",
 				Rating: 4,
 				Status: "approved",

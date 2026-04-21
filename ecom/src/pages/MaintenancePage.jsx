@@ -13,7 +13,7 @@ const MaintenancePage = ({ message }) => {
                 {/* Minimalist Brand Mark */}
                 <div className="mb-12 group">
                     <div className="w-16 h-16 bg-black rounded-2xl flex items-center justify-center text-white text-2xl font-black shadow-2xl shadow-black/20 transform transition-transform group-hover:rotate-12 duration-500">
-                        DS
+                        DN
                     </div>
                 </div>
 
@@ -30,7 +30,7 @@ const MaintenancePage = ({ message }) => {
 
                     <div className="space-y-4 px-4">
                         <p className="text-lg md:text-xl font-medium text-gray-500 leading-relaxed italic">
-                            {message || "We’re currently perfecting your DigitalStudio experience. We'll be back online and ready for you very shortly."}
+                            {message || "We're currently improving the DigitalStudio buying and support experience. We'll be back online shortly."}
                         </p>
                         <p className="text-sm font-bold text-black/40 uppercase tracking-widest pt-4">
                             Thank you for your patience
@@ -49,7 +49,7 @@ const MaintenancePage = ({ message }) => {
                     </button>
                     
                     <div className="text-[9px] font-bold text-gray-300 uppercase tracking-[0.3em]">
-                        DigitalStudio &copy; {new Date().getFullYear()} — Engineering Excellence
+                        DigitalStudio &copy; {new Date().getFullYear()} - Ready apps and expert support
                     </div>
                 </div>
             </div>

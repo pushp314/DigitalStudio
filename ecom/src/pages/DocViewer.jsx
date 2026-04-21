@@ -65,7 +65,7 @@ const DocViewer = () => {
     }, [isAssistantOpen, isPro, id]); // Use id instead of doc to prevent unnecessary re-syncs if doc object changes
 
     const handleClearChat = async () => {
-        if (!window.confirm("Permanently purge this conversation protocol?")) return;
+        if (!window.confirm("Clear this guide assistant conversation?")) return;
         try {
             await aiService.deleteDocChat(id);
             setChatHistory([]);
@@ -165,7 +165,7 @@ const DocViewer = () => {
         try {
             const response = await aiService.askDocAIStream(doc.content, question, id);
             if (!response.ok) {
-                throw new Error('Intelligence node unavailable.');
+                throw new Error('Guide assistant is unavailable.');
             }
 
             const reader = response.body.getReader();
@@ -203,7 +203,7 @@ const DocViewer = () => {
                 const next = [...prev];
                 next[next.length - 1] = {
                     role: 'ai',
-                    content: `CRITICAL ERROR: ${_err.message || 'Transmission interrupted'}. Please refresh the uplink.`,
+                                    content: `Error: ${_err.message || 'The response was interrupted'}. Please try again.`,
                 };
                 return next;
             });
@@ -349,18 +349,24 @@ const DocViewer = () => {
                             </div>
 
                             {showLockCta && (
-                                <div className="mt-8 rounded-2xl border border-slate-200 bg-slate-50 p-6">
+                                <div className="mt-8 rounded-2xl border border-slate-200 bg-slate-50 p-6 md:p-8">
                                     <h2 className="text-2xl font-semibold tracking-tight text-slate-900">Unlock the full guide</h2>
                                     <p className="mt-3 text-sm leading-6 text-slate-600">
-                                        This guide is available to customers with the required access plan. Sign in or review pricing to continue.
+                                        Get the complete deployment guide, configuration scripts, and direct technical help by upgrading your membership.
                                     </p>
-                                    <div className="mt-5 flex flex-wrap gap-3">
-                                        <button type="button" onClick={handleProtectedAccess} className="ds-button-primary">
-                                            Continue
-                                        </button>
-                                        <Link to="/pricing" className="ds-button-secondary">
-                                            View pricing
-                                        </Link>
+                                    <div className="mt-8 flex flex-col gap-4">
+                                         <div className="flex flex-wrap gap-3">
+                                             <button type="button" onClick={handleProtectedAccess} className="ds-button-primary">
+                                                 Upgrade Now
+                                             </button>
+                                             <Link to="/pricing" className="ds-button-secondary bg-white">
+                                                 View pricing
+                                             </Link>
+                                         </div>
+                                         <div className="pt-4 border-t border-slate-200">
+                                             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Unsure what plan you need?</p>
+                                             <Link to="/contact" className="text-sm font-bold text-blue-600 hover:underline">Talk to support for guidance</Link>
+                                         </div>
                                     </div>
                                 </div>
                             )}
@@ -369,26 +375,26 @@ const DocViewer = () => {
 
                     <aside className="space-y-6">
                         <div className="ds-card p-6 sticky top-32">
-                            <h2 className="text-sm font-bold text-slate-900 uppercase tracking-widest border-b border-slate-100 pb-4 mb-6">Manifest Meta</h2>
+                            <h2 className="text-sm font-bold text-slate-900 uppercase tracking-widest border-b border-slate-100 pb-4 mb-6">Guide details</h2>
                             <dl className="space-y-4">
                                 <div className="flex items-center justify-between">
-                                    <dt className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Protocol</dt>
+                                    <dt className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Category</dt>
                                     <dd className="text-[11px] font-black text-slate-900 uppercase">{doc.category || 'General'}</dd>
                                 </div>
                                 <div className="flex items-center justify-between">
-                                    <dt className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Security</dt>
+                                    <dt className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Access</dt>
                                     <dd className="flex items-center gap-1.5">
                                         <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></div>
-                                        <span className="text-[10px] font-bold text-emerald-600 uppercase">Verified</span>
+                                        <span className="text-[10px] font-bold text-emerald-600 uppercase">{showLockCta ? 'Preview' : 'Available'}</span>
                                     </dd>
                                 </div>
                                 <div className="flex items-center justify-between">
-                                    <dt className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Read Latency</dt>
-                                    <dd className="text-[10px] font-bold text-slate-900 font-mono">{estimatedRead}M</dd>
+                                    <dt className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Read time</dt>
+                                    <dd className="text-[10px] font-bold text-slate-900 font-mono">{estimatedRead} min</dd>
                                 </div>
                             </dl>
                             <button onClick={handlePrint} className="w-full mt-8 py-3 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-[0.2em] hover:bg-slate-800 transition-all shadow-lg shadow-slate-900/10">
-                                Export PDF
+                                Print or save PDF
                             </button>
                         </div>
                     </aside>
@@ -412,7 +418,7 @@ const DocViewer = () => {
                             <span className="absolute -right-1 -top-1 h-3 w-3 animate-pulse rounded-full border-2 border-white bg-emerald-500" />
                         )}
                     </div>
-                    <span className="text-xs font-bold uppercase tracking-widest text-slate-900">Assistant Hub</span>
+                    <span className="text-xs font-bold uppercase tracking-widest text-slate-900">Guide Assistant</span>
                 </motion.button>
             )}
 
@@ -441,11 +447,11 @@ const DocViewer = () => {
                                         <Cpu size={24} />
                                     </div>
                                     <div>
-                                        <h3 className="text-sm font-bold tracking-tight text-slate-900">Protocol Assistant</h3>
+                                        <h3 className="text-sm font-bold tracking-tight text-slate-900">Guide Assistant</h3>
                                         <div className="mt-1 flex items-center gap-2">
                                             <div className={`h-2 w-2 rounded-full ${isPro ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300'}`} />
                                             <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
-                                                {isPro ? 'Matrix Synchronized' : 'Restricted Uplink'}
+                                                {isPro ? 'Pro access active' : 'Pro access required'}
                                             </span>
                                         </div>
                                     </div>
@@ -455,7 +461,7 @@ const DocViewer = () => {
                                         <button
                                             onClick={handleClearChat}
                                             className="rounded-xl p-2 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-500"
-                                            title="Purge Protocol"
+                                            title="Clear conversation"
                                         >
                                             <Trash2 size={20} />
                                         </button>
@@ -479,11 +485,11 @@ const DocViewer = () => {
                                         <div className="space-y-2">
                                             <h4 className="text-xl font-bold text-slate-900 tracking-tight">Pro Access Required</h4>
                                             <p className="text-sm leading-relaxed text-slate-500">
-                                                Technical intelligence protocols are exclusive to verified Pro members. Unlock the manifest analysis node now.
+                                                The AI guide assistant is available to Pro members for product setup, deployment, and implementation questions.
                                             </p>
                                         </div>
                                         <Link to="/pricing" className="w-full ds-button-primary py-4 rounded-2xl shadow-xl shadow-slate-900/10">
-                                            Upgrade Subscription
+                                            Upgrade to Pro
                                         </Link>
                                     </div>
                                 ) : (
@@ -491,7 +497,7 @@ const DocViewer = () => {
                                         {chatHistory.length === 0 && !isLoadingHistory && (
                                             <div className="flex h-40 flex-col items-center justify-center rounded-3xl border border-dashed border-slate-100 bg-slate-50/50">
                                                 <Sparkles size={28} className="mb-3 text-slate-300" />
-                                                <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Initialize Transmission</p>
+                                                <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Ask a question about this guide</p>
                                             </div>
                                         )}
 
@@ -505,7 +511,7 @@ const DocViewer = () => {
                                             <div key={i} className="space-y-2">
                                                 <div className="flex items-center justify-between px-1">
                                                      <span className="text-[9px] font-bold uppercase tracking-widest text-slate-400">
-                                                        {msg.role === 'user' ? 'Transmission' : 'Uplink Response'}
+                                                        {msg.role === 'user' ? 'You' : 'Assistant'}
                                                      </span>
                                                      <span className="text-[8px] font-mono text-slate-300 uppercase">SYN_{i}</span>
                                                 </div>
@@ -543,7 +549,7 @@ const DocViewer = () => {
                                         <textarea
                                             value={chatInput}
                                             onChange={(e) => setChatInput(e.target.value)}
-                                            placeholder="Ask the manifest..."
+                                            placeholder="Ask this guide..."
                                             disabled={isChatLoading}
                                             rows="2"
                                             className="w-full resize-none rounded-2xl border border-slate-200 bg-slate-50 p-5 pr-14 text-sm font-medium transition-all group-hover:border-slate-300 focus:border-slate-900 focus:bg-white focus:outline-none focus:ring-0"
@@ -558,7 +564,7 @@ const DocViewer = () => {
                                     </form>
                                     <div className="mt-4 flex items-center justify-center gap-4">
                                         <div className="h-px flex-1 bg-slate-100" />
-                                        <span className="text-[10px] font-bold uppercase tracking-tighter text-slate-300">Enterprise Protocol v4.0</span>
+                                        <span className="text-[10px] font-bold uppercase tracking-tighter text-slate-300">DigitalStudio guide assistant</span>
                                         <div className="h-px flex-1 bg-slate-100" />
                                     </div>
                                 </div>

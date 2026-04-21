@@ -24,7 +24,9 @@ import {
     User,
     Compass,
     Pin,
-    MessageSquare
+    MessageSquare,
+    Package,
+    Shield
 } from 'lucide-react';
 
 const DevChat = () => {
@@ -69,7 +71,7 @@ const DevChat = () => {
             const lastMsg = messages[messages.length - 1];
             if (lastMsg.userId !== user?.id) {
                 if (chatSettings.sounds) {
-                    playChatChime();
+                    playReceiveSound();
                 }
                 
                 // Show browser notification if not focused
@@ -83,7 +85,24 @@ const DevChat = () => {
         }
     }, [messages.length, chatSettings.sounds, status, user?.id]);
 
-    const playChatChime = () => {
+    const playReceiveSound = () => {
+        try {
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(400, audioCtx.currentTime);
+            oscillator.frequency.exponentialRampToValueAtTime(150, audioCtx.currentTime + 0.1);
+            gainNode.gain.setValueAtTime(0.015, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.1);
+            oscillator.start();
+            oscillator.stop(audioCtx.currentTime + 0.1);
+        } catch (e) {}
+    };
+
+    const playSendSound = () => {
         try {
             const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             const oscillator = audioCtx.createOscillator();
@@ -92,14 +111,12 @@ const DevChat = () => {
             gainNode.connect(audioCtx.destination);
             oscillator.type = 'sine';
             oscillator.frequency.setValueAtTime(600, audioCtx.currentTime);
-            oscillator.frequency.exponentialRampToValueAtTime(300, audioCtx.currentTime + 0.08);
+            oscillator.frequency.exponentialRampToValueAtTime(1000, audioCtx.currentTime + 0.05);
             gainNode.gain.setValueAtTime(0.01, audioCtx.currentTime);
-            gainNode.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.08);
+            gainNode.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.05);
             oscillator.start();
-            oscillator.stop(audioCtx.currentTime + 0.08);
-        } catch (e) {
-            console.warn("Audio failure:", e);
-        }
+            oscillator.stop(audioCtx.currentTime + 0.05);
+        } catch (e) {}
     };
 
     const handleUpdateSettings = (key, val) => {
@@ -132,7 +149,7 @@ const DevChat = () => {
 
     const handleSendMessage = (content, attachment = null) => {
         if (!isPro && userMessageCount >= 2) {
-            info("Freemium Limit Reached: Unlock unlimited chat with Pro.");
+            info("Free chat limit reached. Upgrade to Pro for unlimited messaging.");
             return;
         }
 
@@ -149,6 +166,7 @@ const DevChat = () => {
             error("Failed to send message.");
             return;
         }
+        if (chatSettings.sounds) playSendSound();
         setReplyingTo(null);
     };
 
@@ -218,24 +236,40 @@ const DevChat = () => {
                 <div className="flex flex-col gap-6 items-center w-full">
                     <button 
                         onClick={() => navigate('/')}
-                        className="p-2.5 text-slate-400 hover:text-slate-900 transition-all rounded-lg hover:bg-slate-100"
-                        title="Exit Chat"
+                        className="p-2.5 text-slate-400 hover:text-slate-900 transition-all rounded-lg hover:bg-slate-100 group relative"
+                        title="Return to DigitalStudio"
                     >
                         <Home size={20} strokeWidth={2.5} />
+                        <span className="absolute left-16 px-2 py-1 bg-slate-900 text-white text-[10px] font-bold rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none shadow-xl">Back to DigitalStudio</span>
                     </button>
 
                     <div className="w-8 h-px bg-slate-200"></div>
 
-                    <button className="p-2.5 bg-slate-900 text-white rounded-lg shadow-sm">
+                    <button 
+                        onClick={() => navigate('/chat')}
+                        className="p-2.5 bg-slate-900 text-white rounded-lg shadow-sm group relative"
+                        title="Community Chat"
+                    >
                         <Terminal size={20} strokeWidth={2.5} />
+                        <span className="absolute left-16 px-2 py-1 bg-slate-900 text-white text-[10px] font-bold rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none shadow-xl">Developer Chat</span>
                     </button>
                     
                     <button 
-                        onClick={() => navigate('/templates')}
-                        className="p-2.5 text-slate-400 hover:text-slate-900 transition-all rounded-lg hover:bg-slate-100"
-                        title="Explore Templates"
+                        onClick={() => navigate('/apps')}
+                        className="p-2.5 text-slate-400 hover:text-slate-900 transition-all rounded-lg hover:bg-slate-100 group relative"
+                        title="Explore Apps"
                     >
-                        <Compass size={20} strokeWidth={2.5} />
+                        <Package size={20} strokeWidth={2.5} />
+                        <span className="absolute left-16 px-2 py-1 bg-slate-900 text-white text-[10px] font-bold rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none shadow-xl">Explore Apps</span>
+                    </button>
+
+                    <button 
+                        onClick={() => navigate('/support')}
+                        className="p-2.5 text-slate-400 hover:text-indigo-600 transition-all rounded-lg hover:bg-indigo-50 group relative"
+                        title="Support"
+                    >
+                        <Shield size={20} strokeWidth={2.5} />
+                        <span className="absolute left-16 px-2 py-1 bg-indigo-600 text-white text-[10px] font-bold rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none shadow-xl">Support</span>
                     </button>
                 </div>
 
@@ -317,7 +351,7 @@ const DevChat = () => {
                     {(status !== 'online' && !historyLoading) && (
                          <div className="absolute top-4 left-1/2 -translate-x-1/2 px-4 py-1.5 bg-slate-900 text-white text-[9px] font-bold uppercase tracking-widest rounded-full shadow-lg flex items-center gap-3 animate-pulse">
                              <Circle size={8} fill="currentColor" className="text-amber-500" />
-                             {status === 'connecting' ? 'Establishing Uplink...' : 'Re-syncing Matrix...'}
+                             {status === 'connecting' ? 'Connecting...' : 'Reconnecting...'}
                          </div>
                     )}
                 </div>

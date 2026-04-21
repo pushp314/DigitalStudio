@@ -13,12 +13,12 @@ func ServeProductSEO(c *gin.Context) {
 	id := c.Param("id")
 	var product models.Product
 	if err := config.DB.First(&product, id).Error; err != nil {
-		c.Redirect(http.StatusTemporaryRedirect, "/templates")
+		c.Redirect(http.StatusTemporaryRedirect, "/apps")
 		return
 	}
 
 	// Dynamic Metadata Payload
-	title := fmt.Sprintf("%s | DigitalStudio Premium", product.Title)
+	title := fmt.Sprintf("%s | Devnity", product.Title)
 	description := product.Description
 	if len(description) > 160 {
 		description = description[:157] + "..."
@@ -35,7 +35,7 @@ func ServeProductSEO(c *gin.Context) {
     
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="product">
-    <meta property="og:url" content="%s/templates/%s">
+    <meta property="og:url" content="%s/apps/%s">
     <meta property="og:title" content="%s">
     <meta property="og:description" content="%s">
     <meta property="og:image" content="%s">
@@ -44,15 +44,15 @@ func ServeProductSEO(c *gin.Context) {
 
     <!-- Twitter -->
     <meta property="twitter:card" content="summary_large_image">
-    <meta property="twitter:url" content="%s/templates/%s">
+    <meta property="twitter:url" content="%s/apps/%s">
     <meta property="twitter:title" content="%s">
     <meta property="twitter:description" content="%s">
     <meta property="twitter:image" content="%s">
 
-    <!-- Pulse Redirect -->
+    <!-- Client Redirect -->
     <script>
         setTimeout(function() {
-            window.location.href = "%s/templates/%s";
+            window.location.href = "%s/apps/%s";
         }, 150);
     </script>
 </head>

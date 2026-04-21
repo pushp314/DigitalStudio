@@ -31,8 +31,8 @@ const Home = () => {
     return (
         <>
             <Meta 
-                title="Developer Templates, Docs, and Code Assets"
-                description="Browse developer templates, documentation, and code assets for teams shipping product work."
+                title="Buy Ready Apps, Get Expert Help, or Hire Developers"
+                description="DigitalStudio helps founders, teams, agencies, and builders buy ready apps, customize them, or hire developers to build for them."
             />
             <HeroSection />
             

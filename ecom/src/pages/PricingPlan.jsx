@@ -1,26 +1,18 @@
-import React, { useContext, useEffect, useMemo } from 'react';
+import React, { useContext, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
 import productService from '../services/productService';
 import AuthContext from '../context/AuthContext';
-import ConfigContext from '../context/ConfigContext';
 import { useCart } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';
 import { formatCurrency, normalizeProduct } from '../utils/normalizers';
-import { ShieldCheck, Zap, Star, Sparkles, Heart, Rocket, Target, Crown } from 'lucide-react';
+import { ShieldCheck, Zap, Rocket, Target, Crown } from 'lucide-react';
 
 const PricingPlan = () => {
-    const { config } = useContext(ConfigContext);
     const { user } = useContext(AuthContext);
     const { addToCart, clearCart } = useCart();
     const { success, error: toastError } = useToast();
     const navigate = useNavigate();
-
-    useEffect(() => {
-        if (config && config.features && config.features.subscriptions === false) {
-            navigate('/');
-        }
-    }, [config, navigate]);
 
     const { data: rawProducts = [] } = useQuery({
         queryKey: ['products', 'subscription'],
@@ -33,63 +25,68 @@ const PricingPlan = () => {
 
     const plans = [
         {
-            name: 'Free Plan',
-            badge: 'Community Access',
+            name: 'Free',
+            badge: 'Start here',
+            description: 'For buyers comparing ready products or reading public guides before purchase.',
             originalPrice: 0,
             price: 0,
             period: 'forever',
             features: [
-                'Public Template Library',
-                'Community Discussion Access',
-                'Standard Email Support',
-                'Limited 2-msg/day Chat'
+                'Browse ready apps and software kits',
+                'Buy individual products when needed',
+                'Read public documentation and previews',
+                'Standard contact support',
+                'Limited community chat access'
             ],
-            buttonText: 'Get Started for Free',
+            buttonText: 'Explore apps',
             isPrimary: false,
             marketingBadge: null,
             product: null,
             key: 'free'
         },
         {
-            name: 'Pro Plan',
+            name: 'Pro Membership',
             badge: 'Most Popular',
+            description: 'For builders who want better access, priority help, and community benefits.',
             originalPrice: (proPlanProduct?.price || 29) + 20, 
             price: proPlanProduct?.price || 29,
             period: 'month',
             features: proPlanProduct?.features?.length > 0 ? proPlanProduct.features : [
-                'Unlimited 1-1 Priority Support (FREE)',
-                'Priority Template Negotiations',
-                'Full Commercial Use License',
-                'Unlimited Community Chat Access',
-                'Image & File Transmission',
-                'Exclusive SaaS Components'
+                'Priority expert support benefits',
+                'Premium documentation access',
+                'Unlimited community chat messaging',
+                'Image and file sharing in community chat',
+                'Member access to eligible products',
+                'Faster help with setup and deployment'
             ],
             buttonText: 'Upgrade to Pro',
             isPrimary: true,
-            marketingBadge: '⚡ Early Bird Offer',
+            marketingBadge: 'Best for active builders',
             icon: <Crown className="text-amber-400" size={24} fill="currentColor" />,
             product: proPlanProduct,
             key: 'pro'
         },
         {
-            name: 'Enterprise Plan',
-            badge: 'For Teams',
-            originalPrice: (elitePlanProduct?.price || 59) + 40,
-            price: elitePlanProduct?.price || 59,
-            period: 'month',
-            features: elitePlanProduct?.features?.length > 0 ? elitePlanProduct.features : [
-                'Everything in Pro Plan',
-                'Direct CTO Access (SLA 4h)',
-                'White-label Deployment Rights',
-                'Custom Feature Development',
-                'Bi-weekly Strategic Audits'
+            name: 'Elite / Custom',
+            badge: 'Scalable Solutions',
+            description: 'For companies and founders requiring custom development, deployment help, or specialized builds.',
+            originalPrice: elitePlanProduct ? (elitePlanProduct.price || 59) + 40 : 0,
+            price: elitePlanProduct?.price || 0,
+            period: elitePlanProduct ? 'month' : 'project',
+            features: [
+                'Full custom builds from scratch',
+                'Advanced implementation & forking',
+                'Priority architecture consulting',
+                'End-to-end deployment management',
+                'Dedicated project handoff'
             ],
-            buttonText: 'Upgrade to Enterprise',
+            buttonText: 'Request Project Quote',
             isPrimary: false,
-            marketingBadge: '🔥 Founding Member Price',
-            icon: <ShieldCheck className="text-blue-500" size={20} />,
+            marketingBadge: 'Best for Founders',
+            icon: <ShieldCheck className="text-indigo-600" size={24} />,
             product: elitePlanProduct,
-            key: 'institutional'
+            key: 'institutional',
+            contactOnly: true
         },
     ];
 
@@ -113,6 +110,20 @@ const PricingPlan = () => {
         }
     };
 
+    const handlePlanAction = (plan) => {
+        if (plan.key === 'free') {
+            navigate('/apps');
+            return;
+        }
+
+        if (plan.contactOnly) {
+            navigate('/hire-developer');
+            return;
+        }
+
+        handleSubscribe(plan.product || { slug: plan.key === 'pro' ? 'pro-membership' : 'institutional-membership', title: plan.name, price: plan.price });
+    };
+
     return (
         <div className="ds-page bg-slate-50 px-6 pb-24 pt-32">
             <div className="max-w-7xl mx-auto space-y-16">
@@ -120,18 +131,18 @@ const PricingPlan = () => {
                 {/* Header Section */}
                 <div className="text-center space-y-6 animate-in fade-in slide-in-from-top-4 duration-1000">
                     <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 border border-slate-200 text-slate-500 text-[10px] font-black uppercase tracking-[0.2em]">
-                        <Rocket size={12} className="text-blue-500" /> Infrastructure Access
+                        <Rocket size={12} className="text-blue-500" /> Plans
                     </div>
                     <h1 className="text-5xl md:text-7xl font-black tracking-tighter text-slate-900 leading-[0.9]">
-                        Choose your <span className="text-slate-400">Power Level.</span>
+                        Choose the right <span className="text-slate-400">access and support.</span>
                     </h1>
                     <p className="max-w-2xl mx-auto text-sm text-slate-500 font-medium leading-relaxed">
-                        Scale your development acceleration with tiered access plans. From individual creators to institutional teams.
+                        Start free, buy individual products, upgrade for Pro support and premium docs, or request a custom plan for team delivery.
                     </p>
                     
                     <div className="inline-flex items-center gap-3 px-6 py-3 bg-amber-50 border border-amber-200 rounded-2xl">
-                        <Sparkles size={16} className="text-amber-500 animate-pulse" />
-                        <span className="text-xs font-black text-amber-700 uppercase tracking-widest">DigitalStudio Anniversary Special: Save 40% on Pro Annual Plans</span>
+                        <ShieldCheck size={16} className="text-amber-500" />
+                        <span className="text-xs font-black text-amber-700 uppercase tracking-widest">Every purchase includes authenticated delivery and account access</span>
                     </div>
                 </div>
 
@@ -167,9 +178,10 @@ const PricingPlan = () => {
 
                                     <div className="space-y-4">
                                         <h2 className="text-3xl font-black tracking-tight">{plan.name}</h2>
+                                        <p className={`text-sm leading-6 font-medium ${plan.isPrimary ? 'text-slate-300' : 'text-slate-500'}`}>{plan.description}</p>
                                         <div className="flex items-baseline gap-3">
                                             <div className="flex items-end gap-1">
-                                                <span className="text-5xl font-black tracking-tighter">{formatCurrency(plan.price)}</span>
+                                                <span className="text-5xl font-black tracking-tighter">{plan.contactOnly ? 'Custom' : formatCurrency(plan.price)}</span>
                                                 <span className={`text-[10px] font-bold uppercase tracking-widest mb-2 ${plan.isPrimary ? 'text-slate-400' : 'text-slate-500'}`}>
                                                     / {plan.period}
                                                 </span>
@@ -199,15 +211,15 @@ const PricingPlan = () => {
                                 <div className="mt-12">
                                      <button
                                          type="button"
-                                         onClick={() => handleSubscribe(plan.product || { slug: plan.key === 'pro' ? 'pro-membership' : 'institutional-membership', title: plan.name, price: plan.price })}
-                                         disabled={isCurrentPlan}
+                                         onClick={() => handlePlanAction(plan)}
+                                         disabled={isCurrentPlan && plan.key !== 'free'}
                                          className={`inline-flex w-full items-center justify-center rounded-2xl px-8 py-5 text-[11px] font-black uppercase tracking-[0.2em] transition-all disabled:opacity-30 disabled:pointer-events-none hover:scale-[1.05] active:scale-95 shadow-xl ${
                                              plan.isPrimary 
                                              ? 'bg-white text-slate-900 hover:bg-slate-100 shadow-white/5' 
                                              : 'bg-slate-900 text-white hover:bg-slate-800'
                                          }`}
                                      >
-                                         {isCurrentPlan ? 'Current Plan' : plan.buttonText}
+                                         {isCurrentPlan && plan.key !== 'free' ? 'Current plan' : plan.buttonText}
                                      </button>
                                 </div>
                             </section>
@@ -218,9 +230,9 @@ const PricingPlan = () => {
                 {/* Trust Section */}
                 <div className="grid md:grid-cols-3 gap-8 py-16 border-t border-slate-200">
                     {[
-                        { title: 'Global Encryption', desc: 'Secure institutional-grade payment processing via Razorpay matrix.', icon: <ShieldCheck className="text-slate-400" /> },
-                        { title: 'Instant Provisioning', desc: 'Membership benefits are activated immediately upon protocol verification.', icon: <Zap className="text-slate-400" /> },
-                        { title: 'Support Redundancy', desc: 'Direct expert access ensures your technical pipeline never stalls.', icon: <Target className="text-slate-400" /> }
+                        { title: 'Secure payments', desc: 'Checkout and membership payments are processed through Razorpay.', icon: <ShieldCheck className="text-slate-400" /> },
+                        { title: 'Fast activation', desc: 'Eligible product access and membership benefits activate after payment verification.', icon: <Zap className="text-slate-400" /> },
+                        { title: 'Expert help', desc: 'Support sessions and custom work paths are available when you need implementation help.', icon: <Target className="text-slate-400" /> }
                     ].map(item => (
                         <div key={item.title} className="flex gap-4">
                             <div className="h-10 w-10 shrink-0 bg-white border border-slate-200 rounded-xl flex items-center justify-center shadow-sm">{item.icon}</div>

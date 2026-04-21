@@ -45,7 +45,7 @@ const ChatHeader = ({ status, onlineCount, searchQuery, onSearchChange, isSelect
                     <Search className="absolute left-3 text-slate-300 group-focus-within:text-slate-900 transition-colors" size={12} />
                     <input 
                         type="text" 
-                        placeholder="Search logs..."
+                        placeholder="Search messages..."
                         value={searchQuery}
                         onChange={(e) => onSearchChange(e.target.value)}
                         className="bg-slate-50 border border-slate-100 rounded-lg py-1.5 pl-9 pr-4 text-[11px] font-medium placeholder:text-slate-400 focus:outline-none focus:bg-white focus:border-slate-300 transition-all w-48 md:w-64"
@@ -99,7 +99,7 @@ const ChatHeader = ({ status, onlineCount, searchQuery, onSearchChange, isSelect
                                 </button>
                                 <div className="h-px bg-slate-100 my-2 mx-2"></div>
                                 <div className="px-3 py-2">
-                                    <p className="text-[8px] font-black text-slate-300 uppercase tracking-widest mb-1">Authorization</p>
+                                    <p className="text-[8px] font-black text-slate-300 uppercase tracking-widest mb-1">Status</p>
                                     <div className="flex items-center gap-2">
                                         <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
                                         <p className="text-[10px] font-bold text-slate-600">Secure Connection</p>

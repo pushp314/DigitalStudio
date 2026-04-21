@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import api from '../../services/api';
 import { useToast } from '../../context/ToastContext';
 import { Send, Hash, Smile, Paperclip, Terminal as TerminalIcon, X, CornerDownRight, Zap, Image as ImageIcon, Loader2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const ChatInput = ({ onSend, onTyping, status, user, isPro, messageCount, replyingTo, onCancelReply }) => {
     const [content, setContent] = useState('');
@@ -11,6 +12,7 @@ const ChatInput = ({ onSend, onTyping, status, user, isPro, messageCount, replyi
     const lastTypingSent = useRef(0);
     const [isEmojiOpen, setIsEmojiOpen] = useState(false);
     const { info, error: toastError } = useToast();
+    const navigate = useNavigate();
 
     const charLimit = 100;
     const isLimitReached = !isPro && messageCount >= 2;
@@ -105,19 +107,44 @@ const ChatInput = ({ onSend, onTyping, status, user, isPro, messageCount, replyi
         <div className={`bg-white border-t border-slate-100 px-6 py-6 pb-10 transition-opacity ${isLimitReached ? 'opacity-80' : ''}`}>
             <div className="max-w-4xl mx-auto">
                 {isLimitReached && (
-                    <div className="mb-4 p-4 bg-slate-900 text-white rounded-xl flex items-center justify-between animate-in slide-in-from-bottom-2 duration-500 shadow-xl shadow-slate-200">
-                        <div className="flex items-center gap-4">
-                            <div className="h-10 w-10 bg-amber-500 text-slate-900 rounded-lg flex items-center justify-center">
-                                <Zap size={20} fill="currentColor" />
+                    <div className="mb-6 p-6 md:p-8 bg-slate-900 text-white rounded-[2rem] animate-in slide-in-from-bottom-4 duration-700 shadow-[0_20px_50px_rgba(0,0,0,0.2)]">
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
+                            <div className="flex items-start gap-4">
+                                <div className="h-12 w-12 bg-amber-500 text-slate-900 rounded-2xl flex items-center justify-center shrink-0 shadow-lg shadow-amber-500/20">
+                                    <Zap size={24} fill="currentColor" />
+                                </div>
+                                <div>
+                                    <h4 className="text-xl font-bold tracking-tight">Community limit reached</h4>
+                                    <p className="mt-2 text-sm text-slate-400 font-medium leading-relaxed max-w-md">
+                                        You have used your 2 free community messages. Upgrade to Pro for unlimited chat, or reach out to our team if you need direct technical assistance.
+                                    </p>
+                                </div>
                             </div>
-                            <div>
-                                <h4 className="text-[11px] font-black uppercase tracking-widest">Freemium Limit Exhausted</h4>
-                                <p className="text-[10px] text-slate-400 font-medium">You have sent 2/2 messages. Upgrade to Pro for unlimited access.</p>
+                            <div className="flex flex-col sm:flex-row gap-3 shrink-0">
+                                <button 
+                                    onClick={() => navigate('/pricing')}
+                                    className="px-8 py-3 bg-white text-slate-900 text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-white/90 transition-all shadow-xl"
+                                >
+                                    Upgrade to Pro
+                                </button>
+                                <button 
+                                    onClick={() => navigate('/contact')}
+                                    className="px-8 py-3 bg-slate-800 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-slate-700 transition-all"
+                                >
+                                    Direct Support
+                                </button>
                             </div>
                         </div>
-                        <button className="px-6 py-2 bg-white text-slate-900 text-[10px] font-black uppercase tracking-widest rounded-lg hover:bg-slate-100 transition-all">
-                            Upgrade to Pro
-                        </button>
+                        <div className="mt-8 pt-6 border-t border-slate-800 grid grid-cols-2 gap-4">
+                            <div className="flex items-center gap-2">
+                                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
+                                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500">Unlock: Image Attachments</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
+                                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500">Unlock: Developer Emojis</span>
+                            </div>
+                        </div>
                     </div>
                 )}
 
@@ -185,7 +212,7 @@ const ChatInput = ({ onSend, onTyping, status, user, isPro, messageCount, replyi
                         </div>
                         <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full border ${isPro ? 'bg-amber-50 border-amber-100 text-amber-600' : 'bg-slate-100 border-slate-200 text-slate-400'}`}>
                             <TerminalIcon size={10} />
-                            <span className="text-[8px] font-black uppercase tracking-tight">{isPro ? 'Pro Member' : `${messageCount}/2 Freemium`}</span>
+                            <span className="text-[8px] font-black uppercase tracking-tight">{isPro ? 'Pro Member' : `${messageCount}/2 Free`}</span>
                         </div>
                     </div>
 
@@ -239,7 +266,7 @@ const ChatInput = ({ onSend, onTyping, status, user, isPro, messageCount, replyi
                     {/* Footer Guide */}
                     <div className="px-4 py-1.5 bg-slate-50/30 border-t border-slate-100/30 flex items-center justify-between">
                          <div className="flex items-center gap-1 text-[8px] font-bold text-slate-300 uppercase tracking-widest">
-                            <Hash size={10} /> Community_Chat
+                            <Hash size={10} /> Community Chat
                          </div>
                          {!isPro && (
                              <div className="text-[7px] font-black text-amber-600 uppercase tracking-widest">

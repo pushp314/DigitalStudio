@@ -42,6 +42,7 @@ func main() {
 	r.Use(middleware.RequestIDMiddleware())
 	r.Use(middleware.RequestLogger())
 	r.Use(middleware.MaintenanceMiddleware())
+	r.Use(func(c *gin.Context) { c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, 5<<20); c.Next() })
 
 	sessionSecret := os.Getenv("SESSION_SECRET")
 	if sessionSecret == "" {
@@ -100,6 +101,12 @@ func main() {
 		products.DELETE("/:id", middleware.AuthMiddleware(), handlers.DeleteProduct)
 	}
 
+	categories := api.Group("/categories")
+	{
+		categories.GET("/", handlers.GetCategories)
+		categories.GET("/:slug", handlers.GetCategoryBySlug)
+	}
+
 	orders := api.Group("/orders")
 	orders.Use(middleware.AuthMiddleware())
 	{
@@ -130,6 +137,30 @@ func main() {
 			adminGithub.GET("", handlers.GetAllGithubRequests)
 			adminGithub.PATCH("/:id", handlers.ResolveGithubRequest)
 		}
+
+		adminCategories := admin.Group("/categories")
+		{
+			adminCategories.GET("/", handlers.GetCategories)
+			adminCategories.POST("/", handlers.CreateCategory)
+			adminCategories.PUT("/:id", handlers.UpdateCategory)
+			adminCategories.DELETE("/:id", handlers.DeleteCategory)
+		}
+
+		adminIntents := admin.Group("/intents")
+		{
+			adminIntents.POST("/service", handlers.CreateServiceIntent)
+			adminIntents.PUT("/service/:id", handlers.UpdateServiceIntent)
+			adminIntents.POST("/expert", handlers.CreateExpertIntent)
+			adminIntents.PUT("/expert/:id", handlers.UpdateExpertIntent)
+		}
+	}
+
+	intents := api.Group("/intents")
+	{
+		intents.GET("/service", handlers.GetServiceIntents)
+		intents.GET("/service/:slug", handlers.GetServiceIntentBySlug)
+		intents.GET("/expert", handlers.GetExpertIntents)
+		intents.GET("/expert/:slug", handlers.GetExpertIntentBySlug)
 	}
 
 	api.GET("/profile/:id", handlers.GetPublicProfile)
@@ -188,16 +219,24 @@ func main() {
 		ai.POST("/chat", middleware.AuthMiddleware(), middleware.ProMiddleware(), handlers.AskDocAI)
 	}
 
+	handlers.RegisterEliteRoutes(api)
+	
 	chat := api.Group("/chat")
 	{
-		chat.GET("/ws", middleware.WebsocketAuthMiddleware(), handlers.ServeChatWs)
-		chat.GET("/history", middleware.AuthMiddleware(), handlers.GetChatHistory)
-		chat.POST("/messages", middleware.AuthMiddleware(), handlers.SendChatMessage)
-		chat.PUT("/messages/:id", middleware.AuthMiddleware(), handlers.UpdateChatMessage)
-		chat.DELETE("/messages/:id", middleware.AuthMiddleware(), handlers.DeleteChatMessage)
-		chat.POST("/messages/:id/pin", middleware.AuthMiddleware(), handlers.PinChatMessage)
-		chat.POST("/messages/:id/report", middleware.AuthMiddleware(), handlers.ReportChatMessage)
-		chat.POST("/messages/bulk-delete", middleware.AuthMiddleware(), middleware.AdminMiddleware(), handlers.BulkDeleteMessages)
+		chat.GET("/ws", handlers.ServeChatWs) // Authenticated via Ticket internally
+		
+		chatAuth := chat.Group("", middleware.AuthMiddleware())
+		{
+			// Tight rate limit on ticket issuance to prevent flood/abuse
+			chatAuth.POST("/ticket", middleware.RateLimitMiddleware("chat_ticket", 10, time.Minute), handlers.CreateChatTicket)
+			chatAuth.GET("/history", handlers.GetChatHistory)
+			chatAuth.POST("/messages", handlers.SendChatMessage)
+			chatAuth.PUT("/messages/:id", handlers.UpdateChatMessage)
+			chatAuth.DELETE("/messages/:id", handlers.DeleteChatMessage)
+			chatAuth.POST("/messages/:id/pin", handlers.PinChatMessage)
+			chatAuth.POST("/messages/:id/report", handlers.ReportChatMessage)
+			chatAuth.POST("/messages/bulk-delete", middleware.AdminMiddleware(), handlers.BulkDeleteMessages)
+		}
 	}
 
 	analytics := api.Group("/analytics")
@@ -205,8 +244,6 @@ func main() {
 	{
 		analytics.GET("/metrics", handlers.GetIntelligenceMetrics)
 	}
-	
-	handlers.RegisterEliteRoutes(api)
 
 	// Reviews
 	products.POST("/:id/review", middleware.AuthMiddleware(), handlers.CreateReview)
@@ -317,8 +354,29 @@ func main() {
 	}
 
 	log.Printf("Server starting on port %s", port)
+	
+	// Start Background Orchestrators
+	go startBackgroundPruner()
+
 	if err := r.Run(":" + port); err != nil {
 		log.Fatal("Failed to start server:", err)
+	}
+}
+
+func startBackgroundPruner() {
+	ticker := time.NewTicker(1 * time.Hour)
+	for range ticker.C {
+		log.Println("Maintenance[Background]: Pruning expired protocol nodes...")
+		
+		// 1. Prune expired Chat Sessions
+		result := config.DB.Where("status = ? AND expires_at < ?", "active", time.Now()).
+			Update("status", "expired")
+		if result.RowsAffected > 0 {
+			log.Printf("Maintenance[Chat]: Pruned %d expired support sessions", result.RowsAffected)
+		}
+
+		// 2. Clear abandoned coupon reservations (logic in order_service would be ideal)
+		// ... potentially more cleanup logic here
 	}
 }
 

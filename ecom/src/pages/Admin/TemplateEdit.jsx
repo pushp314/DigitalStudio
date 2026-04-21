@@ -11,6 +11,7 @@ const emptyForm = {
     price: '',
     image: '',
     category: '',
+    categoryId: '',
     description: '',
     longDescription: '',
     productType: 'template',
@@ -29,53 +30,76 @@ const emptyForm = {
     ogImage: '',
 };
 
+const PRODUCT_TYPE_OPTIONS = [
+    { value: 'template', label: 'Template' },
+    { value: 'fullstack', label: 'Full-stack app' },
+    { value: 'api', label: 'API / backend kit' },
+    { value: 'component', label: 'Component pack' },
+    { value: 'ui_kit', label: 'UI kit' },
+    { value: 'code_snippet', label: 'Code snippet' },
+    { value: 'edu_module', label: 'Guide / learning module' },
+];
+
 const TemplateEdit = () => {
     const { id } = useParams();
     const navigate = useNavigate();
     const { success, error } = useToast();
     const isCreateMode = !id;
 
-    const [loading, setLoading] = useState(!isCreateMode);
+    const [loading, setLoading] = useState(true);
     const [uploading, setUploading] = useState(false);
     const [aiGenerating, setAiGenerating] = useState(false);
     const [formData, setFormData] = useState(emptyForm);
     const [activeTab, setActiveTab] = useState('general'); // general, gallery, seo, preview
     const [previewDevice, setPreviewDevice] = useState('desktop'); // desktop, mobile
+    const [categories, setCategories] = useState([]);
 
-    const pageTitle = useMemo(() => (isCreateMode ? 'Add New Template' : 'Edit Template'), [isCreateMode]);
+    const pageTitle = useMemo(() => (isCreateMode ? 'Add New Product' : 'Edit Product'), [isCreateMode]);
 
     useEffect(() => {
-        if (isCreateMode) {
-            setLoading(false);
-            return;
-        }
-
-        const fetchProduct = async () => {
+        const init = async () => {
             try {
-                const data = await productService.getById(id);
-                const product = normalizeProduct(data);
-                setFormData({
-                    ...product,
-                    price: String(product.price || ''),
-                    techStack: product.techStack?.join(', ') || '',
-                    previewImages: product.previewImages?.length > 0 ? product.previewImages : [{ url: '' }],
-                    seoTitle: product.seoTitle || product.title,
-                    seoDescription: product.seoDescription || product.description,
-                    ogImage: product.ogImage || product.image,
-                });
+                const cats = await api.get('/admin/categories');
+                setCategories(Array.isArray(cats) ? cats : []);
+
+                if (!isCreateMode) {
+                    const data = await productService.getById(id);
+                    const product = normalizeProduct(data);
+                    setFormData({
+                        ...product,
+                        price: String(product.price || ''),
+                        categoryId: product.categoryId || '',
+                        techStack: product.techStack?.join(', ') || '',
+                        previewImages: product.previewImages?.length > 0 ? product.previewImages : [{ url: '' }],
+                        seoTitle: product.seoTitle || product.title,
+                        seoDescription: product.seoDescription || product.description,
+                        ogImage: product.ogImage || product.image,
+                    });
+                }
             } catch (err) {
-                error(err.message || 'Error fetching template details');
-                navigate('/admin/templates');
+                error(err.message || 'Error initializing editor');
+                if (!isCreateMode) navigate('/admin/templates');
             } finally {
                 setLoading(false);
             }
         };
 
-        fetchProduct();
-    }, [error, id, isCreateMode, navigate]);
+        init();
+    }, [id, isCreateMode, navigate, error]);
 
     const handleChange = (event) => {
         const { name, value, type, checked } = event.target;
+        
+        if (name === 'categoryId') {
+            const selectedCat = categories.find(c => String(c.id) === String(value));
+            setFormData(prev => ({
+                ...prev,
+                categoryId: value,
+                category: selectedCat ? selectedCat.name : ''
+            }));
+            return;
+        }
+
         setFormData((prev) => ({
             ...prev,
             [name]: type === 'checkbox' ? checked : value,
@@ -121,6 +145,7 @@ const TemplateEdit = () => {
         const payload = {
             ...formData,
             price: Number(formData.price || 0),
+            categoryId: Number(formData.categoryId || 0),
             techStack: formData.techStack.split(',').map((item) => item.trim()).filter(Boolean),
             previewImages: formData.previewImages.filter(img => img.url),
             documentation: [
@@ -132,14 +157,14 @@ const TemplateEdit = () => {
         try {
             if (isCreateMode) {
                 await productService.create(payload);
-                success(isAdminPath ? 'Template created successfully' : 'Template submitted for administrative review.');
+                success(isAdminPath ? 'Product created successfully' : 'Project submitted for administrative review.');
             } else {
                 await productService.update(id, payload);
-                success(isAdminPath ? 'Template updated' : 'Draft updated. Re-review might be required.');
+                success(isAdminPath ? 'Product updated' : 'Submission updated. Re-review might be required.');
             }
             navigate(backPath);
         } catch (err) {
-            error('Protocol failure: Could not transmit template data.');
+            error('Could not save this product submission.');
         }
     };
 
@@ -158,12 +183,17 @@ const TemplateEdit = () => {
                 {/* Header */}
                 <div className="flex justify-between items-center mb-12">
                     <div>
-                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.3em] mb-2">{isAdminPath ? 'Template Master' : 'Creator Studio'}</p>
-                        <h1 className="text-4xl font-bold text-black tracking-tight">{isAdminPath ? pageTitle : (isCreateMode ? 'Submit Template' : 'Edit Submission')}</h1>
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.3em] mb-2">{isAdminPath ? 'Product Admin' : 'Approval-Based Listing'}</p>
+                        <h1 className="text-4xl font-bold text-black tracking-tight">{isAdminPath ? pageTitle : (isCreateMode ? 'Sell Your Project' : 'Edit Submission')}</h1>
+                        {!isAdminPath && (
+                            <p className="mt-3 max-w-2xl text-sm font-medium leading-6 text-gray-500">
+                                Submit an app, template, dashboard, software kit, or technical asset. DigitalStudio reviews every listing before it appears in the catalog.
+                            </p>
+                        )}
                     </div>
                     <div className="flex gap-4">
                         <button onClick={() => navigate(backPath)} className="text-xs font-bold text-gray-400 uppercase tracking-widest hover:text-black transition-all">Cancel</button>
-                        <button onClick={handleSubmit} className="px-10 py-4 bg-black text-white rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-gray-800 transition-all shadow-xl shadow-black/10 active:scale-95">{isAdminPath ? 'Save Changes' : (isCreateMode ? 'Submit for Review' : 'Update Template')}</button>
+                        <button onClick={handleSubmit} className="px-10 py-4 bg-black text-white rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-gray-800 transition-all shadow-xl shadow-black/10 active:scale-95">{isAdminPath ? 'Save Changes' : (isCreateMode ? 'Submit for Review' : 'Update Project')}</button>
                     </div>
                 </div>
 
@@ -187,20 +217,36 @@ const TemplateEdit = () => {
                     <main className="flex-1 p-12 md:p-16 overflow-y-auto">
                         {activeTab === 'general' && (
                             <div className="space-y-10 animate-in slide-in-from-right-4 duration-500">
-                                <div className="grid grid-cols-2 gap-8">
-                                    <Field label="Template Title">
-                                        <input name="title" value={formData.title} onChange={handleChange} className="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:border-black font-bold text-sm" placeholder="e.g. Next.js SaaS Boilerplate" />
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                                    <Field label="Product Title">
+                                        <input name="title" value={formData.title} onChange={handleChange} className="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:border-black font-bold text-sm" placeholder="e.g. SaaS Admin Dashboard" />
                                     </Field>
-                                    <Field label="Industrial Category">
-                                        <input name="category" value={formData.category} onChange={handleChange} className="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:border-black font-bold text-sm" placeholder="e.g. Dashboard, SaaS" />
+                                    <Field label="Product Type">
+                                        <select name="productType" value={formData.productType} onChange={handleChange} className="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:border-black font-bold text-sm">
+                                            {PRODUCT_TYPE_OPTIONS.map((option) => (
+                                                <option key={option.value} value={option.value}>{option.label}</option>
+                                            ))}
+                                        </select>
+                                    </Field>
+                                    <Field label="Use Case / Category">
+                                        <select name="categoryId" value={formData.categoryId} onChange={handleChange} className="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:border-black font-bold text-sm">
+                                            <option value="">Select Category</option>
+                                            {categories.map((cat) => (
+                                                <option key={cat.id} value={cat.id}>{cat.name}</option>
+                                            ))}
+                                        </select>
                                     </Field>
                                 </div>
+
+                                <Field label="Short Buyer Summary">
+                                    <textarea name="description" value={formData.description} onChange={handleChange} rows={3} className="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:border-black font-medium text-sm leading-relaxed" placeholder="Explain what this helps buyers launch, who it is for, and what is included." />
+                                </Field>
                                 
-                                <Field label="Long Description (MARKDOWN)">
+                                <Field label="Product Details (Markdown)">
                                     <div className="relative">
                                         <textarea name="longDescription" value={formData.longDescription} onChange={handleChange} rows={12} className="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:border-black font-medium text-sm leading-relaxed" />
                                         <button onClick={handleGenerateAI} disabled={aiGenerating} className="absolute top-4 right-4 bg-black text-white px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 hover:bg-gray-800 transition-all disabled:opacity-50">
-                                            {aiGenerating ? 'Syncing...' : '✨ Magic Write'}
+                                            {aiGenerating ? 'Writing...' : 'Write with AI'}
                                         </button>
                                     </div>
                                 </Field>
@@ -214,6 +260,18 @@ const TemplateEdit = () => {
                                     </Field>
                                     <Field label="Version">
                                         <input name="version" value={formData.version} onChange={handleChange} className="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:border-black font-bold text-sm" placeholder="1.0.0" />
+                                    </Field>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                                    <Field label="Live Preview URL">
+                                        <input name="liveDemo" value={formData.liveDemo} onChange={handleChange} className="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:border-black font-bold text-sm" placeholder="https://..." />
+                                    </Field>
+                                    <Field label="Repository URL">
+                                        <input name="githubRepo" value={formData.githubRepo} onChange={handleChange} className="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:border-black font-bold text-sm" placeholder="https://github.com/..." />
+                                    </Field>
+                                    <Field label="Delivery File URL">
+                                        <input name="fileURL" value={formData.fileURL} onChange={handleChange} className="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:border-black font-bold text-sm" placeholder="Private asset URL or managed file" />
                                     </Field>
                                 </div>
                             </div>
@@ -283,8 +341,8 @@ const TemplateEdit = () => {
                             <div className="space-y-10 animate-in slide-in-from-right-4 duration-500">
                                 <div className="flex justify-between items-center">
                                     <div>
-                                        <h2 className="text-2xl font-bold text-black tracking-tight mb-2">Device Mockup Preview</h2>
-                                        <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">Verify visual balance across frames</p>
+                                        <h2 className="text-2xl font-bold text-black tracking-tight mb-2">Product Preview</h2>
+                                        <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">Check how the listing cover looks across frames</p>
                                     </div>
                                     <div className="flex bg-gray-100 p-1.5 rounded-2xl gap-2 shadow-inner">
                                         <button onClick={() => setPreviewDevice('desktop')} className={`px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${previewDevice === 'desktop' ? 'bg-black text-white' : 'text-gray-400'}`}>MacBook</button>

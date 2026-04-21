@@ -15,7 +15,7 @@ export const useCart = () => {
 export const CartProvider = ({ children }) => {
     const [cartItems, setCartItems] = useLocalStorageState('cartItems', []);
 
-    // Growth Matrix: AOV Bundle Logic (10% off for 3+ items)
+    // AOV bundle logic (10% off for 3+ items)
     const isBundleEligible = cartItems.length >= 3;
     const itemsCount = cartItems.length;
 

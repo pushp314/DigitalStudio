@@ -51,6 +51,8 @@ type Product struct {
 	LongDescription      string           `gorm:"type:text" json:"longDescription"`
 	Price                float64          `gorm:"type:numeric(10,2);not null;default:0" json:"price"`
 	Category             string           `gorm:"size:100" json:"category"`
+	CategoryID           *uint            `json:"categoryId"`
+	CategoryRel          *ProductCategory `gorm:"foreignKey:CategoryID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL;" json:"categoryRel,omitempty"`
 	Type                 ProductType      `gorm:"type:varchar(50);default:'template'" json:"productType"`
 	StatusFlags          string           `gorm:"type:varchar(100);default:'active'" json:"statusFlags"`
 	ModerationStatus     ModerationStatus `gorm:"type:varchar(50);default:'approved'" json:"moderationStatus"`

@@ -21,42 +21,31 @@ class ErrorBoundary extends React.Component {
     render() {
         if (this.state.hasError) {
             return (
-                <div className="min-h-screen bg-[#F5F5F7] flex items-center justify-center px-4">
-                    <div className="max-w-md w-full bg-white rounded-2xl p-8 shadow-lg border border-gray-100 text-center">
-                        <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <svg className="w-8 h-8 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <div className="min-h-screen bg-[#F5F5F7] flex items-center justify-center px-4 font-sans text-slate-900 antialiased">
+                    <div className="max-w-md w-full bg-white rounded-[2.5rem] p-12 shadow-2xl border border-slate-200 text-center animate-in zoom-in-95 duration-500">
+                        <div className="w-20 h-20 bg-slate-50 border border-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-10 shadow-sm">
+                            <svg className="w-10 h-10 text-slate-900" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                             </svg>
                         </div>
-                        <h2 className="text-2xl font-black text-black mb-2">Oops! Something went wrong</h2>
-                        <p className="text-gray-600 mb-6">
-                            We encountered an unexpected error. Please try refreshing the page.
+                        <h4 className="text-[10px] font-bold text-slate-300 uppercase tracking-[0.2em] mb-4">Runtime Error</h4>
+                        <h2 className="text-2xl font-bold tracking-tight text-slate-900 uppercase mb-4">System Exception</h2>
+                        <p className="text-[11px] text-slate-400 font-bold uppercase tracking-widest leading-relaxed mb-12">
+                            A protocol mismatch or runtime exception has occurred. Our registry has been notified of the instance.
                         </p>
 
-                        {process.env.NODE_ENV === 'development' && this.state.error && (
-                            <details className="text-left bg-gray-50 rounded-lg p-4 mb-4">
-                                <summary className="font-bold text-sm cursor-pointer text-gray-700 mb-2">
-                                    Error Details
-                                </summary>
-                                <pre className="text-xs text-red-600 overflow-auto max-h-40">
-                                    {this.state.error.toString()}
-                                    {this.state.errorInfo?.componentStack}
-                                </pre>
-                            </details>
-                        )}
-
-                        <div className="flex gap-3">
+                        <div className="flex flex-col gap-4">
                             <button
                                 onClick={() => window.location.reload()}
-                                className="flex-1 bg-primary text-white px-6 py-3 rounded-full font-bold hover:bg-blue-600 transition-colors shadow-lg shadow-blue-500/30"
+                                className="w-full bg-slate-900 text-white px-8 py-3.5 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-emerald-600 transition-all shadow-xl shadow-slate-900/10"
                             >
-                                Refresh Page
+                                Re-verify Registry [Reload]
                             </button>
                             <button
                                 onClick={() => window.location.href = '/'}
-                                className="flex-1 bg-gray-100 text-black px-6 py-3 rounded-full font-bold hover:bg-gray-200 transition-colors"
+                                className="w-full bg-slate-50 text-slate-500 px-8 py-3.5 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-slate-100 transition-all border border-slate-100"
                             >
-                                Go Home
+                                Return to Central Hub
                             </button>
                         </div>
                     </div>

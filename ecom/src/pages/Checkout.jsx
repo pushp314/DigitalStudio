@@ -89,7 +89,7 @@ const Checkout = () => {
                 amount: order.amount,
                 currency: order.currency,
                 name: 'DigitalStudio',
-                description: 'Marketplace purchase',
+                description: 'Ready product purchase',
                 order_id: order.orderId,
                 prefill: {
                     name: user.name || 'Customer',
@@ -105,7 +105,7 @@ const Checkout = () => {
                         });
 
                         if (verification.paymentStatus === 'paid' || verification.status === 'captured' || verification.entitled) {
-                            success('Payment verified successfully.');
+                            success('Payment verified. Your product is available in your account.');
                             clearCart();
                             if (refreshPurchases) await refreshPurchases();
                             queryClient.invalidateQueries({ queryKey: ['orders', 'my'] });
@@ -137,6 +137,7 @@ const Checkout = () => {
                     <div className="space-y-2">
                         <p className="ds-eyebrow">Checkout</p>
                         <h1 className="text-3xl font-semibold tracking-tight text-slate-900">Review your order</h1>
+                        <p className="text-sm leading-6 text-slate-600">Verified payment unlocks your products, licenses, and eligible support access.</p>
                     </div>
 
                     <div className="space-y-4">
@@ -204,7 +205,7 @@ const Checkout = () => {
                     <button type="button" onClick={submitHandler} disabled={loading} className="ds-button-primary mt-6 w-full disabled:cursor-not-allowed disabled:opacity-50">
                         {loading ? 'Preparing payment...' : 'Pay securely'}
                     </button>
-                    <p className="mt-4 text-sm text-slate-500">Payments are processed securely through Razorpay.</p>
+                    <p className="mt-4 text-sm text-slate-500">Payments are processed securely through Razorpay. Downloads are delivered through your DigitalStudio account.</p>
                 </aside>
             </div>
         </div>

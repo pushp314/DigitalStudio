@@ -12,7 +12,7 @@
 
 ## Locked Routes
 - [x] `/chat` not visually redesigned
-- [x] public profile route not visually redesigned
+- [x]  profile route not visually redesigned
 - [x] `/account` not visually redesigned
 - [x] `/admin` not visually redesigned
 - [x] Locked routes only received bug/API/state fixes

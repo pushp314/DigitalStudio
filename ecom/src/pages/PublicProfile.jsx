@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import React, { useEffect, useState, useContext } from 'react';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useToast } from '../context/ToastContext';
 import { useQuery } from '@tanstack/react-query';
 import api from '../services/api';
+import ConfigContext from '../context/ConfigContext';
 import { 
     Fingerprint, 
     Zap, 
@@ -13,6 +14,7 @@ import {
     ShieldCheck, 
     Package,
     Terminal,
+    Search,
     ArrowUpRight,
     ExternalLink,
     Home,
@@ -20,11 +22,14 @@ import {
     Users,
     Flag,
     Info,
-    AlertCircle
+    AlertCircle,
+    ChevronLeft
 } from 'lucide-react';
 
 const PublicProfile = () => {
     const { username } = useParams();
+    const navigate = useNavigate();
+    const { config } = useContext(ConfigContext);
     const handle = username?.startsWith('@') ? username.substring(1) : username;
 
     const { data: profile, isLoading, error } = useQuery({
@@ -66,30 +71,36 @@ const PublicProfile = () => {
     if (isLoading) {
         return (
             <div className="h-screen w-full bg-[#fafafa] flex items-center justify-center">
-                <div className="w-10 h-10 border-2 border-slate-200 border-t-slate-900 rounded-full animate-spin"></div>
+                <div className="w-10 h-10 border-2 border-slate-200 border-t-indigo-600 rounded-full animate-spin"></div>
             </div>
         );
+    }
+
+    if (config?.features?.profiles === false) {
+        navigate('/');
+        return null;
     }
 
     // Sidebar Branding Standardized
     const Sidebar = () => (
         <aside className="w-64 bg-white border-r border-slate-200 flex flex-col pt-8 flex-shrink-0 relative z-50">
             <Link to="/" className="flex items-center gap-3 px-6 mb-10 group/brand hover:opacity-80 transition-opacity">
-                <div className="w-8 h-8 bg-slate-900 rounded-lg flex items-center justify-center font-bold text-white text-sm group-hover/brand:scale-110 transition-transform shadow-lg shadow-slate-900/10">N</div>
+                <div className="w-8 h-8 bg-slate-900 rounded-lg flex items-center justify-center font-bold text-white text-sm group-hover/brand:scale-110 transition-transform shadow-lg shadow-slate-900/10">D</div>
                 <div>
-                    <h1 className="text-xs font-bold text-slate-900 uppercase tracking-widest">Public Directory</h1>
-                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">Verified User Profile</p>
+                    <h1 className="text-xs font-bold text-slate-900 uppercase tracking-widest">DigitalStudio Directory</h1>
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">Verified Seller Profile</p>
                 </div>
             </Link>
 
             <nav className="flex-1 px-3 space-y-0.5">
-                <SidebarItem active icon={<Info size={18} />} label="Overview" />
-                <SidebarItem icon={<Package size={18} />} label="Products" disabled />
-                <SidebarItem icon={<Users size={18} />} label="Network" disabled />
+                <SidebarItem active icon={<Info size={18} />} label="Overview" onClick={() => navigate(`/@${handle}`)} />
+                <SidebarItem icon={<Package size={18} />} label="Explore Apps" onClick={() => navigate('/apps')} />
+                <SidebarItem icon={<Users size={18} />} label="Community" onClick={() => navigate('/chat')} />
+                <SidebarItem icon={<ShieldCheck size={18} />} label="Support" onClick={() => navigate('/support')} />
             </nav>
 
             <div className="p-4 border-t border-slate-100 mt-auto bg-slate-50/50">
-                 <div className="flex items-center gap-3 px-2 mb-4">
+                 <div className="flex items-center gap-3 px-2 mb-2 cursor-pointer hover:opacity-80 transition-opacity" onClick={() => navigate('/account')}>
                     <div className="w-8 h-8 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center font-bold text-slate-400 text-[10px] overflow-hidden">
                         {profile?.avatarUrl ? (
                             <img src={profile.avatarUrl} alt="User" className="w-full h-full object-cover" />
@@ -99,35 +110,47 @@ const PublicProfile = () => {
                     </div>
                     <div className="min-w-0">
                         <p className="text-[11px] font-bold text-slate-900 truncate">@{profile?.username || handle}</p>
-                        <p className="text-[9px] text-emerald-600 font-bold uppercase tracking-widest">Verified User</p>
+                        <p className="text-[9px] text-emerald-600 font-bold uppercase tracking-widest">Verified Seller</p>
                     </div>
                 </div>
-                <Link to="/register" className="w-full flex items-center justify-center gap-2 py-2.5 bg-slate-900 text-white rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-blue-600 transition-all shadow-lg shadow-slate-900/10">
-                    Get Started <ArrowUpRight size={12} />
-                </Link>
             </div>
         </aside>
     );
 
     // Header Standardized
     const Header = () => (
-        <header className="sticky top-0 z-40 h-16 bg-white/80 backdrop-blur-md border-b border-slate-100 px-8 flex items-center justify-between">
+        <header className="sticky top-0 z-40 h-18 bg-white border-b border-slate-200 px-8 flex items-center justify-between">
             <div className="flex items-center gap-6">
-                <h2 className="text-sm font-bold text-slate-900 capitalize">User Profile</h2>
-                <div className="h-4 w-px bg-slate-200"></div>
-                <div className="flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
-                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Online Cache v6.3</span>
+                <button 
+                    onClick={() => navigate(-1)}
+                    className="group p-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl transition-all text-slate-500 hover:text-slate-900 shadow-sm"
+                >
+                    <ChevronLeft size={20} className="group-hover:-translate-x-0.5 transition-transform" />
+                </button>
+                <div className="h-8 w-px bg-slate-200" />
+                <div className="flex flex-col">
+                    <h2 className="text-sm font-bold text-slate-900 tracking-tight">Member Profile</h2>
+                    <div className="flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
+                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Profile Verified</span>
+                    </div>
                 </div>
             </div>
 
             <div className="flex items-center gap-4">
-                <Link to="/" className="text-[10px] font-bold text-slate-400 hover:text-slate-900 uppercase tracking-widest flex items-center gap-2">
-                    <Home size={14} /> Marketplace
+                <Link to="/apps" className="text-[10px] font-bold text-slate-400 hover:text-slate-900 uppercase tracking-widest flex items-center gap-2">
+                    <Home size={14} /> Explore Apps
                 </Link>
                 <div className="h-4 w-px bg-slate-100"></div>
-                <Link to="/chat" className="p-2 text-slate-400 hover:text-slate-900 transition-colors">
+                <Link to="/support" className="p-2 text-slate-400 hover:text-slate-900 transition-colors" title="Support">
+                    <AlertCircle size={18} />
+                </Link>
+                <Link to="/chat" className="p-2 text-slate-400 hover:text-slate-900 transition-colors" title="Chat">
                     <MessageSquare size={18} />
+                </Link>
+                <div className="h-4 w-px bg-slate-100"></div>
+                <Link to="/register" className="inline-flex items-center gap-2 px-6 py-2 bg-slate-900 text-white rounded-full text-[10px] font-bold uppercase tracking-widest hover:bg-blue-600 transition-all shadow-lg shadow-slate-900/10 scale-95 hover:scale-100">
+                    Join DigitalStudio <ArrowUpRight size={12} />
                 </Link>
             </div>
         </header>
@@ -140,17 +163,17 @@ const PublicProfile = () => {
                 <main className="flex-1 flex flex-col min-w-0">
                     <Header />
                     <div className="flex-1 flex items-center justify-center p-12">
-                         <div className="max-w-md w-full bg-white border border-slate-200 rounded-2xl p-12 text-center shadow-sm animate-in zoom-in-95 duration-500">
+                        <div className="max-w-md w-full bg-white border border-slate-200 rounded-2xl p-12 text-center shadow-sm animate-in zoom-in-95 duration-500">
                             <div className="w-16 h-16 bg-slate-50 border border-slate-100 rounded-2xl flex items-center justify-center text-slate-200 mx-auto mb-8 shadow-sm">
-                                <Fingerprint size={32} />
+                                <Search size={32} />
                             </div>
-                            <h4 className="text-[10px] font-bold text-slate-300 uppercase tracking-[0.2em] mb-4">Error 404</h4>
-                            <h3 className="text-xl font-bold text-slate-900 tracking-tight uppercase mb-4">User Not Found</h3>
+                            <h4 className="text-[10px] font-bold text-slate-300 uppercase tracking-[0.2em] mb-4">Profile Unavailable</h4>
+                            <h3 className="text-xl font-bold text-slate-900 tracking-tight uppercase mb-4">Profile Not Found</h3>
                             <p className="text-[11px] text-slate-400 font-bold uppercase tracking-widest leading-relaxed mb-10">
-                                The specified user handle does not exist in our directory.
+                                This seller profile is not published or could not be found.
                             </p>
-                            <Link to="/" className="inline-flex items-center gap-3 px-8 py-3 bg-slate-900 text-white rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-blue-600 transition-all shadow-lg shadow-slate-900/10">
-                                Back to Directory
+                            <Link to="/apps" className="inline-flex items-center gap-3 px-8 py-3 bg-slate-900 text-white rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-emerald-600 transition-all shadow-lg shadow-slate-900/10">
+                                Explore Apps
                             </Link>
                         </div>
                     </div>
@@ -220,9 +243,9 @@ const PublicProfile = () => {
 
                         {/* Metric Grid Standardized */}
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                            <AdminStatCard label="Total Contribution" value={(profile.xp || 0).toLocaleString()} change="ACTIVE" sub="Accumulated XP" icon={<Zap size={18} />} color="text-blue-600" />
+                            <AdminStatCard label="Seller Activity" value={(profile.xp || 0).toLocaleString()} change="ACTIVE" sub="Contribution score" icon={<Zap size={18} />} color="text-blue-600" />
                             <AdminStatCard label="Verification Status" value="01" change="STABLE" sub="Account Verified" icon={<ShieldCheck size={18} />} color="text-emerald-500" />
-                            <AdminStatCard label="Published Assets" value={profile.products?.length || '00'} change={profile.products?.length > 0 ? "STABLE" : "EMPTY"} sub="Shared Templates" icon={<Package size={18} />} color="text-indigo-500" />
+                            <AdminStatCard label="Listed Products" value={profile.products?.length || '00'} change={profile.products?.length > 0 ? "STABLE" : "EMPTY"} sub="Approved listings" icon={<Package size={18} />} color="text-indigo-500" />
                             <AdminStatCard label="Live Showcases" value={profile.showcases?.length || '00'} change={profile.showcases?.length > 0 ? "ACTIVE" : "EMPTY"} sub="Production Links" icon={<Terminal size={18} />} color="text-slate-400" />
                         </div>
 
@@ -231,7 +254,7 @@ const PublicProfile = () => {
                              <div className="lg:col-span-1 space-y-8">
                                  <div className="bg-white border border-slate-200 rounded-2xl p-8 shadow-sm">
                                      <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
-                                         <Terminal size={14} className="text-blue-500" /> Engineering Arsenal
+                                         <Terminal size={14} className="text-blue-500" /> Product Stack
                                      </h3>
                                      <div className="flex flex-wrap gap-2">
                                          {Array.from(new Set(profile.products?.flatMap(p => p.techStack || []) || [])).length > 0 ? (
@@ -262,19 +285,19 @@ const PublicProfile = () => {
 
                              {/* Right Column: Experience & Gallery */}
                              <div className="lg:col-span-2 space-y-8">
-                                 {/* Templates Gallery */}
+                                 {/* Product Gallery */}
                                  <div className="bg-white border border-slate-200 rounded-2xl p-8 shadow-sm">
                                      <div className="flex items-center justify-between mb-8">
                                          <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
-                                             <Package size={14} className="text-emerald-500" /> Template Gallery
+                                             <Package size={14} className="text-emerald-500" /> Product Gallery
                                          </h3>
-                                         <span className="text-[9px] font-bold text-slate-300 uppercase tracking-widest">{profile.products?.length || 0} Assets</span>
+                                         <span className="text-[9px] font-bold text-slate-300 uppercase tracking-widest">{profile.products?.length || 0} Products</span>
                                      </div>
                                      
                                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                          {profile.products?.length > 0 ? (
                                              profile.products.map(product => (
-                                                 <Link to={`/templates/${product.id}`} key={product.id} className="group/item relative bg-slate-50 border border-slate-100 rounded-2xl overflow-hidden hover:border-slate-900 transition-all p-4">
+                                                 <Link to={`/apps/${product.id}`} key={product.id} className="group/item relative bg-slate-50 border border-slate-100 rounded-2xl overflow-hidden hover:border-slate-900 transition-all p-4">
                                                      <div className="aspect-video rounded-xl overflow-hidden bg-slate-200 mb-4 shadow-sm">
                                                          <img src={product.image} alt={product.title} className="w-full h-full object-cover group-hover/item:scale-105 transition-transform duration-500" />
                                                      </div>
@@ -290,7 +313,7 @@ const PublicProfile = () => {
                                                  <div className="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-200">
                                                      <Package size={24} />
                                                  </div>
-                                                 <p className="text-[10px] font-bold text-slate-300 uppercase tracking-[0.2em]">Gallery under maintenance</p>
+                                                 <p className="text-[10px] font-bold text-slate-300 uppercase tracking-[0.2em]">No approved products yet</p>
                                              </div>
                                          )}
                                      </div>
@@ -300,7 +323,7 @@ const PublicProfile = () => {
                                  {profile.showcases?.length > 0 && (
                                      <div className="bg-white border border-slate-200 rounded-2xl p-8 shadow-sm">
                                          <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-8 flex items-center gap-2">
-                                             <Zap size={14} className="text-rose-500" /> Production Pulse
+                                             <Zap size={14} className="text-rose-500" /> Live Work
                                          </h3>
                                          <div className="space-y-4">
                                              {profile.showcases.map(showcase => (
@@ -311,7 +334,7 @@ const PublicProfile = () => {
                                                      <div className="min-w-0 flex-1">
                                                          <h4 className="text-[10px] font-black text-slate-900 uppercase tracking-tight mb-0.5">{showcase.projectName}</h4>
                                                          <p className="text-[9px] text-emerald-500 font-bold uppercase tracking-widest flex items-center gap-1.5">
-                                                             <div className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse"></div> Local Deployment Stable
+                                                             <div className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse"></div> Live deployment
                                                          </p>
                                                      </div>
                                                      <div className="w-8 h-8 rounded-lg bg-white border border-slate-100 flex items-center justify-center text-slate-300 group-hover/pulse:text-slate-900 group-hover/pulse:border-slate-900 transition-all">
@@ -369,17 +392,19 @@ const PublicProfile = () => {
     );
 };
 
-const SidebarItem = ({ active, icon, label, disabled }) => (
-    <div className={`flex items-center gap-3 px-4 py-2.5 rounded-lg text-xs font-semibold transition-all group ${
-        disabled ? 'opacity-30 cursor-not-allowed' : 'cursor-not-allowed'
+const SidebarItem = ({ active, icon, label, disabled, onClick }) => (
+    <button 
+        onClick={!disabled ? onClick : undefined}
+        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-[11px] font-bold uppercase tracking-widest transition-all group ${
+        disabled ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer'
     } ${
         active 
         ? 'bg-slate-100 text-slate-900 shadow-sm' 
         : disabled ? 'text-slate-300' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'
     }`}>
-        <span className={`${active ? 'text-blue-600' : disabled ? 'text-slate-200' : 'text-slate-400 group-hover:text-slate-600'}`}>{icon}</span>
+        <span className={`${active ? 'text-indigo-600' : disabled ? 'text-slate-200' : 'text-slate-400 group-hover:text-slate-500'}`}>{icon}</span>
         <span className="truncate">{label}</span>
-    </div>
+    </button>
 );
 
 const AdminStatCard = ({ label, value, change, sub, icon, color }) => (

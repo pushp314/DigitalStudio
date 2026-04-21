@@ -36,7 +36,7 @@ const SearchPalette = ({ isOpen, onClose }) => {
     const products = data?.products || [];
     const docs = data?.docs || [];
     const allResults = [
-        ...products.map((product) => ({ ...product, type: 'template' })),
+        ...products.map((product) => ({ ...product, type: 'product' })),
         ...docs.map((doc) => ({ ...doc, type: 'doc' })),
     ];
 
@@ -51,8 +51,8 @@ const SearchPalette = ({ isOpen, onClose }) => {
 
     const handleSelect = (item) => {
         onClose();
-        if (item.type === 'template') {
-            navigate(`/templates/${item.id}`);
+        if (item.type === 'product') {
+            navigate(`/apps/${item.id}`);
             return;
         }
 

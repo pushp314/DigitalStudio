@@ -19,16 +19,29 @@ func RequestLogger() gin.HandlerFunc {
 		requestID, _ := c.Get(RequestIDKey)
 		userID, _ := c.Get("userID")
 
-		logger.Info("http_request",
+		latency := time.Since(start)
+		status := c.Writer.Status()
+
+		args := []any{
 			slog.Any("request_id", requestID),
 			slog.String("method", c.Request.Method),
 			slog.String("path", c.FullPath()),
-			slog.String("rawPath", c.Request.URL.Path),
-			slog.Int("status", c.Writer.Status()),
-			slog.Duration("latency", time.Since(start)),
-			slog.String("clientIP", c.ClientIP()),
-			slog.String("userAgent", c.Request.UserAgent()),
+			slog.Int("status", status),
+			slog.Duration("latency", latency),
+			slog.String("ip", c.ClientIP()),
 			slog.Any("user_id", userID),
-		)
+		}
+
+		if len(c.Errors) > 0 {
+			args = append(args, slog.String("error", c.Errors.ByType(gin.ErrorTypePrivate).String()))
+		}
+
+		if status >= 500 {
+			logger.Error("server_error", args...)
+		} else if status >= 400 {
+			logger.Warn("client_error", args...)
+		} else {
+			logger.Info("request_success", args...)
+		}
 	}
 }
