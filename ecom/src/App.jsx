@@ -64,6 +64,7 @@ import FlashBanner from "./components/growth/FlashBanner";
 const AppShell = () => {
   const { config, loading } = useContext(ConfigContext);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isSupportOpen, setIsSupportOpen] = useState(false);
   const [platformDown, setPlatformDown] = useState(false);
   const [maintenanceMsg, setMaintenanceMsg] = useState('');
   const { toast } = useContext(ToastContext);
@@ -145,7 +146,7 @@ const AppShell = () => {
 
   const mainPadding = hideLayout
     ? 'pt-0' 
-    : (config?.showAnnouncement && config?.announcements?.length > 0 ? 'pt-32 md:pt-40' : 'pt-24 md:pt-32');
+    : (config?.showAnnouncement && config?.announcements?.length > 0 ? 'pt-28 md:pt-32' : 'pt-16 md:pt-20');
 
   return (
     <Suspense fallback={<div className="h-screen w-full flex items-center justify-center bg-[#F5F5F7] text-black font-bold uppercase tracking-widest text-[10px]">DigitalStudio: Opening catalog...</div>}>
@@ -222,8 +223,12 @@ const AppShell = () => {
           </main>
           
           {/* Universal Help FAB - High-Access Positioning */}
-          <div className="fixed bottom-8 right-8 z-[100] group flex items-end gap-3 pointer-events-none">
-            <div className="opacity-0 group-hover:opacity-100 transition-all transform translate-y-2 group-hover:translate-y-0 bg-white border border-slate-200 rounded-2xl p-4 shadow-xl mb-2 pointer-events-auto w-64">
+          <div 
+            className="fixed bottom-8 right-8 z-[100] flex flex-col items-end gap-3"
+            onMouseEnter={() => setIsSupportOpen(true)}
+            onMouseLeave={() => setIsSupportOpen(false)}
+          >
+            <div className={`transition-all duration-300 transform ${isSupportOpen ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-2 pointer-events-none'} bg-white border border-slate-200 rounded-2xl p-4 shadow-xl mb-2 w-64`}>
                <p className="text-[10px] font-black text-slate-900 uppercase tracking-widest mb-1">Support Central</p>
                <p className="text-[9px] text-slate-500 font-medium mb-4 leading-relaxed">Expert guidance for product choice, technical issues, or custom builds.</p>
                
@@ -242,9 +247,12 @@ const AppShell = () => {
                  </Link>
                </div>
             </div>
-            <Link to="/support" className="w-14 h-14 bg-slate-900 text-white rounded-full flex items-center justify-center shadow-2xl hover:scale-110 active:scale-95 transition-all pointer-events-auto shadow-slate-900/40">
+            <button 
+              onClick={() => setIsSupportOpen(!isSupportOpen)}
+              className="w-14 h-14 bg-slate-900 text-white rounded-full flex items-center justify-center shadow-2xl hover:scale-110 active:scale-95 transition-all shadow-slate-900/40"
+            >
                <HelpCircle size={24} />
-            </Link>
+            </button>
           </div>
 
           {!hideFooter && <Footer />}

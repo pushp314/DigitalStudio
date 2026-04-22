@@ -130,12 +130,10 @@ const Templates = () => {
             </section>
 
             <section
-                className={`sticky z-40 border-y border-slate-200 bg-[#F5F5F7]/95 px-6 py-4 backdrop-blur ${
-                    config?.showAnnouncement && config?.announcements?.length > 0 ? 'top-[88px] md:top-[112px]' : 'top-[64px] md:top-[88px]'
-                }`}
+                className="relative z-30 border-y border-slate-200 bg-[#F5F5F7] px-6 py-2"
             >
                 <div className="ds-shell">
-                    <div className="ds-card p-4">
+                    <div className="ds-card p-3">
                         <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr),auto] lg:items-center">
                             <div className="flex flex-col gap-3">
                                 <div className="grid gap-3 md:grid-cols-3">
@@ -228,15 +226,15 @@ const Templates = () => {
                             
                             <div className="mt-10 grid gap-4 sm:grid-cols-3 max-w-3xl mx-auto">
                                 <button type="button" onClick={clearFilters} className="ds-button-secondary py-6 flex flex-col items-center gap-3 bg-slate-50 border-slate-100 h-full">
-                                    <span className="text-[10px] font-black uppercase tracking-widest text-blue-600">Option 1</span>
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600">Option 1</span>
                                     <span className="text-xs font-bold text-slate-900">Reset all filters</span>
                                 </button>
                                 <Link to="/hire-developer" className="ds-button-secondary py-6 flex flex-col items-center gap-3 bg-slate-50 border-slate-100 h-full">
-                                    <span className="text-[10px] font-black uppercase tracking-widest text-blue-600">Option 2</span>
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600">Option 2</span>
                                     <span className="text-xs font-bold text-slate-900">Get expert advice</span>
                                 </Link>
                                 <Link to="/contact" className="ds-button-secondary py-6 flex flex-col items-center gap-3 bg-slate-50 border-slate-100 h-full">
-                                    <span className="text-[10px] font-black uppercase tracking-widest text-blue-600">Option 3</span>
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600">Option 3</span>
                                     <span className="text-xs font-bold text-slate-900">Request custom build</span>
                                 </Link>
                             </div>
@@ -244,7 +242,7 @@ const Templates = () => {
                     </div>
                 </section>
             ) : (
-                <div className="mt-8 md:mt-12">
+                <div className="mt-2 md:mt-4">
                     <TemplateGrid items={sortedTemplates} />
                 </div>
             )}

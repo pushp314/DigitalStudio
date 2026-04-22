@@ -73,7 +73,7 @@ const ProductHeader = ({ product }) => {
     };
 
     return (
-        <section className="ds-page border-b border-slate-200 px-6 py-12 md:py-16">
+        <section className="ds-page border-b border-slate-200 px-6 pt-8 pb-12 md:pt-12 md:pb-16">
             <div className="ds-shell grid gap-8 lg:grid-cols-[minmax(0,1fr),520px] lg:items-start">
                 <div className="space-y-6">
                     <div className="flex flex-wrap gap-2">

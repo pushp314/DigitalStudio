@@ -28,7 +28,7 @@ const Cart = () => {
     }
 
     return (
-        <div className="ds-page px-6 pb-16 pt-28">
+        <div className="ds-page px-6 pb-16 pt-16">
             <div className="ds-shell grid gap-6 lg:grid-cols-[minmax(0,1fr),320px]">
                 <section className="space-y-4">
                     <div className="space-y-2">

@@ -53,7 +53,7 @@ const Wishlist = () => {
     }
 
     return (
-        <div className="ds-page px-6 pb-16 pt-28">
+        <div className="ds-page px-6 pb-16 pt-16">
             <div className="ds-shell space-y-6">
                 <div className="space-y-2">
                     <p className="ds-eyebrow">Wishlist</p>

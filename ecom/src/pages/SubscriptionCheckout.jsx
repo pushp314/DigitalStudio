@@ -182,7 +182,7 @@ const SubscriptionCheckout = () => {
     if (!resolvedPlan) return null;
 
     return (
-        <div className="min-h-screen bg-slate-50 pt-28 pb-16 px-6">
+        <div className="ds-page min-h-screen pt-28 pb-16 px-6">
             <div className="max-w-5xl mx-auto grid gap-10 lg:grid-cols-[1fr,380px]">
                 
                 {/* Left: Plan Details */}

@@ -125,13 +125,13 @@ const PricingPlan = () => {
     };
 
     return (
-        <div className="ds-page bg-slate-50 px-6 pb-24 pt-32">
+        <div className="ds-page px-6 pb-24 pt-16">
             <div className="max-w-7xl mx-auto space-y-16">
                 
                 {/* Header Section */}
                 <div className="text-center space-y-6 animate-in fade-in slide-in-from-top-4 duration-1000">
                     <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 border border-slate-200 text-slate-500 text-[10px] font-black uppercase tracking-[0.2em]">
-                        <Rocket size={12} className="text-blue-500" /> Plans
+                        <Rocket size={12} className="text-emerald-500" /> Plans
                     </div>
                     <h1 className="text-5xl md:text-7xl font-black tracking-tighter text-slate-900 leading-[0.9]">
                         Choose the right <span className="text-slate-400">access and support.</span>
