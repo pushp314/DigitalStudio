@@ -125,7 +125,13 @@ const PricingPlan = () => {
     };
 
     return (
-        <div className="ds-page px-6 pb-24 pt-16">
+        <div className="ds-page relative overflow-hidden px-6 pb-24 pt-16">
+            {/* Premium Mesh Gradient Background */}
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[600px] pointer-events-none opacity-50">
+                <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-amber-200/30 blur-[120px] rounded-full" />
+                <div className="absolute top-[10%] right-[-5%] w-[30%] h-[30%] bg-indigo-200/20 blur-[100px] rounded-full" />
+            </div>
+
             <div className="max-w-7xl mx-auto space-y-16">
                 
                 {/* Header Section */}

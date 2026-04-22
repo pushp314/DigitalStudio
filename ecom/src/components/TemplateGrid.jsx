@@ -9,11 +9,11 @@ import { normalizeProduct } from '../utils/normalizers';
 import { Share2, Eye, ExternalLink } from 'lucide-react';
 
 const statusLabel = (template) => {
-    if (template.isFree) return 'Free';
-    if (template.isBestseller) return 'Popular';
-    if (template.isNewProduct) return 'New';
-    if (template.isTrending) return 'Trending';
-    if (template.isFeatured) return 'Featured';
+    if (template.isFree) return { text: 'Free', className: 'bg-emerald-50 text-emerald-700 border-emerald-100' };
+    if (template.isBestseller) return { text: 'Bestseller', className: 'bg-amber-50 text-amber-700 border-amber-200 font-black' };
+    if (template.isNewProduct) return { text: 'New', className: 'bg-blue-50 text-blue-700 border-blue-100' };
+    if (template.isTrending) return { text: 'Trending', className: 'bg-rose-50 text-rose-700 border-rose-100' };
+    if (template.isFeatured) return { text: 'Featured', className: 'bg-slate-100 text-slate-700 border-slate-200' };
     return null;
 };
 
@@ -83,8 +83,12 @@ const TemplateGrid = ({ items, limit }) => {
                                     />
 
                                     <div className="absolute left-4 top-4 flex items-center gap-2">
-                                        {badge && <span className="ds-chip bg-white/95">{badge}</span>}
-                                        <span className="ds-chip bg-white/95">{template.category || 'Product'}</span>
+                                        {badge && (
+                                            <span className={`ds-chip border shadow-sm ${badge.className}`}>
+                                                {badge.text}
+                                            </span>
+                                        )}
+                                        <span className="ds-chip bg-white/95 shadow-sm">{template.category || 'Product'}</span>
                                     </div>
 
                                     <button
@@ -108,7 +112,12 @@ const TemplateGrid = ({ items, limit }) => {
                                     <div className="space-y-3">
                                         <div className="flex items-start justify-between gap-4">
                                             <div className="min-w-0">
-                                                <h3 className="text-xl font-semibold tracking-tight text-slate-900">{template.title}</h3>
+                                                <div className="flex items-center gap-1.5">
+                                                    <h3 className="text-xl font-semibold tracking-tight text-slate-900">{template.title}</h3>
+                                                    <svg className="h-4 w-4 text-emerald-500" viewBox="0 0 20 20" fill="currentColor">
+                                                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l5-5z" clipRule="evenodd" />
+                                                    </svg>
+                                                </div>
                                                 <p className="mt-1 line-clamp-2 text-sm leading-6 text-slate-600">
                                                     {template.description || 'A ready product you can customize and launch faster.'}
                                                 </p>
