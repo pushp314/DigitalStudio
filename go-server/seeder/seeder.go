@@ -211,8 +211,10 @@ func Run() {
 				Address: "Global Studio HQ",
 			},
 			AISettings: models.AISettings{
-				Enabled: true,
-				Model:   "qwen2.5:1.5b",
+				Enabled:  true,
+				Provider: "gemini",
+				Model:    "gemini-1.5-flash",
+				APIKey:   "AIzaSyB5T8vy3jUPPnaApyLObuvj4iDhMXP6vWI",
 			},
 			FrontendURL: os.Getenv("FRONTEND_URL"),
 		}

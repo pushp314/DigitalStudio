@@ -162,40 +162,13 @@ func GetAIRecommendation(c *gin.Context) {
 	}
 
 	prompt := fmt.Sprintf("Given a catalogue of ready apps, templates, and software kits and a tech stack of %s, recommend three relevant products with IDs and one-sentence descriptions.", techStack)
-
-	aiReqBody, _ := json.Marshal(map[string]string{
-		"prompt": prompt,
-		"model":  aiModel(),
-	})
-
-	serviceURL := aiServiceURL()
-	if serviceURL == "" {
-		respondError(c, http.StatusInternalServerError, "AI service URL is not configured")
-		return
-	}
-
-	resp, err := http.Post(serviceURL+"/ai/prompt", "application/json", bytes.NewBuffer(aiReqBody))
+	answer, err := requestAIAnswer(prompt)
 	if err != nil {
-		respondError(c, http.StatusInternalServerError, "AI service offline or unreachable")
-		return
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		fmt.Printf("AI Service ERROR (%d): %s\n", resp.StatusCode, string(body))
-		respondError(c, http.StatusInternalServerError, "AI service returned an error")
+		respondError(c, http.StatusInternalServerError, "Failed to get AI recommendation: "+err.Error())
 		return
 	}
 
-	bodyBytes, _ := io.ReadAll(resp.Body)
-	var aiResp struct{ Answer string `json:"answer"` }
-	if err := json.Unmarshal(bodyBytes, &aiResp); err != nil {
-		respondError(c, http.StatusInternalServerError, "Failed to parse AI response")
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"answer": aiResp.Answer})
+	c.JSON(http.StatusOK, gin.H{"answer": answer})
 }
 
 func GetUserRoadmap(c *gin.Context) {
@@ -226,7 +199,7 @@ func GetUserRoadmap(c *gin.Context) {
 		}
 	}
 
-	// 2. Fetch Wishlist Titles (Optional but helpful if we had IDs)
+	// 2. Fetch Wishlist Titles
 	var wishlistNames []string
 	if len(req.WishlistIDs) > 0 {
 		var products []models.Product
@@ -242,24 +215,13 @@ func GetUserRoadmap(c *gin.Context) {
 	
 	prompt := fmt.Sprintf("%s\n\nTask: Generate a strategic 3-step implementation roadmap for this creator. What should they build next? Which documentation should they read? Suggest one specific ready product they don't own that would complete their toolkit. Keep it professional, encouraging, and high-density (max 150 words).", profileContext)
 
-	aiReqBody, _ := json.Marshal(map[string]string{
-		"prompt": prompt,
-		"model":  aiModel(),
-	})
-
-	serviceURL := aiServiceURL()
-	resp, err := http.Post(serviceURL+"/ai/prompt", "application/json", bytes.NewBuffer(aiReqBody))
+	answer, err := requestAIAnswer(prompt)
 	if err != nil {
-		respondError(c, http.StatusInternalServerError, "AI service offline")
+		respondError(c, http.StatusInternalServerError, "Failed to generate roadmap: "+err.Error())
 		return
 	}
-	defer resp.Body.Close()
 
-	bodyBytes, _ := io.ReadAll(resp.Body)
-	var aiResp struct{ Answer string `json:"answer"` }
-	json.Unmarshal(bodyBytes, &aiResp)
-
-	c.JSON(http.StatusOK, gin.H{"roadmap": aiResp.Answer})
+	c.JSON(http.StatusOK, gin.H{"roadmap": answer})
 }
 
 func AnalyzeInquiry(message string) (string, int) {
@@ -269,24 +231,13 @@ func AnalyzeInquiry(message string) (string, int) {
 
 	prompt := fmt.Sprintf("Analyze this customer inquiry: \"%s\"\n\nReturn ONLY a JSON object with two fields: \"sentiment\" (one word: calm, happy, frustrated, confused, or urgent) and \"priority\" (number 1 to 10 based on business impact).", message)
 
-	aiReqBody, _ := json.Marshal(map[string]string{
-		"prompt": prompt,
-		"model":  aiModel(),
-	})
-
-	serviceURL := aiServiceURL()
-	resp, err := http.Post(serviceURL+"/ai/prompt", "application/json", bytes.NewBuffer(aiReqBody))
+	answer, err := requestAIAnswer(prompt)
 	if err != nil {
 		return "neutral", 3
 	}
-	defer resp.Body.Close()
-
-	bodyBytes, _ := io.ReadAll(resp.Body)
-	var aiResp struct{ Answer string `json:"answer"` }
-	json.Unmarshal(bodyBytes, &aiResp)
 
 	// Robustly extract JSON from AI response (some LLMs might wrap in markdown blocks)
-	cleanJSON := aiResp.Answer
+	cleanJSON := answer
 	if strings.Contains(cleanJSON, "```json") {
 		parts := strings.Split(cleanJSON, "```json")
 		if len(parts) > 1 {
@@ -304,7 +255,7 @@ func AnalyzeInquiry(message string) (string, int) {
 		Priority  int    `json:"priority"`
 	}
 	if err := json.Unmarshal([]byte(strings.TrimSpace(cleanJSON)), &analysis); err != nil {
-		fmt.Printf("AI Analysis Parse Error: %v | Raw: %s\n", err, aiResp.Answer)
+		fmt.Printf("AI Analysis Parse Error: %v | Raw: %s\n", err, answer)
 		return "neutral", 3
 	}
 
@@ -312,23 +263,88 @@ func AnalyzeInquiry(message string) (string, int) {
 }
 
 func requestAIAnswer(prompt string) (string, error) {
+	provider := aiProvider()
+	model := aiModel()
+	apiKey := aiApiKey()
+
+	if provider == "gemini" {
+		if model == "" {
+			model = "gemini-1.5-flash"
+		}
+		if apiKey == "" {
+			return "", fmt.Errorf("Gemini API key is not configured")
+		}
+
+		apiURL := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent?key=%s", model, apiKey)
+		
+		reqPayload := map[string]interface{}{
+			"contents": []map[string]interface{}{
+				{
+					"parts": []map[string]interface{}{
+						{"text": prompt},
+					},
+				},
+			},
+		}
+
+		body, _ := json.Marshal(reqPayload)
+		resp, err := http.Post(apiURL, "application/json", bytes.NewBuffer(body))
+		if err != nil {
+			return "", err
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusOK {
+			respBody, _ := io.ReadAll(resp.Body)
+			return "", fmt.Errorf("Gemini API error (%d): %s", resp.StatusCode, string(respBody))
+		}
+
+		var geminiResp struct {
+			Candidates []struct {
+				Content struct {
+					Parts []struct {
+						Text string `json:"text"`
+					} `json:"parts"`
+				} `json:"content"`
+			} `json:"candidates"`
+		}
+
+		if err := json.NewDecoder(resp.Body).Decode(&geminiResp); err != nil {
+			return "", err
+		}
+
+		if len(geminiResp.Candidates) > 0 && len(geminiResp.Candidates[0].Content.Parts) > 0 {
+			return geminiResp.Candidates[0].Content.Parts[0].Text, nil
+		}
+		return "", fmt.Errorf("Gemini API returned no content")
+	}
+
+	// Legacy Proxy Fallback
 	aiReqBody, _ := json.Marshal(map[string]string{
 		"prompt": prompt,
-		"model":  aiModel(),
+		"model":  model,
 	})
 
 	serviceURL := aiServiceURL()
+	if serviceURL == "" {
+		return "", fmt.Errorf("AI service URL is not configured")
+	}
+
 	resp, err := http.Post(serviceURL+"/ai/prompt", "application/json", bytes.NewBuffer(aiReqBody))
 	if err != nil {
 		return "", err
 	}
 	defer resp.Body.Close()
 
-	bodyBytes, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return "", fmt.Errorf("AI service returned error (%d): %s", resp.StatusCode, string(body))
+	}
+
 	var aiResp struct {
 		Answer string `json:"answer"`
 	}
-	if err := json.Unmarshal(bodyBytes, &aiResp); err != nil {
+	if err := json.NewDecoder(resp.Body).Decode(&aiResp); err != nil {
 		return "", err
 	}
 

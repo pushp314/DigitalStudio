@@ -37,37 +37,13 @@ func GenerateDocSummary(c *gin.Context) {
 	}
 
 	prompt := "Please generate a concise summary, table of contents, and keyword tags for the following documentation:\n\n" + req.Markdown
-	aiReqBody, _ := json.Marshal(map[string]string{
-		"prompt": prompt,
-		"model":  aiModel(),
-	})
-
-	serviceURL := aiServiceURL()
-	if serviceURL == "" {
-		respondError(c, http.StatusInternalServerError, "AI service URL is not configured")
-		return
-	}
-
-	resp, err := http.Post(serviceURL+"/ai/prompt", "application/json", bytes.NewBuffer(aiReqBody))
+	answer, err := requestAIAnswer(prompt)
 	if err != nil {
-		respondError(c, http.StatusInternalServerError, "AI service offline or unreachable")
-		return
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		respondError(c, http.StatusInternalServerError, "AI error")
+		respondError(c, http.StatusInternalServerError, "Failed to generate summary: "+err.Error())
 		return
 	}
 
-	bodyBytes, _ := io.ReadAll(resp.Body)
-	var aiResp struct{ Answer string `json:"answer"` }
-	if err := json.Unmarshal(bodyBytes, &aiResp); err != nil {
-		respondError(c, http.StatusInternalServerError, "Failed to parse AI response")
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"answer": aiResp.Answer})
+	c.JSON(http.StatusOK, gin.H{"answer": answer})
 }
 
 func AskDocAI(c *gin.Context) {
@@ -115,6 +91,18 @@ func AskDocAI(c *gin.Context) {
 	// 3. Orchestrate AI Prompt
 	prompt := fmt.Sprintf("You are a senior technical assistant for Devnity. Use the provided documentation and previous conversation history to answer the user inquiry accurately.\n\n[DOCUMENTATION]\n%s\n\n[HISTORY]\n%s\n\n[USER INQUIRY]\n%s", req.Markdown, historyContext, req.Question)
 	
+	if aiProvider() == "gemini" {
+		answer, err := requestAIAnswer(prompt)
+		if err != nil {
+			respondError(c, http.StatusInternalServerError, "AI Assistant error: "+err.Error())
+			return
+		}
+		saveDocChat(currentUser.ID, docID, req.Question, answer)
+		c.JSON(http.StatusOK, gin.H{"answer": answer})
+		return
+	}
+
+	// 4. Stream & Capture for Persistence (Legacy Proxy)
 	aiReqBody, _ := json.Marshal(map[string]interface{}{
 		"prompt":         prompt,
 		"model":          aiModel(),
@@ -125,19 +113,16 @@ func AskDocAI(c *gin.Context) {
 
 	resp, err := http.Post(aiServiceURL()+"/ai/prompt", "application/json", bytes.NewBuffer(aiReqBody))
 	if err != nil {
-		fmt.Printf("[AI_DOC_ERROR] AI service connection failed: %v\n", err)
 		respondError(c, http.StatusInternalServerError, "AI service offline")
 		return
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		fmt.Printf("[AI_DOC_ERROR] AI service status error: %d\n", resp.StatusCode)
 		respondError(c, http.StatusBadGateway, "AI service response failed")
 		return
 	}
 
-	// 4. Stream & Capture for Persistence
 	c.Header("Content-Type", "text/event-stream")
 	c.Header("Cache-Control", "no-cache")
 	c.Header("Connection", "keep-alive")
@@ -284,6 +269,17 @@ func UniversalDocSearchChat(c *gin.Context) {
 	// 3. AI Stream Request
 	prompt := fmt.Sprintf("You are a Devnity support assistant. Use the provided internal context to answer the user's question. If the context does not have the answer, use your technical knowledge but mention it is general guidance.\n\n[INTERNAL CONTEXT]\n%s\n\n[USER QUESTION]\n%s", context, req.Question)
 	
+	if aiProvider() == "gemini" {
+		answer, err := requestAIAnswer(prompt)
+		if err != nil {
+			respondError(c, http.StatusInternalServerError, "AI Assistant error: "+err.Error())
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{"answer": answer})
+		return
+	}
+
+	// Legacy Proxy Stream
 	aiReqBody, _ := json.Marshal(map[string]interface{}{
 		"prompt":         prompt,
 		"model":          aiModel(),

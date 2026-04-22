@@ -169,7 +169,7 @@ func aiProvider() string {
 			return trimmed
 		}
 	}
-	return "ollama"
+	return "gemini"
 }
 
 func aiModel() string {
@@ -180,5 +180,15 @@ func aiModel() string {
 		}
 	}
 
-	return ""
+	return "gemini-1.5-flash"
+}
+
+func aiApiKey() string {
+	var siteConfig models.SiteConfig
+	if config.DB != nil && config.DB.First(&siteConfig).Error == nil {
+		if trimmed := strings.TrimSpace(siteConfig.AISettings.APIKey); trimmed != "" {
+			return trimmed
+		}
+	}
+	return os.Getenv("AI_API_KEY")
 }
