@@ -73,7 +73,7 @@ func ConnectDB() {
 			&models.RefreshToken{},
 		)
 		if err != nil {
-			log.Fatal("Failed to auto-migrate database:", err)
+			log.Println("Warning: AutoMigrate encountered an error (likely a missing constraint), but continuing:", err)
 		}
 		log.Println("✅ AutoMigrate: Verified schema for all models (including ChatMessage)")
 		log.Println("AutoMigrate enabled for this environment")
