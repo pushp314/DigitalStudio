@@ -22,21 +22,23 @@ func ConnectDB() {
 	if err != nil {
 		log.Fatal("Failed to connect to database:", err)
 	}
-	// Always migrate critical marketplace tables to prevent 500 errors
-	_ = DB.AutoMigrate(
+	criticalModels := []interface{}{
 		&models.User{},
 		&models.RefreshToken{},
 		&models.Product{},
 		&models.Tag{},
 		&models.ProductCategory{},
-	)
+	}
+	for _, m := range criticalModels {
+		_ = DB.AutoMigrate(m)
+	}
 
 	if os.Getenv("ENABLE_AUTOMIGRATE") == "true" {
 		if AppConfig.AppEnv == "production" {
 			log.Fatal("ENABLE_AUTOMIGRATE must remain disabled in production")
 		}
 
-		err = DB.AutoMigrate(
+		allModels := []interface{}{
 			&models.User{},
 			&models.Tag{},
 			&models.Product{},
@@ -71,9 +73,12 @@ func ConnectDB() {
 			&models.CartRecoveryLog{},
 			&models.ImportJob{},
 			&models.RefreshToken{},
-		)
-		if err != nil {
-			log.Println("Warning: AutoMigrate encountered an error (likely a missing constraint), but continuing:", err)
+		}
+		for _, m := range allModels {
+			err := DB.AutoMigrate(m)
+			if err != nil {
+				log.Printf("Warning: Failed to auto-migrate model %T: %v", m, err)
+			}
 		}
 		log.Println("✅ AutoMigrate: Verified schema for all models (including ChatMessage)")
 		log.Println("AutoMigrate enabled for this environment")
