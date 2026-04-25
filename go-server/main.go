@@ -56,6 +56,7 @@ func main() {
 	services.BackfillLegacyLicenses(config.DB)
 
 	r := gin.New()
+	r.RedirectTrailingSlash = false
 	r.Use(gin.Recovery())
 	r.Use(middleware.RequestIDMiddleware())
 	r.Use(middleware.RequestLogger())
@@ -101,6 +102,9 @@ func main() {
 		MaxAge:           12 * time.Hour,
 	}))
 
+	r.GET("/", func(c *gin.Context) {
+		c.JSON(200, gin.H{"status": "running", "service": "BizCode API", "version": "1.0.0"})
+	})
 	r.GET("/healthz", handlers.Healthz)
 	r.GET("/readyz", handlers.Readyz)
 	r.GET("/metrics", gin.WrapH(promhttp.Handler()))
@@ -123,19 +127,19 @@ func main() {
 
 	products := api.Group("/products")
 	{
-		products.GET("/", publicLimiter, handlers.ListProducts)
+		products.GET("", publicLimiter, handlers.ListProducts)
 		products.GET("/:id", publicLimiter, handlers.GetProduct)
 		products.GET("/owned", middleware.AuthMiddleware(), handlers.GetOwnedProducts)
 		products.GET("/:id/share", handlers.ServeProductSEO)
 		products.GET("/:id/download", middleware.AuthMiddleware(), handlers.DownloadSecureAsset)
-		products.POST("/", middleware.AuthMiddleware(), handlers.CreateProduct)
+		products.POST("", middleware.AuthMiddleware(), handlers.CreateProduct)
 		products.PUT("/:id", middleware.AuthMiddleware(), handlers.UpdateProduct)
 		products.DELETE("/:id", middleware.AuthMiddleware(), handlers.DeleteProduct)
 	}
 
 	categories := api.Group("/categories")
 	{
-		categories.GET("/", handlers.GetCategories)
+		categories.GET("", handlers.GetCategories)
 		categories.GET("/:slug", handlers.GetCategoryBySlug)
 	}
 
@@ -213,9 +217,9 @@ func main() {
 
 	siteConfig := api.Group("/config")
 	{
-		siteConfig.GET("/", handlers.GetConfig)
+		siteConfig.GET("", handlers.GetConfig)
 		siteConfig.GET("/admin", middleware.AuthMiddleware(), middleware.AdminMiddleware(), handlers.GetAdminConfig)
-		siteConfig.PUT("/", middleware.AuthMiddleware(), middleware.AdminMiddleware(), handlers.UpdateConfig)
+		siteConfig.PUT("", middleware.AuthMiddleware(), middleware.AdminMiddleware(), handlers.UpdateConfig)
 	}
 
 	docs := api.Group("/docs")
