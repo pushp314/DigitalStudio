@@ -1,5 +1,6 @@
 import React, { Suspense, lazy, useContext, useState, useEffect } from "react";
 import { Routes, Route, useLocation, useNavigate, Navigate } from "react-router-dom";
+import { AnimatePresence } from "framer-motion";
 import NProgress from 'nprogress';
 import 'nprogress/nprogress.css';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -21,6 +22,8 @@ import ScrollToTop from "./components/common/ScrollToTop";
 import { HelpCircle, MessageCircle, ArrowUpRight, X } from 'lucide-react';
 import { Link } from "react-router-dom";
 import { HelmetProvider } from 'react-helmet-async';
+import LoadingScreen from "./components/common/LoadingScreen";
+
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -65,13 +68,36 @@ import SearchPalette from "./components/ui/SearchPalette";
 import FlashBanner from "./components/growth/FlashBanner";
 
 const AppShell = () => {
-  const { config, loading } = useContext(ConfigContext);
+  const { config, loading: configLoading } = useContext(ConfigContext);
+  const [minLoadingDone, setMinLoadingDone] = useState(false);
+  const [progress, setProgress] = useState(0);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isSupportOpen, setIsSupportOpen] = useState(false);
   const [platformDown, setPlatformDown] = useState(false);
   const [maintenanceMsg, setMaintenanceMsg] = useState('');
   const { toast } = useContext(ToastContext);
   const { events } = useRealtime();
+
+  useEffect(() => {
+    const startTime = Date.now();
+    const duration = 3000;
+    
+    const updateProgress = () => {
+      const now = Date.now();
+      const elapsed = now - startTime;
+      const currentProgress = Math.min((elapsed / duration) * 100, 100);
+      
+      setProgress(currentProgress);
+      
+      if (currentProgress < 100) {
+        requestAnimationFrame(updateProgress);
+      } else {
+        setMinLoadingDone(true);
+      }
+    };
+    
+    requestAnimationFrame(updateProgress);
+  }, []);
   const location = useLocation();
   const isAdminPath = location.pathname.startsWith('/admin');
   const features = config?.features ?? {};
@@ -153,11 +179,6 @@ const AppShell = () => {
     }
   }, [events, toast]);
 
-  if (loading) {
-    return <div className="h-screen w-full flex items-center justify-center bg-[#F5F5F7] text-black font-bold uppercase tracking-widest text-[10px]">BizCode: Loading workspace...</div>;
-  }
-
-  // Allow access to admin and auth paths during maintenance
   const isAuthPath = location.pathname.startsWith('/login') || location.pathname.startsWith('/register') || location.pathname.startsWith('/auth');
   const isBypassPath = isAdminPath || isAuthPath;
 
@@ -180,124 +201,131 @@ const AppShell = () => {
     ? 'pt-0' 
     : (config?.showAnnouncement && config?.announcements?.length > 0 ? 'pt-28 md:pt-32' : 'pt-16 md:pt-20');
 
+  const isLoading = configLoading || !minLoadingDone;
+
   return (
-    <Suspense fallback={<div className="h-screen w-full flex items-center justify-center bg-[#F5F5F7] text-black font-bold uppercase tracking-widest text-[10px]">BizCode: Opening catalog...</div>}>
-      <ErrorBoundary>
-        <ScrollToTop />
-        <div className="flex flex-col min-h-screen bg-[#F5F5F7] relative">
-          {!hideLayout && <Navbar onSearchClick={() => setIsSearchOpen(true)} />}
-          <SearchPalette isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
-          {!hideLayout && <FlashBanner />}
-          <main className={`flex-grow transition-all duration-300 ${!hideLayout ? 'pb-32 md:pb-0' : ''} ${mainPadding}`}>
-            <Routes>
-              {/* ... existing routes ... */}
-              <Route path="/" element={<Home />} />
-              <Route path="/apps" element={<Templates />} />
-              <Route path="/apps/category/:slug" element={<Templates />} />
-              <Route path="/apps/:id" element={<TemplatesDetails />} />
-              <Route path="/templates" element={<Templates />} />
-              <Route path="/templates/:id" element={<TemplatesDetails />} />
-              <Route path="/features" element={<Features />} />
-              {features.testimonials && <Route path="/testimonials" element={<Testimonials />} />}
-              <Route path="/faq" element={<FAQ />} />
-              <Route path="/help" element={<Navigate to="/support" replace />} />
-              <Route path="/contact" element={<Contact />} />
-              <Route path="/hire-developer" element={<Contact />} />
-              <Route path="/hire-developer/:serviceType" element={<Contact />} />
-              <Route path="/terms" element={<Legal type="terms" />} />
-              <Route path="/privacy" element={<Legal type="privacy" />} />
-              <Route path="/chat" element={<ProtectedRoute><DevChat /></ProtectedRoute>} />
-              <Route path="/support" element={<ProtectedRoute><EliteHub /></ProtectedRoute>} />
-              <Route path="/expert-help/:intent" element={<ProtectedRoute><EliteHub /></ProtectedRoute>} />
-              <Route path="/elite/chat/:sessionId" element={<ProtectedRoute><EliteChat /></ProtectedRoute>} />
+    <AnimatePresence mode="wait">
+      {isLoading ? (
+        <LoadingScreen key="loading" message="Loading workspace..." progress={progress} />
+      ) : (
+        <Suspense key="content" fallback={<LoadingScreen message="Opening catalog..." progress={100} />}>
+          <ErrorBoundary>
+            <ScrollToTop />
+            <div className="flex flex-col min-h-screen bg-[#F5F5F7] relative">
+              {!hideLayout && <Navbar onSearchClick={() => setIsSearchOpen(true)} />}
+              <SearchPalette isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
+              {!hideLayout && <FlashBanner />}
+              <main className={`flex-grow transition-all duration-300 ${!hideLayout ? 'pb-32 md:pb-0' : ''} ${mainPadding}`}>
+                <Routes>
+                  <Route path="/" element={<Home />} />
+                  <Route path="/apps" element={<Templates />} />
+                  <Route path="/apps/category/:slug" element={<Templates />} />
+                  <Route path="/apps/:id" element={<TemplatesDetails />} />
+                  <Route path="/templates" element={<Templates />} />
+                  <Route path="/templates/:id" element={<TemplatesDetails />} />
+                  <Route path="/features" element={<Features />} />
+                  {features.testimonials && <Route path="/testimonials" element={<Testimonials />} />}
+                  <Route path="/faq" element={<FAQ />} />
+                  <Route path="/help" element={<Navigate to="/support" replace />} />
+                  <Route path="/contact" element={<Contact />} />
+                  <Route path="/hire-developer" element={<Contact />} />
+                  <Route path="/hire-developer/:serviceType" element={<Contact />} />
+                  <Route path="/terms" element={<Legal type="terms" />} />
+                  <Route path="/privacy" element={<Legal type="privacy" />} />
+                  <Route path="/chat" element={<ProtectedRoute><DevChat /></ProtectedRoute>} />
+                  <Route path="/support" element={<ProtectedRoute><EliteHub /></ProtectedRoute>} />
+                  <Route path="/expert-help/:intent" element={<ProtectedRoute><EliteHub /></ProtectedRoute>} />
+                  <Route path="/elite/chat/:sessionId" element={<ProtectedRoute><EliteChat /></ProtectedRoute>} />
 
-              {features.docs && (
-                <>
-                  <Route path="/docs" element={<Docs />} />
-                  <Route path="/docs/:id" element={<DocViewer />} />
-                </>
-              )}
+                  {features.docs && (
+                    <>
+                      <Route path="/docs" element={<Docs />} />
+                      <Route path="/docs/:id" element={<DocViewer />} />
+                    </>
+                  )}
 
-              <Route path="/pricing" element={<Pricing />} />
-              <Route path="/subscription-checkout" element={<ProtectedRoute><SubscriptionCheckout /></ProtectedRoute>} />
+                  <Route path="/pricing" element={<Pricing />} />
+                  <Route path="/subscription-checkout" element={<ProtectedRoute><SubscriptionCheckout /></ProtectedRoute>} />
 
-              {features.payments && (
-                <>
-                  <Route path="/cart" element={<Cart />} />
-                  <Route path="/checkout" element={<Checkout />} />
-                </>
-              )}
+                  {features.payments && (
+                    <>
+                      <Route path="/cart" element={<Cart />} />
+                      <Route path="/checkout" element={<Checkout />} />
+                    </>
+                  )}
 
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              <Route path="/auth/callback" element={<OAuthCallback />} />
-              <Route path="/account" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-              <Route path="/sell-your-project" element={<ProtectedRoute><TemplateEdit /></ProtectedRoute>} />
-              <Route path="/account/submit" element={<ProtectedRoute><TemplateEdit /></ProtectedRoute>} />
-              <Route path="/account/templates/:id/edit" element={<ProtectedRoute><TemplateEdit /></ProtectedRoute>} />
-              <Route path="/wishlist" element={<Wishlist />} />
-              <Route path="/@:username" element={<PublicProfile />} />
-              <Route path="/profile/:username" element={<PublicProfile />} />
-              <Route path="/:username" element={<PublicProfile />} />
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/register" element={<Register />} />
+                  <Route path="/auth/callback" element={<OAuthCallback />} />
+                  <Route path="/account" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+                  <Route path="/sell-your-project" element={<ProtectedRoute><TemplateEdit /></ProtectedRoute>} />
+                  <Route path="/account/submit" element={<ProtectedRoute><TemplateEdit /></ProtectedRoute>} />
+                  <Route path="/account/templates/:id/edit" element={<ProtectedRoute><TemplateEdit /></ProtectedRoute>} />
+                  <Route path="/wishlist" element={<Wishlist />} />
+                  <Route path="/@:username" element={<PublicProfile />} />
+                  <Route path="/profile/:username" element={<PublicProfile />} />
+                  <Route path="/:username" element={<PublicProfile />} />
 
-               {/* Unified Admin Namespace */}
-              <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
-              <Route path="/admin/:tab" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
+                   {/* Unified Admin Namespace */}
+                  <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
+                  <Route path="/admin/:tab" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
+                  
+                  {/* Specialized Admin Pages */}
+                  <Route path="/admin/templates/new" element={<AdminRoute><TemplateEdit /></AdminRoute>} />
+                  <Route path="/admin/templates/:id/edit" element={<AdminRoute><TemplateEdit /></AdminRoute>} />
+                  <Route path="/admin/doc/new" element={<AdminRoute><DocEdit /></AdminRoute>} />
+                  <Route path="/admin/doc/:id/edit" element={<AdminRoute><DocEdit /></AdminRoute>} />
+
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </main>
               
-              {/* Specialized Admin Pages */}
-              <Route path="/admin/templates/new" element={<AdminRoute><TemplateEdit /></AdminRoute>} />
-              <Route path="/admin/templates/:id/edit" element={<AdminRoute><TemplateEdit /></AdminRoute>} />
-              <Route path="/admin/doc/new" element={<AdminRoute><DocEdit /></AdminRoute>} />
-              <Route path="/admin/doc/:id/edit" element={<AdminRoute><DocEdit /></AdminRoute>} />
+              {/* Universal Help FAB - High-Access Positioning */}
+              <div className="fixed bottom-8 right-8 z-[100] flex flex-col items-end gap-3">
+                {/* Modal Menu */}
+                <div className={`transition-all duration-500 transform origin-bottom-right ${isSupportOpen ? 'opacity-100 scale-100 translate-y-0 pointer-events-auto' : 'opacity-0 scale-95 translate-y-4 pointer-events-none'} bg-white border border-slate-200 rounded-[2rem] p-6 shadow-2xl mb-2 w-72 ring-1 ring-black/5`}>
+                   <div className="flex items-center justify-between mb-2">
+                      <p className="text-[10px] font-black text-slate-900 uppercase tracking-widest">Support Central</p>
+                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
+                   </div>
+                   <p className="text-[9px] text-slate-500 font-medium mb-5 leading-relaxed">Expert guidance for product choice, technical issues, or custom builds.</p>
+                   
+                   <div className="space-y-2">
+                     <Link onClick={() => setIsSupportOpen(false)} to="/support" className="flex items-center justify-between p-3 rounded-xl bg-slate-50 hover:bg-slate-900 hover:text-white group/item transition-all duration-300">
+                        <span className="text-[9px] font-black uppercase tracking-widest">Expert Chat</span>
+                        <ArrowUpRight size={10} className="text-slate-400 group-hover/item:text-white group-hover/item:translate-x-0.5 group-hover/item:-translate-y-0.5 transition-all" />
+                     </Link>
+                     <Link onClick={() => setIsSupportOpen(false)} to="/support" className="flex items-center justify-between p-3 rounded-xl bg-slate-50 hover:bg-slate-900 hover:text-white group/item transition-all duration-300">
+                        <span className="text-[9px] font-black uppercase tracking-widest">Support Tickets</span>
+                        <ArrowUpRight size={10} className="text-slate-400 group-hover/item:text-white group-hover/item:translate-x-0.5 group-hover/item:-translate-y-0.5 transition-all" />
+                     </Link>
+                     <Link onClick={() => setIsSupportOpen(false)} to="/hire-developer" className="flex items-center justify-between p-3 rounded-xl bg-indigo-50 hover:bg-indigo-600 hover:text-white group/item transition-all duration-300">
+                        <span className="text-[9px] font-black text-indigo-600 group-hover/item:text-white uppercase tracking-widest">Hire Developer</span>
+                        <ArrowUpRight size={10} className="text-indigo-400 group-hover/item:text-white group-hover/item:translate-x-0.5 group-hover/item:-translate-y-0.5 transition-all" />
+                     </Link>
+                   </div>
+                </div>
 
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </main>
-          
-          {/* Universal Help FAB - High-Access Positioning */}
-          <div className="fixed bottom-8 right-8 z-[100] flex flex-col items-end gap-3">
-            {/* Modal Menu */}
-            <div className={`transition-all duration-500 transform origin-bottom-right ${isSupportOpen ? 'opacity-100 scale-100 translate-y-0 pointer-events-auto' : 'opacity-0 scale-95 translate-y-4 pointer-events-none'} bg-white border border-slate-200 rounded-[2rem] p-6 shadow-2xl mb-2 w-72 ring-1 ring-black/5`}>
-               <div className="flex items-center justify-between mb-2">
-                  <p className="text-[10px] font-black text-slate-900 uppercase tracking-widest">Support Central</p>
-                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
-               </div>
-               <p className="text-[9px] text-slate-500 font-medium mb-5 leading-relaxed">Expert guidance for product choice, technical issues, or custom builds.</p>
-               
-               <div className="space-y-2">
-                 <Link onClick={() => setIsSupportOpen(false)} to="/support" className="flex items-center justify-between p-3 rounded-xl bg-slate-50 hover:bg-slate-900 hover:text-white group/item transition-all duration-300">
-                    <span className="text-[9px] font-black uppercase tracking-widest">Expert Chat</span>
-                    <ArrowUpRight size={10} className="text-slate-400 group-hover/item:text-white group-hover/item:translate-x-0.5 group-hover/item:-translate-y-0.5 transition-all" />
-                 </Link>
-                 <Link onClick={() => setIsSupportOpen(false)} to="/support" className="flex items-center justify-between p-3 rounded-xl bg-slate-50 hover:bg-slate-900 hover:text-white group/item transition-all duration-300">
-                    <span className="text-[9px] font-black uppercase tracking-widest">Support Tickets</span>
-                    <ArrowUpRight size={10} className="text-slate-400 group-hover/item:text-white group-hover/item:translate-x-0.5 group-hover/item:-translate-y-0.5 transition-all" />
-                 </Link>
-                 <Link onClick={() => setIsSupportOpen(false)} to="/hire-developer" className="flex items-center justify-between p-3 rounded-xl bg-indigo-50 hover:bg-indigo-600 hover:text-white group/item transition-all duration-300">
-                    <span className="text-[9px] font-black text-indigo-600 group-hover/item:text-white uppercase tracking-widest">Hire Developer</span>
-                    <ArrowUpRight size={10} className="text-indigo-400 group-hover/item:text-white group-hover/item:translate-x-0.5 group-hover/item:-translate-y-0.5 transition-all" />
-                 </Link>
-               </div>
+                {/* Main Toggle Button */}
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsSupportOpen(!isSupportOpen);
+                  }}
+                  className={`w-14 h-14 rounded-full flex items-center justify-center shadow-2xl transition-all duration-500 active:scale-90 relative group overflow-hidden ${
+                    isSupportOpen ? 'bg-slate-900 text-white rotate-180' : 'bg-white text-slate-900 hover:bg-slate-50'
+                  }`}
+                >
+                  {isSupportOpen ? <X size={20} strokeWidth={2.5} /> : <HelpCircle size={24} strokeWidth={2.5} />}
+                </button>
+              </div>
+
+              {!hideFooter && <Footer />}
             </div>
-
-            {/* Main Toggle Button */}
-            <button 
-              onClick={(e) => {
-                e.stopPropagation();
-                setIsSupportOpen(!isSupportOpen);
-              }}
-              className={`w-14 h-14 rounded-full flex items-center justify-center shadow-2xl transition-all duration-500 active:scale-90 relative group overflow-hidden ${
-                isSupportOpen ? 'bg-slate-900 text-white rotate-180' : 'bg-white text-slate-900 hover:bg-slate-50'
-              }`}
-            >
-              {isSupportOpen ? <X size={20} strokeWidth={2.5} /> : <HelpCircle size={24} strokeWidth={2.5} />}
-            </button>
-          </div>
-
-          {!hideFooter && <Footer />}
-        </div>
-      </ErrorBoundary>
-    </Suspense>
+          </ErrorBoundary>
+        </Suspense>
+      )}
+    </AnimatePresence>
   );
 };
 
