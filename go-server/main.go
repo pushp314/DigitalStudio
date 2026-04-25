@@ -56,7 +56,20 @@ func main() {
 	services.BackfillLegacyLicenses(config.DB)
 
 	r := gin.New()
-	r.RedirectTrailingSlash = false
+	r.RedirectTrailingSlash = true // Enable it back but ensure CORS runs first
+	
+	// CORS must be the very first middleware to handle preflights and redirects properly
+	allowOrigins := allowedOriginsFromEnv()
+	allowCredentials := len(allowOrigins) > 0 && !(len(allowOrigins) == 1 && allowOrigins[0] == "*")
+	r.Use(cors.New(cors.Config{
+		AllowOrigins:     allowOrigins,
+		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization", "X-Requested-With", "Cache-Control"},
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: allowCredentials,
+		MaxAge:           12 * time.Hour,
+	}))
+
 	r.Use(gin.Recovery())
 	r.Use(middleware.RequestIDMiddleware())
 	r.Use(middleware.RequestLogger())
@@ -91,16 +104,6 @@ func main() {
 	})
 	r.Use(sessions.Sessions("bizcode_session", store))
 
-	allowOrigins := allowedOriginsFromEnv()
-	allowCredentials := len(allowOrigins) > 0 && !(len(allowOrigins) == 1 && allowOrigins[0] == "*")
-	r.Use(cors.New(cors.Config{
-		AllowOrigins:     allowOrigins,
-		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
-		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
-		ExposeHeaders:    []string{"Content-Length"},
-		AllowCredentials: allowCredentials,
-		MaxAge:           12 * time.Hour,
-	}))
 
 	r.GET("/", func(c *gin.Context) {
 		c.JSON(200, gin.H{"status": "running", "service": "BizCode API", "version": "1.0.0"})
