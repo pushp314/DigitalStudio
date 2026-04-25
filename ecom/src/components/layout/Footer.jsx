@@ -20,7 +20,7 @@ const Footer = () => {
             <div className="ds-shell grid gap-8 md:grid-cols-[1.2fr,0.8fr,0.8fr]">
                 <div className="space-y-4">
                     <Link to="/" className="inline-block">
-                        <img src="/logo.png" alt="BizCode" className="h-10 w-auto" />
+                        <img src="/logo.png" alt="BizCode" className="h-28 w-auto" />
                     </Link>
                     <p className="text-sm text-slate-600 max-w-xs">Premium ready apps, technical guides, and expert implementation support.</p>
                     
