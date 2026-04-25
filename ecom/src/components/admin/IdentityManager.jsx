@@ -44,7 +44,7 @@ const IdentityManager = () => {
             return await api.patch(`/admin/github-requests/${id}`, { status });
         },
         onSuccess: (_data, variables) => {
-            success(`Identity Shift ${variables.status === 'approved' ? 'Authorized' : 'Denied'}`);
+            success(`Request ${variables.status === 'approved' ? 'Approved' : 'Rejected'}`);
             queryClient.invalidateQueries({ queryKey: ['admin-github-requests'] });
         },
         onError: () => {
@@ -69,8 +69,8 @@ const IdentityManager = () => {
             {/* Header Module */}
             <div className="flex items-center justify-between pb-8 border-b border-gray-100">
                 <div>
-                    <h2 className="text-3xl font-black text-black tracking-tighter">Identity Review Hub</h2>
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Gated GitHub transitions & verification locks</p>
+                    <h2 className="text-3xl font-black text-black tracking-tighter">Profile Verification</h2>
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Manage GitHub account change requests</p>
                 </div>
                 <div className="flex gap-4">
                     <div className="px-6 py-2.5 bg-gray-50 border border-gray-100 rounded-2xl flex items-center gap-3">
@@ -84,7 +84,7 @@ const IdentityManager = () => {
             <section className="space-y-6">
                 <div className="flex items-center gap-3">
                     <ShieldAlert size={16} className="text-blue-500" />
-                    <h3 className="text-[10px] font-black text-black uppercase tracking-[0.2em]">Pending Authorized Shifts</h3>
+                    <h3 className="text-[10px] font-black text-black uppercase tracking-[0.2em]">Pending Requests</h3>
                 </div>
 
                 {pendingRequests.length > 0 ? (
@@ -126,7 +126,7 @@ const IdentityManager = () => {
                                             className="px-8 py-3.5 bg-black text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:shadow-2xl transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2 group/btn"
                                         >
                                             <CheckCircle2 size={14} className="group-hover/btn:scale-110 transition-transform text-emerald-400" />
-                                            Authorize Shift
+                                            Approve Request
                                         </button>
                                         <button 
                                             onClick={() => resolveMutation.mutate({ id: request.id, status: 'rejected' })}
@@ -134,7 +134,7 @@ const IdentityManager = () => {
                                             className="px-8 py-3.5 bg-white border border-gray-200 text-gray-400 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:border-red-500 hover:text-red-500 transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2"
                                         >
                                             <XCircle size={14} />
-                                            Deny Access
+                                            Reject Request
                                         </button>
                                     </div>
                                 </div>
@@ -154,16 +154,16 @@ const IdentityManager = () => {
             <section className="space-y-6">
                 <div className="flex items-center gap-3">
                     <History size={16} className="text-gray-400" />
-                    <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Transition Archive</h3>
+                    <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Request History</h3>
                 </div>
 
                 <div className="bg-white border border-gray-100 rounded-[3rem] overflow-hidden shadow-sm">
                     <table className="w-full text-left border-collapse">
                         <thead>
                             <tr className="bg-gray-50/50 border-b border-gray-100">
-                                <th className="px-8 py-5 text-[9px] font-black text-gray-500 uppercase tracking-widest">Subject</th>
-                                <th className="px-8 py-5 text-[9px] font-black text-gray-500 uppercase tracking-widest">Justification</th>
-                                <th className="px-8 py-5 text-[9px] font-black text-gray-500 uppercase tracking-widest">Resolution</th>
+                                <th className="px-8 py-5 text-[9px] font-black text-gray-500 uppercase tracking-widest">User</th>
+                                <th className="px-8 py-5 text-[9px] font-black text-gray-500 uppercase tracking-widest">Reason</th>
+                                <th className="px-8 py-5 text-[9px] font-black text-gray-500 uppercase tracking-widest">Status</th>
                                 <th className="px-8 py-5 text-[9px] font-black text-gray-500 uppercase tracking-widest text-right">Timestamp</th>
                             </tr>
                         </thead>

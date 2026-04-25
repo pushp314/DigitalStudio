@@ -37,7 +37,7 @@ Backend runtime uses `go-server/.env`.
 Core:
 - `APP_ENV=development`
 - `PORT=8080`
-- `DATABASE_URL=postgres://postgres:postgres@localhost:5432/digitalstudio?sslmode=disable`
+- `DATABASE_URL=postgres://postgres:postgres@localhost:5432/bizcode?sslmode=disable`
 - `JWT_SECRET=replace-with-a-long-random-value`
 - `SESSION_SECRET=replace-with-a-long-random-value`
 - `FRONTEND_URL=http://localhost:5173`

@@ -65,7 +65,7 @@ const EliteChat = () => {
     const markRead = async () => {
         try {
             await api.patch(`/support/sessions/${sessionId}/read`);
-            window.dispatchEvent(new CustomEvent('ds_support_read'));
+            window.dispatchEvent(new CustomEvent('bc_support_read'));
         } catch (err) {}
     };
 
@@ -242,7 +242,7 @@ const EliteChat = () => {
                     <div className="hidden md:flex items-center gap-3">
                         <div className="text-right">
                             <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Support Lead</div>
-                            <div className="text-[11px] text-slate-900 font-bold">DigitalStudio Specialist</div>
+                            <div className="text-[11px] text-slate-900 font-bold">BizCode Specialist</div>
                         </div>
                         <div className="h-10 w-10 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-900 overflow-hidden">
                            <User size={20} />

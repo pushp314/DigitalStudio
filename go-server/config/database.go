@@ -4,7 +4,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/pushp314/digitalstudio/go-server/models"
+	"github.com/pushp314/bizcode/go-server/models"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -12,7 +12,8 @@ import (
 var DB *gorm.DB
 
 func ConnectDB() {
-	dsn := os.Getenv("DATABASE_URL")
+	LoadConfig()
+	dsn := AppConfig.DatabaseURL
 	if dsn == "" {
 		log.Fatal("DATABASE_URL environment variable is not set")
 	}
@@ -21,9 +22,17 @@ func ConnectDB() {
 	if err != nil {
 		log.Fatal("Failed to connect to database:", err)
 	}
+	// Always migrate critical marketplace tables to prevent 500 errors
+	_ = DB.AutoMigrate(
+		&models.User{},
+		&models.RefreshToken{},
+		&models.Product{},
+		&models.Tag{},
+		&models.ProductCategory{},
+	)
 
 	if os.Getenv("ENABLE_AUTOMIGRATE") == "true" {
-		if os.Getenv("APP_ENV") == "production" {
+		if AppConfig.AppEnv == "production" {
 			log.Fatal("ENABLE_AUTOMIGRATE must remain disabled in production")
 		}
 
@@ -51,6 +60,17 @@ func ConnectDB() {
 			&models.GithubChangeRequest{},
 			&models.EliteChatSession{},
 			&models.EliteChatMessage{},
+			&models.LicenseActivation{},
+			&models.LicenseEvent{},
+			&models.ProductLicensePolicy{},
+			&models.Affiliate{},
+			&models.AffiliateClick{},
+			&models.AffiliateConversion{},
+			&models.AffiliatePayoutRequest{},
+			&models.CheckoutSession{},
+			&models.CartRecoveryLog{},
+			&models.ImportJob{},
+			&models.RefreshToken{},
 		)
 		if err != nil {
 			log.Fatal("Failed to auto-migrate database:", err)

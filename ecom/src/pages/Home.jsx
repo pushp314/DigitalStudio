@@ -32,7 +32,7 @@ const Home = () => {
         <>
             <Meta 
                 title="Buy Ready Apps, Get Expert Help, or Hire Developers"
-                description="DigitalStudio helps founders, teams, agencies, and builders buy ready apps, customize them, or hire developers to build for them."
+                description="BizCode helps founders, teams, agencies, and builders buy ready apps, customize them, or hire developers to build for them."
             />
             <HeroSection />
             

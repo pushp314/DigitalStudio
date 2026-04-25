@@ -74,7 +74,7 @@ const ContactSection = () => {
                 <div className="space-y-4">
                     <p className="ds-eyebrow">{isHireFlow ? 'Hire Developer' : 'Contact'}</p>
                     <h1 className="text-3xl font-bold tracking-tight text-slate-900 md:text-4xl">
-                        {activeIntent?.headline || activeIntent?.name || (isHireFlow ? 'Hire a developer or get expert help' : (contact.heading || 'Contact DigitalStudio'))}
+                        {activeIntent?.headline || activeIntent?.name || (isHireFlow ? 'Hire a developer or get expert help' : (contact.heading || 'Contact BizCode'))}
                     </h1>
                     <p className="text-base leading-7 text-slate-600">
                         {activeIntent?.subheadline || (isHireFlow

@@ -21,32 +21,46 @@ class ErrorBoundary extends React.Component {
     render() {
         if (this.state.hasError) {
             return (
-                <div className="min-h-screen bg-[#F5F5F7] flex items-center justify-center px-4 font-sans text-slate-900 antialiased">
-                    <div className="max-w-md w-full bg-white rounded-[2.5rem] p-12 shadow-2xl border border-slate-200 text-center animate-in zoom-in-95 duration-500">
-                        <div className="w-20 h-20 bg-slate-50 border border-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-10 shadow-sm">
-                            <svg className="w-10 h-10 text-slate-900" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                <div className="min-h-screen bg-[#F5F5F7] flex items-center justify-center px-6 font-sans antialiased text-slate-900">
+                    <div className="max-w-xl w-full text-center">
+                        <div className="inline-flex items-center justify-center w-24 h-24 rounded-3xl bg-white border border-slate-200 shadow-2xl mb-12 animate-pulse">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-rose-500">
+                                <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
                             </svg>
                         </div>
-                        <h4 className="text-[10px] font-bold text-slate-300 uppercase tracking-[0.2em] mb-4">Runtime Error</h4>
-                        <h2 className="text-2xl font-bold tracking-tight text-slate-900 uppercase mb-4">System Exception</h2>
-                        <p className="text-[11px] text-slate-400 font-bold uppercase tracking-widest leading-relaxed mb-12">
-                            A protocol mismatch or runtime exception has occurred. Our registry has been notified of the instance.
+                        
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-6">Internal Server Error</p>
+                        <h1 className="text-4xl md:text-5xl font-black tracking-tight mb-8">Something went wrong</h1>
+                        
+                        <p className="text-base text-slate-600 leading-relaxed mb-12 max-w-md mx-auto">
+                            A runtime exception has occurred. Our engineering team has been notified and is investigating the issue.
                         </p>
 
-                        <div className="flex flex-col gap-4">
-                            <button
+                        <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                            <button 
                                 onClick={() => window.location.reload()}
-                                className="w-full bg-slate-900 text-white px-8 py-3.5 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-emerald-600 transition-all shadow-xl shadow-slate-900/10"
+                                className="w-full sm:w-auto px-10 py-5 bg-slate-900 text-white rounded-2xl font-bold text-[11px] uppercase tracking-widest hover:bg-black transition-all shadow-2xl shadow-slate-200 hover:-translate-y-1 active:translate-y-0"
                             >
-                                Re-verify Registry [Reload]
+                                Reload Page
                             </button>
-                            <button
+                            
+                            <button 
                                 onClick={() => window.location.href = '/'}
-                                className="w-full bg-slate-50 text-slate-500 px-8 py-3.5 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-slate-100 transition-all border border-slate-100"
+                                className="w-full sm:w-auto px-10 py-5 bg-white text-slate-900 border border-slate-200 rounded-2xl font-bold text-[11px] uppercase tracking-widest hover:bg-slate-50 transition-all hover:-translate-y-1 active:translate-y-0"
                             >
-                                Return to Central Hub
+                                Go Home
                             </button>
+                        </div>
+
+                        <div className="mt-20 pt-10 border-t border-slate-200">
+                             <div className="flex items-center justify-center gap-4">
+                                <div className="flex items-center gap-2">
+                                    <div className="w-2 h-2 rounded-full bg-rose-500 animate-ping"></div>
+                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Error 500</span>
+                                </div>
+                                <div className="h-4 w-px bg-slate-200"></div>
+                                <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">BizCode v4.0.2</span>
+                             </div>
                         </div>
                     </div>
                 </div>

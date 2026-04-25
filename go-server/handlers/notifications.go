@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/pushp314/digitalstudio/go-server/config"
-	"github.com/pushp314/digitalstudio/go-server/models"
+	"github.com/pushp314/bizcode/go-server/config"
+	"github.com/pushp314/bizcode/go-server/models"
 )
 
 // AdminBroadcastNotification sends a real-time alert to all connected users

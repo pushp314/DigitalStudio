@@ -39,7 +39,7 @@ const HeroSection = () => {
                 <div className="space-y-10">
                     <div className="ds-chip animate-in fade-in slide-in-from-left-4 duration-700">
                         <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                        DigitalStudio commerce and services
+                        BizCode commerce and services
                     </div>
 
                     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">

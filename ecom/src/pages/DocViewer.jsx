@@ -15,7 +15,6 @@ import {
     Cpu, X, Trash2, Loader2, Lock, Sparkles, Terminal, 
     ChevronRight, ShieldCheck, Bot, Send, MessageCircle, Minimize2 
 } from 'lucide-react';
-
 const DocViewer = () => {
     const { id } = useParams();
     const { user } = useContext(AuthContext);
@@ -212,6 +211,7 @@ const DocViewer = () => {
         }
     };
 
+
     const handlePrint = () => {
         window.print();
     };
@@ -283,8 +283,8 @@ const DocViewer = () => {
     const estimatedRead = Math.max(1, Math.ceil((doc.content?.length || 0) / 1000));
 
     return (
-        <div className="ds-page px-6 pb-16 pt-28">
-            <div className="fixed left-0 top-0 z-[60] h-1 w-full bg-slate-200">
+        <div className="ds-page px-6 pb-16 pt-32">
+            <div className="fixed left-0 top-0 z-[1001] h-1 w-full bg-slate-200">
                 <div className="h-full bg-slate-900 transition-all" style={{ width: `${readingProgress}%` }} />
             </div>
 
@@ -304,10 +304,10 @@ const DocViewer = () => {
                     </div>
                 </div>
 
-                <div className={`grid gap-12 ${hasToc ? 'xl:grid-cols-[240px,minmax(0,1fr)]' : 'xl:grid-cols-[1fr]'}`}>
+                <div className={`grid gap-10 ${hasToc ? 'lg:grid-cols-[220px,minmax(0,1fr),240px]' : 'lg:grid-cols-[minmax(0,1fr),240px]'}`}>
                     {hasToc && (
-                        <aside className="hidden xl:block">
-                            <div className="ds-card sticky top-32 p-5">
+                        <aside className="hidden lg:block">
+                            <div className="ds-card sticky top-32 z-20 p-5">
                                 <h2 className="text-sm font-semibold text-slate-900">On this page</h2>
                                 <nav className="mt-4 space-y-2">
                                     {toc.map((item) => (
@@ -315,9 +315,8 @@ const DocViewer = () => {
                                             key={item.id}
                                             href={`#${item.id}`}
                                             onClick={(event) => scrollToSection(event, item.id)}
-                                            className={`block rounded-lg px-3 py-2 text-sm ${
-                                                activeId === item.id ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-                                            }`}
+                                            className={`block rounded-lg px-3 py-2 text-sm ${activeId === item.id ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                                                }`}
                                             style={{ marginLeft: `${Math.max(0, (item.level || 1) - 1) * 12}px` }}
                                         >
                                             {item.title}
@@ -355,27 +354,27 @@ const DocViewer = () => {
                                         Get the complete deployment guide, configuration scripts, and direct technical help by upgrading your membership.
                                     </p>
                                     <div className="mt-8 flex flex-col gap-4">
-                                         <div className="flex flex-wrap gap-3">
-                                             <button type="button" onClick={handleProtectedAccess} className="ds-button-primary">
-                                                 Upgrade Now
-                                             </button>
-                                             <Link to="/pricing" className="ds-button-secondary bg-white">
-                                                 View pricing
-                                             </Link>
-                                         </div>
-                                         <div className="pt-4 border-t border-slate-200">
-                                             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Unsure what plan you need?</p>
-                                             <Link to="/contact" className="text-sm font-bold text-blue-600 hover:underline">Talk to support for guidance</Link>
-                                         </div>
+                                        <div className="flex flex-wrap gap-3">
+                                            <button type="button" onClick={handleProtectedAccess} className="ds-button-primary">
+                                                Upgrade Now
+                                            </button>
+                                            <Link to="/pricing" className="ds-button-secondary bg-white">
+                                                View pricing
+                                            </Link>
+                                        </div>
+                                        <div className="pt-4 border-t border-slate-200">
+                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Unsure what plan you need?</p>
+                                            <Link to="/contact" className="text-sm font-bold text-blue-600 hover:underline">Talk to support for guidance</Link>
+                                        </div>
                                     </div>
                                 </div>
                             )}
                         </article>
                     </main>
 
-                    <aside className="space-y-6">
-                        <div className="ds-card p-6 sticky top-32">
-                            <h2 className="text-sm font-bold text-slate-900 uppercase tracking-widest border-b border-slate-100 pb-4 mb-6">Guide details</h2>
+                    <aside className="hidden lg:block">
+                        <div className="ds-card sticky top-32 z-20 p-5 space-y-5">
+                            <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Guide details</h2>
                             <dl className="space-y-4">
                                 <div className="flex items-center justify-between">
                                     <dt className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Category</dt>
@@ -393,32 +392,41 @@ const DocViewer = () => {
                                     <dd className="text-[10px] font-bold text-slate-900 font-mono">{estimatedRead} min</dd>
                                 </div>
                             </dl>
-                            <button onClick={handlePrint} className="w-full mt-8 py-3 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-[0.2em] hover:bg-slate-800 transition-all shadow-lg shadow-slate-900/10">
-                                Print or save PDF
-                            </button>
+                            <div className="pt-4 border-t border-slate-100">
+                                <button onClick={handlePrint} className="w-full py-2.5 bg-slate-900 text-white rounded-xl text-[9px] font-black uppercase tracking-[0.2em] hover:bg-slate-800 transition-all">
+                                    Print / Save PDF
+                                </button>
+                            </div>
+                            {config?.aiSettings?.enableDocsAi !== false && (
+                                <div className="pt-4 border-t border-slate-100">
+                                    <button onClick={() => setIsAssistantOpen(true)} className="w-full py-2.5 bg-indigo-50 text-indigo-700 rounded-xl text-[9px] font-black uppercase tracking-[0.2em] hover:bg-indigo-100 transition-all flex items-center justify-center gap-2">
+                                        <Terminal size={12} /> Ask AI Assistant
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     </aside>
-                </div>
             </div>
+        </div>
 
-            {/* SaaS-Pro Assistant Trigger */}
-            {/* AI Assistant Hub Trigger - Hidden if Docs AI is disabled */}
-            {config?.aiSettings?.enableDocsAi !== false && (
+        {/* Guide Assistant FAB - hidden when drawer is open */}
+            {config?.aiSettings?.enableDocsAi !== false && !isAssistantOpen && (
                 <motion.button
                     initial={{ scale: 0.8, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
+                    exit={{ scale: 0.8, opacity: 0 }}
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={() => setIsAssistantOpen(true)}
-                    className="fixed bottom-10 right-10 z-30 flex items-center gap-3 rounded-full border border-slate-200 bg-white p-4 pr-6 shadow-[0_20px_50px_rgba(0,0,0,0.1)] transition-all hover:bg-slate-50"
+                    className="fixed bottom-28 right-8 z-[101] flex items-center gap-3 rounded-full border border-slate-200 bg-white/95 backdrop-blur-sm p-3.5 pr-5 shadow-xl transition-all hover:shadow-2xl hover:bg-white"
                 >
-                    <div className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-slate-900 text-white">
-                        <Terminal size={20} />
+                    <div className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-slate-900 text-white">
+                        <Terminal size={16} />
                         {isPro && (
-                            <span className="absolute -right-1 -top-1 h-3 w-3 animate-pulse rounded-full border-2 border-white bg-emerald-500" />
+                            <span className="absolute -right-1 -top-1 h-2.5 w-2.5 animate-pulse rounded-full border-2 border-white bg-emerald-500" />
                         )}
                     </div>
-                    <span className="text-xs font-bold uppercase tracking-widest text-slate-900">Guide Assistant</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-900">Guide Assistant</span>
                 </motion.button>
             )}
 
@@ -431,46 +439,46 @@ const DocViewer = () => {
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
                             onClick={() => setIsAssistantOpen(false)}
-                            className="fixed inset-0 z-40 bg-slate-950/20 backdrop-blur-sm"
+                            className="fixed inset-0 z-[999] bg-slate-950/20 backdrop-blur-sm"
                         />
                         <motion.div
                             initial={{ x: '100%' }}
                             animate={{ x: 0 }}
                             exit={{ x: '100%' }}
                             transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-                            className="fixed inset-y-0 right-0 z-50 flex h-full w-full max-w-md flex-col border-l border-slate-200 bg-white shadow-[-40px_0_80px_rgba(0,0,0,0.05)]"
+                            className="fixed top-0 bottom-0 right-0 z-[1000] flex w-full max-w-md flex-col border-l border-slate-200 bg-white shadow-[-20px_0_60px_rgba(0,0,0,0.08)]"
                         >
                             {/* Header */}
-                            <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50/50 p-6">
-                                <div className="flex items-center gap-4">
-                                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-900 text-white shadow-lg">
-                                        <Cpu size={24} />
+                            <div className="flex items-center justify-between border-b border-slate-100 bg-white px-5 py-4 shrink-0">
+                                <div className="flex items-center gap-3">
+                                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-900 text-white">
+                                        <Cpu size={18} />
                                     </div>
                                     <div>
                                         <h3 className="text-sm font-bold tracking-tight text-slate-900">Guide Assistant</h3>
-                                        <div className="mt-1 flex items-center gap-2">
-                                            <div className={`h-2 w-2 rounded-full ${isPro ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300'}`} />
-                                            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
-                                                {isPro ? 'Pro access active' : 'Pro access required'}
+                                        <div className="flex items-center gap-1.5 mt-0.5">
+                                            <div className={`h-1.5 w-1.5 rounded-full ${isPro ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300'}`} />
+                                            <span className="text-[9px] font-bold uppercase tracking-widest text-slate-400">
+                                                {isPro ? 'Active' : 'Pro required'}
                                             </span>
                                         </div>
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-1">
                                     {isPro && chatHistory.length > 0 && (
                                         <button
                                             onClick={handleClearChat}
-                                            className="rounded-xl p-2 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-500"
+                                            className="rounded-lg p-2 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-500"
                                             title="Clear conversation"
                                         >
-                                            <Trash2 size={20} />
+                                            <Trash2 size={16} />
                                         </button>
                                     )}
                                     <button
                                         onClick={() => setIsAssistantOpen(false)}
-                                        className="rounded-xl p-2 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-900"
+                                        className="rounded-lg p-2 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-900"
                                     >
-                                        <X size={24} />
+                                        <X size={18} />
                                     </button>
                                 </div>
                             </div>
@@ -478,19 +486,20 @@ const DocViewer = () => {
                             {/* Conversation Domain */}
                             <div className="flex-1 overflow-y-auto p-6 space-y-8">
                                 {!isPro ? (
-                                    <div className="flex h-full flex-col items-center justify-center px-8 text-center space-y-6">
-                                        <div className="flex h-20 w-20 items-center justify-center rounded-[2.5rem] border border-slate-100 bg-slate-50 text-slate-300">
-                                            <Lock size={40} />
+                                    <div className="flex h-full flex-col items-center justify-center px-6 text-center space-y-5">
+                                        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-50 border border-slate-100 text-slate-300">
+                                            <Lock size={28} />
                                         </div>
                                         <div className="space-y-2">
-                                            <h4 className="text-xl font-bold text-slate-900 tracking-tight">Pro Access Required</h4>
-                                            <p className="text-sm leading-relaxed text-slate-500">
-                                                The AI guide assistant is available to Pro members for product setup, deployment, and implementation questions.
+                                            <h4 className="text-lg font-bold text-slate-900 tracking-tight">Pro Access Required</h4>
+                                            <p className="text-xs leading-relaxed text-slate-500 max-w-xs">
+                                                Ask questions about this guide, get deployment help, and implementation advice.
                                             </p>
                                         </div>
-                                        <Link to="/pricing" className="w-full ds-button-primary py-4 rounded-2xl shadow-xl shadow-slate-900/10">
+                                        <Link to="/pricing" onClick={() => setIsAssistantOpen(false)} className="px-8 py-3 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-800 transition-all shadow-lg">
                                             Upgrade to Pro
                                         </Link>
+                                        <p className="text-[10px] text-slate-400">Starts at ₹29/month</p>
                                     </div>
                                 ) : (
                                     <>
@@ -564,7 +573,7 @@ const DocViewer = () => {
                                     </form>
                                     <div className="mt-4 flex items-center justify-center gap-4">
                                         <div className="h-px flex-1 bg-slate-100" />
-                                        <span className="text-[10px] font-bold uppercase tracking-tighter text-slate-300">DigitalStudio guide assistant</span>
+                                        <span className="text-[10px] font-bold uppercase tracking-tighter text-slate-300">BizCode guide assistant</span>
                                         <div className="h-px flex-1 bg-slate-100" />
                                     </div>
                                 </div>

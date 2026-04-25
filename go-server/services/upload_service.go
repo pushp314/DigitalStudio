@@ -13,8 +13,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/google/uuid"
 )
 
@@ -42,8 +40,8 @@ type uploadPolicy struct {
 var safeFilenamePattern = regexp.MustCompile(`[^a-zA-Z0-9._-]+`)
 
 func UploadValidatedFile(ctx context.Context, file multipart.File, header *multipart.FileHeader, scope UploadScope) (*UploadResult, error) {
-	if S3Client == nil {
-		return nil, errors.New("r2 client not initialized")
+	if Storage == nil {
+		return nil, errors.New("storage service not initialized")
 	}
 	if header == nil {
 		return nil, errors.New("file header is required")
@@ -75,19 +73,9 @@ func UploadValidatedFile(ctx context.Context, file multipart.File, header *multi
 	}
 
 	storageKey := buildStorageKey(scope, header.Filename)
-	bucket := strings.TrimSpace(getEnv("R2_BUCKET_NAME"))
-	if bucket == "" {
-		return nil, errors.New("r2 bucket is not configured")
-	}
-
-	_, err = S3Client.PutObject(ctx, &s3.PutObjectInput{
-		Bucket:      aws.String(bucket),
-		Key:         aws.String(storageKey),
-		Body:        file,
-		ContentType: aws.String(contentType),
-	})
+	err = Storage.UploadFile(ctx, storageKey, file, contentType)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to upload asset to storage: %w", err)
 	}
 
 	result := &UploadResult{
@@ -225,15 +213,31 @@ func uploadPolicyForScope(scope UploadScope) (*uploadPolicy, error) {
 		}, nil
 	case UploadScopePrivateAsset:
 		return &uploadPolicy{
-			maxSizeBytes: 100 << 20,
+			maxSizeBytes: 1024 << 20, // 1GB
 			extensions: map[string]struct{}{
-				".zip": {},
-				".pdf": {},
+				".zip":  {},
+				".rar":  {},
+				".pdf":  {},
+				".mp4":  {},
+				".mov":  {},
+				".avi":  {},
+				".mkv":  {},
+				".dmg":  {},
+				".exe":  {},
+				".iso":  {},
 			},
 			mimeTypes: map[string]struct{}{
 				"application/zip":              {},
 				"application/x-zip-compressed": {},
+				"application/x-rar-compressed": {},
 				"application/pdf":              {},
+				"video/mp4":                    {},
+				"video/quicktime":              {},
+				"video/x-msvideo":              {},
+				"video/x-matroska":             {},
+				"application/x-apple-diskimage": {},
+				"application/x-msdownload":      {},
+				"application/x-iso9660-image":  {},
 			},
 		}, nil
 	default:

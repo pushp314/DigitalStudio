@@ -15,15 +15,15 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/pushp314/digitalstudio/go-server/config"
-	"github.com/pushp314/digitalstudio/go-server/handlers"
-	"github.com/pushp314/digitalstudio/go-server/middleware"
-	"github.com/pushp314/digitalstudio/go-server/seeder"
-	"github.com/pushp314/digitalstudio/go-server/services"
+	"github.com/pushp314/bizcode/go-server/config"
+	"github.com/pushp314/bizcode/go-server/handlers"
+	"github.com/pushp314/bizcode/go-server/middleware"
+	"github.com/pushp314/bizcode/go-server/seeder"
+	"github.com/pushp314/bizcode/go-server/services"
 )
 
 func main() {
-	err := godotenv.Load()
+	err := godotenv.Overload()
 	if err != nil {
 		log.Println("No .env file found or failed to load")
 	}
@@ -33,31 +33,62 @@ func main() {
 	config.ConnectDB()
 	seeder.Run()
 
-	if err := services.InitR2(); err != nil {
-		log.Println("Failed to initialize R2 S3 Client:", err)
+	// Initialize Storage Service (R2 / Local)
+	if err := services.InitStorage(); err != nil {
+		log.Printf("WARNING: Failed to initialize storage service: %v", err)
 	}
+
+	// Initialize Email Service (Resend / SMTP)
+	services.InitMailer()
+
+	// Initialize Cache Service (Redis)
+	services.InitCache()
+
+	// Initialize License Signing Keys
+	if err := services.InitLicenseKeys(); err != nil {
+		if config.AppConfig.AppEnv == "production" {
+			log.Fatalf("FATAL: Failed to initialize license signing keys: %v", err)
+		}
+		log.Printf("WARNING: Failed to initialize license signing keys: %v", err)
+	}
+
+	// Backfill existing licenses that lack new fields (PublicID, SignedToken, etc.)
+	services.BackfillLegacyLicenses(config.DB)
 
 	r := gin.New()
 	r.Use(gin.Recovery())
 	r.Use(middleware.RequestIDMiddleware())
 	r.Use(middleware.RequestLogger())
 	r.Use(middleware.MaintenanceMiddleware())
-	r.Use(func(c *gin.Context) { c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, 5<<20); c.Next() })
+	
+	// Default MaxMultipartMemory is 32MB. Increase to 100MB for faster handling of moderately large parts.
+	r.MaxMultipartMemory = 100 << 20 
+
+	// Global Request Body Limit (except uploads)
+	r.Use(func(c *gin.Context) {
+		if !strings.HasPrefix(c.Request.URL.Path, "/api/upload") {
+			c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, 10<<20) // 10MB default
+		}
+		c.Next()
+	})
 
 	sessionSecret := os.Getenv("SESSION_SECRET")
 	if sessionSecret == "" {
-		log.Fatal("SESSION_SECRET environment variable is not set")
+		if config.AppConfig.AppEnv == "production" {
+			log.Fatal("FATAL: SESSION_SECRET is required in production.")
+		}
+		sessionSecret = "dev-secret-keep-it-safe"
 	}
 
 	store := cookie.NewStore([]byte(sessionSecret))
 	store.Options(sessions.Options{
 		Path:     "/",
 		HttpOnly: true,
-		Secure:   os.Getenv("APP_ENV") == "production" || sameSiteMode() == http.SameSiteNoneMode,
+		Secure:   config.AppConfig.AppEnv == "production",
 		SameSite: sameSiteMode(),
 		MaxAge:   60 * 60,
 	})
-	r.Use(sessions.Sessions("digitalstudio_session", store))
+	r.Use(sessions.Sessions("bizcode_session", store))
 
 	allowOrigins := allowedOriginsFromEnv()
 	allowCredentials := len(allowOrigins) > 0 && !(len(allowOrigins) == 1 && allowOrigins[0] == "*")
@@ -86,6 +117,7 @@ func main() {
 	{
 		auth.POST("/register", authLimiter, handlers.Register)
 		auth.POST("/login", authLimiter, handlers.Login)
+		auth.POST("/refresh", handlers.RefreshToken)
 		auth.GET("/me", middleware.AuthMiddleware(), handlers.Me)
 	}
 
@@ -123,6 +155,7 @@ func main() {
 			adminOrders.GET("/", handlers.AdminListOrders)
 			adminOrders.GET("/:id", handlers.AdminGetOrder)
 			adminOrders.PATCH("/:id", handlers.AdminUpdateOrder)
+			adminOrders.POST("/:id/refund", handlers.AdminRefundOrder)
 		}
 
 		adminUsers := admin.Group("/users")
@@ -196,7 +229,13 @@ func main() {
 		docs.DELETE("/:id/chat", middleware.AuthMiddleware(), handlers.DeleteDocChat)
 	}
 
-	api.POST("/upload", uploadLimiter, middleware.AuthMiddleware(), middleware.AdminMiddleware(), handlers.UploadFile)
+	api.POST("/upload", 
+		uploadLimiter, 
+		func(c *gin.Context) { c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, 1024<<20); c.Next() }, // 1GB
+		middleware.AuthMiddleware(), 
+		middleware.AdminMiddleware(), 
+		handlers.UploadFile,
+	)
 
 	// OAuth
 	auth.GET("/google/login", handlers.GoogleLogin)
@@ -206,17 +245,23 @@ func main() {
 	auth.GET("/github/connect", middleware.OAuthAuthMiddleware(), handlers.GithubConnect)
 
 	// AI Extended
+	aiLimiter := middleware.RateLimitMiddleware("ai", getEnvInt("AI_RATE_LIMIT_RPM", 10), time.Minute)
 	ai := api.Group("/ai")
+	ai.Use(aiLimiter, middleware.AuthMiddleware(), middleware.AIUsageLimitMiddleware(5))
 	{
-		ai.POST("/generate-description", middleware.AuthMiddleware(), handlers.GenerateAIDescription)
-		ai.POST("/suggest-tags", middleware.AuthMiddleware(), handlers.SuggestAITags)
-		ai.POST("/recommend-pricing", middleware.AuthMiddleware(), handlers.RecommendAIPricing)
-		ai.POST("/suggest-usernames", middleware.AuthMiddleware(), handlers.SuggestUsernames)
-		ai.GET("/recommend", middleware.AuthMiddleware(), middleware.ProMiddleware(), handlers.GetAIRecommendation)
-		ai.POST("/roadmap", middleware.AuthMiddleware(), handlers.GetUserRoadmap)
-		ai.POST("/docsummary", middleware.AuthMiddleware(), middleware.ProMiddleware(), handlers.GenerateDocSummary)
-		ai.POST("/doc-universal", middleware.AuthMiddleware(), middleware.ProMiddleware(), handlers.UniversalDocSearchChat)
-		ai.POST("/chat", middleware.AuthMiddleware(), middleware.ProMiddleware(), handlers.AskDocAI)
+		ai.POST("/generate-description", handlers.GenerateAIDescription)
+		ai.POST("/suggest-tags", handlers.SuggestAITags)
+		ai.POST("/recommend-pricing", handlers.RecommendAIPricing)
+		ai.POST("/suggest-usernames", handlers.SuggestUsernames)
+		ai.GET("/recommend", middleware.ProMiddleware(), handlers.GetAIRecommendation)
+		ai.POST("/roadmap", handlers.GetUserRoadmap)
+		ai.POST("/docsummary", middleware.ProMiddleware(), handlers.GenerateDocSummary)
+		ai.POST("/doc-universal", middleware.ProMiddleware(), handlers.UniversalDocSearchChat)
+		ai.POST("/chat", middleware.ProMiddleware(), handlers.AskDocAI)
+		// Platform AI endpoints
+		ai.POST("/recommend-products", handlers.RecommendProducts)
+		ai.POST("/generate-requirements", handlers.GenerateRequirements)
+		ai.POST("/improve-product-content", middleware.AdminMiddleware(), handlers.ImproveProductContent)
 	}
 
 	handlers.RegisterEliteRoutes(api)
@@ -265,10 +310,15 @@ func main() {
 		payments.POST("/verify", paymentVerifyLimiter, middleware.AuthMiddleware(), handlers.VerifyRazorpayPayment)
 	}
 
+	licenseLimiter := middleware.RateLimitMiddleware("license_activate", getEnvInt("LICENSE_RATE_LIMIT_RPM", 30), time.Minute)
 	licenses := api.Group("/licenses")
 	{
 		licenses.GET("/my", middleware.AuthMiddleware(), handlers.MyLicenses)
-		licenses.POST("/validate", publicLimiter, handlers.ValidateLicense)
+		licenses.GET("/my/:id/token", middleware.AuthMiddleware(), handlers.GetLicenseToken)
+		licenses.POST("/activate", licenseLimiter, handlers.ActivateLicenseHandler)
+		licenses.POST("/verify", licenseLimiter, handlers.VerifyLicenseHandler)
+		licenses.POST("/heartbeat", licenseLimiter, handlers.HeartbeatLicenseHandler)
+		licenses.POST("/deactivate", middleware.AuthMiddleware(), handlers.DeactivateLicenseHandler)
 	}
 
 	// Testimonials
@@ -338,7 +388,17 @@ func main() {
 	adminLicenses := api.Group("/admin/licenses")
 	adminLicenses.Use(middleware.AuthMiddleware(), middleware.AdminMiddleware())
 	{
+		adminLicenses.GET("/", handlers.AdminListLicenses)
+		adminLicenses.GET("/:id", handlers.AdminGetLicense)
+		adminLicenses.GET("/:id/activations", handlers.AdminGetLicenseActivations)
+		adminLicenses.GET("/:id/events", handlers.AdminGetLicenseEvents)
 		adminLicenses.POST("/issue", handlers.AdminIssueLicenses)
+		adminLicenses.POST("/:id/revoke", handlers.AdminRevokeLicense)
+		adminLicenses.POST("/:id/suspend", handlers.AdminSuspendLicense)
+		adminLicenses.POST("/:id/reactivate", handlers.AdminReactivateLicense)
+		adminLicenses.DELETE("/:id/activations/:activationId", handlers.AdminRemoveActivation)
+		adminLicenses.GET("/policy/:productId", handlers.AdminGetProductPolicy)
+		adminLicenses.PUT("/policy/:productId", handlers.AdminUpsertProductPolicy)
 	}
 
 	// Notifications
@@ -346,6 +406,60 @@ func main() {
 	{
 		notifications.GET("/", middleware.AuthMiddleware(), handlers.GetMyNotifications)
 		notifications.POST("/broadcast", middleware.AuthMiddleware(), middleware.AdminMiddleware(), handlers.AdminBroadcastNotification)
+	}
+
+	// Affiliate / Partner Portal
+	affiliateLimiter := middleware.RateLimitMiddleware("affiliate", 30, time.Minute)
+	affiliate := api.Group("/affiliate")
+	affiliate.Use(middleware.AuthMiddleware())
+	{
+		affiliate.POST("/apply", affiliateLimiter, handlers.AffiliateApply)
+		affiliate.GET("/dashboard", handlers.AffiliateDashboard)
+		affiliate.GET("/links", handlers.AffiliateLinks)
+		affiliate.GET("/conversions", handlers.AffiliateConversions)
+		affiliate.POST("/payout-request", affiliateLimiter, handlers.AffiliateRequestPayout)
+	}
+	api.POST("/referral/track", affiliateLimiter, handlers.TrackReferralClick)
+
+	adminAffiliates := api.Group("/admin/affiliates")
+	adminAffiliates.Use(middleware.AuthMiddleware(), middleware.AdminMiddleware())
+	{
+		adminAffiliates.GET("/", handlers.AdminListAffiliates)
+		adminAffiliates.GET("/:id", handlers.AdminGetAffiliate)
+		adminAffiliates.POST("/:id/approve", handlers.AdminApproveAffiliate)
+		adminAffiliates.POST("/:id/reject", handlers.AdminRejectAffiliate)
+		adminAffiliates.POST("/:id/suspend", handlers.AdminSuspendAffiliate)
+	}
+
+	adminPayouts := api.Group("/admin/affiliate-payouts")
+	adminPayouts.Use(middleware.AuthMiddleware(), middleware.AdminMiddleware())
+	{
+		adminPayouts.GET("/", handlers.AdminListAffiliatePayouts)
+		adminPayouts.POST("/:id/approve", handlers.AdminApproveAffiliatePayout)
+		adminPayouts.POST("/:id/pay", handlers.AdminPayAffiliatePayout)
+	}
+
+	// Checkout Session Tracking (for abandoned cart recovery)
+	api.POST("/checkout/track", middleware.AuthMiddleware(), handlers.TrackCheckoutSession)
+
+	// Admin: Abandoned Cart Recovery
+	adminCarts := api.Group("/admin/abandoned-carts")
+	adminCarts.Use(middleware.AuthMiddleware(), middleware.AdminMiddleware())
+	{
+		adminCarts.GET("/", handlers.AdminListAbandonedCarts)
+		adminCarts.GET("/stats", handlers.AdminGetCartRecoveryStats)
+		adminCarts.GET("/:id/logs", handlers.AdminGetCartRecoveryLogs)
+		adminCarts.POST("/trigger-recovery", handlers.AdminTriggerCartRecovery)
+	}
+
+	// Admin: Product Import
+	adminImport := api.Group("/admin/import")
+	adminImport.Use(middleware.AuthMiddleware(), middleware.AdminMiddleware())
+	{
+		adminImport.POST("/products", handlers.AdminImportProducts)
+		adminImport.GET("/history", handlers.AdminGetImportHistory)
+		adminImport.GET("/history/:id", handlers.AdminGetImportJob)
+		adminImport.GET("/template", handlers.AdminDownloadImportTemplate)
 	}
 
 	port := os.Getenv("PORT")
@@ -357,6 +471,7 @@ func main() {
 	
 	// Start Background Orchestrators
 	go startBackgroundPruner()
+	go handlers.RunPeriodicJobs() // Cart recovery scheduler
 
 	if err := r.Run(":" + port); err != nil {
 		log.Fatal("Failed to start server:", err)
@@ -385,7 +500,9 @@ func allowedOriginsFromEnv() []string {
 	if raw == "" {
 		return []string{
 			"http://localhost:5173",
+			"http://localhost:5174",
 			"http://127.0.0.1:5173",
+			"http://127.0.0.1:5174",
 			"http://localhost:3000",
 			"http://127.0.0.1:3000",
 		}
@@ -401,7 +518,11 @@ func allowedOriginsFromEnv() []string {
 	}
 
 	if len(origins) == 0 {
-		return []string{"http://localhost:5173"}
+		return []string{
+			"http://localhost:5173",
+			"https://bizcode.appnity.co.in",
+			"https://bizcode.app",
+		}
 	}
 
 	return origins

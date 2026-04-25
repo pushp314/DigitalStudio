@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/pushp314/digitalstudio/go-server/config"
+	"github.com/pushp314/bizcode/go-server/config"
 )
 
 type RevenuePoint struct {

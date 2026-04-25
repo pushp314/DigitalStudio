@@ -194,7 +194,7 @@ const Navbar = ({ onSearchClick }) => {
     }, []);
 
     const [exploreItems, setExploreItems] = useState([
-        { label: 'All Apps', href: '/apps', icon: Package, desc: 'Full registry' }
+        { label: 'All Apps', href: '/apps', icon: Package, desc: 'Full database' }
     ]);
     const [expertItems, setExpertItems] = useState([]);
     const [developerItems, setDeveloperItems] = useState([]);
@@ -210,7 +210,7 @@ const Navbar = ({ onSearchClick }) => {
 
                 if (Array.isArray(cats)) {
                     setExploreItems([
-                        { label: 'All Apps', href: '/apps', icon: Package, desc: 'Full registry' },
+                        { label: 'All Apps', href: '/apps', icon: Package, desc: 'Full database' },
                         ...cats.map(c => ({
                             label: c.name,
                             href: `/apps/category/${c.slug}`,
@@ -253,14 +253,8 @@ const Navbar = ({ onSearchClick }) => {
                         
                         {/* LEFT: Branding Block */}
                         <div className="flex items-center gap-6">
-                            <Link to="/" className="flex items-center gap-3 shrink-0">
-                                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-900 text-white shadow-sm">
-                                    <Terminal size={18} strokeWidth={2.5} />
-                                </div>
-                                <div className="flex flex-col">
-                                    <span className="text-lg font-bold tracking-tight text-slate-900 leading-tight">Devnity</span>
-                                    <span className="hidden lg:block text-[10px] font-bold text-slate-400 tracking-tight leading-none uppercase tracking-widest">Buy. Customize. Scale.</span>
-                                </div>
+                            <Link to="/" className="flex items-center shrink-0">
+                                <img src="/logo.png" alt="BizCode" className="h-9 w-auto" />
                             </Link>
 
                             {/* CENTER: Navigation (Desktop) */}
@@ -290,7 +284,7 @@ const Navbar = ({ onSearchClick }) => {
                                 <button 
                                     onClick={onSearchClick}
                                     className="p-2 text-slate-400 hover:text-slate-900 transition-colors rounded-lg hover:bg-slate-50"
-                                    title="Search Registry"
+                                    title="Search"
                                 >
                                     <Search size={18} />
                                 </button>
@@ -467,7 +461,7 @@ const Navbar = ({ onSearchClick }) => {
                 onClose={() => setIsLogoutModalOpen(false)}
                 onConfirm={logout}
                 title="Sign Out?"
-                message="Are you sure you want to end your active session on Devnity?"
+                message="Are you sure you want to end your active session on BizCode?"
                 confirmText="Sign Out"
                 type="danger"
             />

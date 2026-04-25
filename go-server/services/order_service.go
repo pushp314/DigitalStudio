@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pushp314/digitalstudio/go-server/config"
-	"github.com/pushp314/digitalstudio/go-server/models"
+	"github.com/pushp314/bizcode/go-server/config"
+	"github.com/pushp314/bizcode/go-server/models"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
@@ -31,7 +31,8 @@ type DraftOrderInput struct {
 	Items      []DraftOrderItemInput
 	CouponCode string
 	Currency   string
-	RequestID  string
+	RequestID            string
+	AddDeploymentService bool
 }
 
 type SettleOrderInput struct {
@@ -87,6 +88,15 @@ func CreateDraftOrder(ctx context.Context, input DraftOrderInput) (*models.Order
 			CouponCode:        models.NormalizeCouponCode(input.CouponCode),
 			CouponReserved:    priced.couponReserved,
 			OrderItems:        priced.items,
+		}
+
+		if input.AddDeploymentService {
+			var siteConfig models.SiteConfig
+			if err := tx.Order("id desc").First(&siteConfig).Error; err == nil {
+				order.AddDeploymentService = true
+				order.DeploymentServiceFee = siteConfig.EliteSettings.DeploymentFee
+				order.TotalPrice = roundCurrency(order.TotalPrice + order.DeploymentServiceFee)
+			}
 		}
 		if priced.coupon != nil {
 			order.CouponID = &priced.coupon.ID
@@ -322,6 +332,17 @@ func FinalizePaidOrder(ctx context.Context, input SettleOrderInput) (*SettleOrde
 		}
 		result.LicensesIssued = issuedCount
 
+		// Affiliate conversion tracking
+		var buyer models.User
+		if err := tx.Select("id", "referrer_id").First(&buyer, order.UserID).Error; err == nil {
+			if buyer.ReferrerID != nil && *buyer.ReferrerID != 0 {
+				_ = CreateAffiliateConversion(tx, &order, *buyer.ReferrerID)
+			}
+		}
+
+		// Mark checkout session as converted (for abandoned cart recovery)
+		MarkCheckoutConverted(order.UserID, order.ID)
+
 		// Award purchase XP
 		var user models.User
 		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&user, order.UserID).Error; err == nil {
@@ -331,11 +352,30 @@ func FinalizePaidOrder(ctx context.Context, input SettleOrderInput) (*SettleOrde
 
 		order.Entitled = true
 		result.Order = order
+
+		// Async email dispatch after transaction commit (if possible, or just log error)
+		// For simplicity in this transaction block, we collect info and send after return
 		return nil
 	})
 	if err != nil {
 		return nil, err
 	}
+
+	// Post-Commit: Send Order Confirmation & License Keys (Combined)
+	go func() {
+		var user models.User
+		if err := config.DB.Select("email").First(&user, result.Order.UserID).Error; err == nil {
+			var licenseKeys []string
+			if result.LicensesIssued > 0 {
+				config.DB.Model(&models.License{}).Where("order_id = ?", result.Order.ID).Pluck("license_key", &licenseKeys)
+			}
+
+			err := Mailer.SendCombinedOrderFulfillment(user.Email, result.Order.ID, result.Order.TotalPrice, licenseKeys)
+			if err != nil {
+				LogServiceError("email.order_fulfillment", err, "orderId", result.Order.ID)
+			}
+		}
+	}()
 
 	return result, nil
 }
@@ -460,13 +500,17 @@ func ensureMembershipAccess(tx *gorm.DB, order *models.Order, requestID string) 
 	}
 
 	var extension time.Duration
+	plan := "pro"
 	for _, item := range order.OrderItems {
 		var product models.Product
-		if err := tx.Select("id", "type", "duration").First(&product, item.ProductID).Error; err != nil {
+		if err := tx.Select("id", "type", "duration", "slug").First(&product, item.ProductID).Error; err != nil {
 			return err
 		}
 		if product.Type == models.ProductTypeSubscription {
 			extension += resolveMembershipDuration(product)
+			if product.Slug == "elite-membership" || product.Slug == "elite-membership-yearly" {
+				plan = "elite"
+			}
 		}
 	}
 	if extension <= 0 {
@@ -485,8 +529,13 @@ func ensureMembershipAccess(tx *gorm.DB, order *models.Order, requestID string) 
 	}
 	newExpiry := startAt.Add(extension)
 	user.IsPro = true
-	user.SubscriptionPlan = "pro"
+	user.SubscriptionPlan = plan
 	user.ProExpiresAt = &newExpiry
+
+	// Grant Elite benefits
+	if plan == "elite" {
+		user.EliteCustomBuilds++
+	}
 
 	if err := tx.Save(&user).Error; err != nil {
 		return err

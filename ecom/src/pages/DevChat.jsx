@@ -76,7 +76,7 @@ const DevChat = () => {
                 
                 // Show browser notification if not focused
                 if (document.hidden && 'Notification' in window && Notification.permission === 'granted') {
-                    new Notification("DigitalStudio Community", {
+                    new Notification("BizCode Community", {
                         body: `New message from ${lastMsg.userName || 'Someone'}`,
                         icon: '/vite.svg'
                     });
@@ -207,7 +207,7 @@ const DevChat = () => {
                         </div>
                         <h2 className="text-xl font-bold tracking-tight mb-2">Create Your Profile</h2>
                         <p className="text-sm text-slate-500 font-medium leading-relaxed mb-8">
-                            Select a unique handle for the DigitalStudio community chat. Your identity will be tied to your verified profile.
+                            Select a unique handle for the BizCode community chat. Your identity will be tied to your verified profile.
                         </p>
                         
                         <div className="relative group mb-8">
@@ -237,10 +237,10 @@ const DevChat = () => {
                     <button 
                         onClick={() => navigate('/')}
                         className="p-2.5 text-slate-400 hover:text-slate-900 transition-all rounded-lg hover:bg-slate-100 group relative"
-                        title="Return to DigitalStudio"
+                        title="Return to BizCode"
                     >
                         <Home size={20} strokeWidth={2.5} />
-                        <span className="absolute left-16 px-2 py-1 bg-slate-900 text-white text-[10px] font-bold rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none shadow-xl">Back to DigitalStudio</span>
+                        <span className="absolute left-16 px-2 py-1 bg-slate-900 text-white text-[10px] font-bold rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none shadow-xl">Back to BizCode</span>
                     </button>
 
                     <div className="w-8 h-px bg-slate-200"></div>

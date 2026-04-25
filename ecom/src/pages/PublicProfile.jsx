@@ -85,9 +85,9 @@ const PublicProfile = () => {
     const Sidebar = () => (
         <aside className="w-64 bg-white border-r border-slate-200 flex flex-col pt-8 flex-shrink-0 relative z-50">
             <Link to="/" className="flex items-center gap-3 px-6 mb-10 group/brand hover:opacity-80 transition-opacity">
-                <div className="w-8 h-8 bg-slate-900 rounded-lg flex items-center justify-center font-bold text-white text-sm group-hover/brand:scale-110 transition-transform shadow-lg shadow-slate-900/10">D</div>
+                <div className="w-8 h-8 bg-slate-900 rounded-lg flex items-center justify-center font-bold text-white text-sm group-hover/brand:scale-110 transition-transform shadow-lg shadow-slate-900/10">B</div>
                 <div>
-                    <h1 className="text-xs font-bold text-slate-900 uppercase tracking-widest">DigitalStudio Directory</h1>
+                    <h1 className="text-xs font-bold text-slate-900 uppercase tracking-widest">BizCode Directory</h1>
                     <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">Verified Seller Profile</p>
                 </div>
             </Link>
@@ -150,7 +150,7 @@ const PublicProfile = () => {
                 </Link>
                 <div className="h-4 w-px bg-slate-100"></div>
                 <Link to="/register" className="inline-flex items-center gap-2 px-6 py-2 bg-slate-900 text-white rounded-full text-[10px] font-bold uppercase tracking-widest hover:bg-blue-600 transition-all shadow-lg shadow-slate-900/10 scale-95 hover:scale-100">
-                    Join DigitalStudio <ArrowUpRight size={12} />
+                    Join BizCode <ArrowUpRight size={12} />
                 </Link>
             </div>
         </header>

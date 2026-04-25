@@ -27,6 +27,7 @@ export const normalizeUser = (user = {}) => ({
     role: toString(user.role, 'user'),
     subscriptionPlan: toString(user.subscriptionPlan ?? user.subscription_plan, 'free'),
     isPro: Boolean(user.isPro ?? user.is_pro ?? (user.subscriptionPlan === 'pro' || user.subscription_plan === 'pro') ?? false),
+    proExpiresAt: user.proExpiresAt ?? user.pro_expires_at ?? null,
     provider: toString(user.provider, 'local'),
     providerId: toString(user.providerId ?? user.provider_id),
     suspended: Boolean(user.suspended ?? false),
@@ -164,6 +165,8 @@ export const normalizeOrder = (order = {}) => {
             ((order.paymentStatus ?? order.payment_status) === 'paid' || (order.status ?? '') === 'paid')
         ),
         orderItems,
+        addDeploymentService: Boolean(order.addDeploymentService ?? order.add_deployment_service ?? false),
+        deploymentServiceFee: Number(order.deploymentServiceFee ?? order.deployment_service_fee ?? 0),
         createdAt: order.createdAt ?? order.created_at ?? null,
         updatedAt: order.updatedAt ?? order.updated_at ?? null,
     };
@@ -225,6 +228,11 @@ export const normalizeSiteConfig = (config = {}) => ({
         serviceUrl: toString(config.aiSettings?.serviceUrl),
         model: toString(config.aiSettings?.model),
         apiKey: toString(config.aiSettings?.apiKey),
+    },
+    eliteSettings: {
+        deploymentFee: Number(config.eliteSettings?.deploymentFee ?? 149),
+        negotiationEnabled: Boolean(config.eliteSettings?.negotiationEnabled),
+        negotiationFee: Number(config.eliteSettings?.negotiationFee ?? 0),
     },
 });
 

@@ -1,6 +1,6 @@
 # Backend Nexus Code Intelligence
 
-This document contains the core backend logic for DigitalStudio.
+This document contains the core backend logic for BizCode.
 
 ---
 
@@ -23,11 +23,11 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/pushp314/digitalstudio/go-server/config"
-	"github.com/pushp314/digitalstudio/go-server/handlers"
-	"github.com/pushp314/digitalstudio/go-server/middleware"
-	"github.com/pushp314/digitalstudio/go-server/seeder"
-	"github.com/pushp314/digitalstudio/go-server/services"
+	"github.com/pushp314/bizcode/go-server/config"
+	"github.com/pushp314/bizcode/go-server/handlers"
+	"github.com/pushp314/bizcode/go-server/middleware"
+	"github.com/pushp314/bizcode/go-server/seeder"
+	"github.com/pushp314/bizcode/go-server/services"
 )
 
 func main() {
@@ -97,8 +97,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
-	"github.com/pushp314/digitalstudio/go-server/config"
-	"github.com/pushp314/digitalstudio/go-server/models"
+	"github.com/pushp314/bizcode/go-server/config"
+	"github.com/pushp314/bizcode/go-server/models"
 )
 
 var upgrader = websocket.Upgrader{

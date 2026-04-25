@@ -60,7 +60,7 @@ const SiteConfigForm = ({ initialSection = 'general' }) => {
             enableDocsAi: true,
             enableChatAi: true,
             serviceUrl: '',
-            provider: 'ollama',
+            provider: 'gemini',
             model: '',
             apiKey: ''
         },
@@ -98,7 +98,7 @@ const SiteConfigForm = ({ initialSection = 'general' }) => {
                 maintenanceMode: config.maintenanceMode || false,
                 maintenanceMessage: config.maintenanceMessage || 'Under scheduled maintenance. Please check back shortly.',
                 carouselStack: Array.isArray(config.carouselStack) ? config.carouselStack.map(item => ({...item})) : [],
-                aiSettings: config.aiSettings || { enabled: false, serviceUrl: '', provider: 'ollama', model: '', apiKey: '' },
+                aiSettings: config.aiSettings || { enabled: false, serviceUrl: '', provider: 'gemini', model: '', apiKey: '' },
                 eliteSettings: config.eliteSettings || { negotiationEnabled: true, negotiationFee: 9, supportMonthlyFee: 9, serviceBenefitDays: 30 }
             });
         }
@@ -509,15 +509,11 @@ const SiteConfigForm = ({ initialSection = 'general' }) => {
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                     <Field label="AI Provider">
-                                        <select 
-                                            value={formData.aiSettings.provider} 
-                                            onChange={(e) => handleNestedChange('aiSettings', 'provider', e.target.value)}
-                                            className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-sm font-bold shadow-sm outline-none focus:ring-1 focus:ring-slate-900"
-                                        >
-                                            <option value="ollama">Ollama (Local Node)</option>
-                                            <option value="groq">Groq (Deep-Speed Cloud)</option>
-                                            <option value="gemini">Gemini (free tier)</option>
-                                        </select>
+                                        <div className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm font-bold shadow-sm flex items-center gap-3">
+                                            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                                            Google Gemini
+                                        </div>
+                                        <p className="text-[10px] text-slate-400 font-medium mt-2">Provider is locked to Gemini. API key is managed server-side via environment variables.</p>
                                     </Field>
                                     <Field label="AI Model">
                                         <input 
@@ -525,25 +521,13 @@ const SiteConfigForm = ({ initialSection = 'general' }) => {
                                             value={formData.aiSettings.model} 
                                             onChange={(e) => handleNestedChange('aiSettings', 'model', e.target.value)}
                                             className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-sm font-bold shadow-sm outline-none focus:ring-1 focus:ring-slate-900"
-                                            placeholder="e.g. qwen3.5:2b or gemini-1.5-flash"
+                                            placeholder="e.g. gemini-2.5-flash (default)"
                                         />
                                     </Field>
                                 </div>
 
                                 <div className="grid grid-cols-1 gap-8">
-                                    <Field label="AI Service URL (Ollama)">
-                                        <div className="relative">
-                                            <Database className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" size={14} />
-                                            <input 
-                                                type="text" 
-                                                value={formData.aiSettings.serviceUrl} 
-                                                onChange={(e) => handleNestedChange('aiSettings', 'serviceUrl', e.target.value)}
-                                                className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-lg text-sm font-medium shadow-sm outline-none focus:ring-1 focus:ring-slate-900"
-                                                placeholder="http://localhost:11434/api"
-                                            />
-                                        </div>
-                                    </Field>
-                                    <Field label="Provider API Key">
+                                    <Field label="Gemini API Key (Optional Override)">
                                         <div className="relative">
                                             <ShieldAlert className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" size={14} />
                                             <input 
@@ -554,7 +538,7 @@ const SiteConfigForm = ({ initialSection = 'general' }) => {
                                                 placeholder="••••••••••••••••••••••••••••••••"
                                             />
                                         </div>
-                                        <p className="text-[10px] text-slate-400 font-medium mt-2">API keys are stored securely. Leave blank to use environment defaults.</p>
+                                        <p className="text-[10px] text-slate-400 font-medium mt-2">Leave blank to use the server environment default (<code>AI_API_KEY</code>).</p>
                                     </Field>
                                 </div>
                             </div>
@@ -647,7 +631,7 @@ const SiteConfigForm = ({ initialSection = 'general' }) => {
                                                     value={formData.contact.email} 
                                                     onChange={(e) => handleNestedChange('contact', 'email', e.target.value)} 
                                                     className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-lg text-sm font-medium" 
-                                                    placeholder="contact@digitalstudio.app"
+                                                    placeholder="contact@bizcode.app"
                                                 />
                                             </div>
                                         </Field>

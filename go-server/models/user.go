@@ -47,8 +47,9 @@ type User struct {
 	
 	// Partner Protocol Fields
 	PartnerCode      *string   `gorm:"uniqueIndex;type:varchar(50);default:null" json:"partnerCode"`
-	ReferrerID       *uint     `json:"referrerId"`
+	ReferrerID       *uint     `gorm:"index" json:"referrerId"`
 	PartnerBalance   float64   `gorm:"default:0" json:"partnerBalance"`
+	EliteCustomBuilds int       `gorm:"default:0" json:"eliteCustomBuilds"`
 	
 	// Growth Matrix Fields
 	FlashSaleExpiresAt *time.Time `json:"flashSaleExpiresAt"`

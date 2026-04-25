@@ -10,8 +10,8 @@ import (
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/pushp314/digitalstudio/go-server/config"
-	"github.com/pushp314/digitalstudio/go-server/models"
+	"github.com/pushp314/bizcode/go-server/config"
+	"github.com/pushp314/bizcode/go-server/models"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/github"
 	"golang.org/x/oauth2/google"
@@ -59,6 +59,7 @@ func GoogleCallback(c *gin.Context) {
 	code := c.Query("code")
 	token, err := getGoogleOAuthConfig().Exchange(context.Background(), code)
 	if err != nil {
+		fmt.Printf("[OAuth Error] Google Exchange failed: %v\n", err)
 		respondError(c, http.StatusInternalServerError, "Failed to exchange token")
 		return
 	}
@@ -157,7 +158,7 @@ func GithubCallback(c *gin.Context) {
 			return
 		}
 
-		// Duplicate account check: if this GitHub ID is already linked to another DigitalStudio account.
+		// Duplicate account check: if this GitHub ID is already linked to another BizCode account.
 		var existingUser models.User
 		if err := config.DB.Where("github_id = ? AND id != ?", ghIDStr, user.ID).First(&existingUser).Error; err == nil {
 			frontendURL := os.Getenv("FRONTEND_URL")
@@ -243,7 +244,11 @@ func handleOAuthUser(c *gin.Context, provider, providerID, name, email string) {
 				Provider:         provider,
 				ProviderID:       providerID,
 			}
-			config.DB.Create(&user)
+			if err := config.DB.Create(&user).Error; err != nil {
+				fmt.Printf("[OAuth Error] Failed to create user: %v\n", err)
+				respondError(c, http.StatusInternalServerError, "Failed to create user account")
+				return
+			}
 		} else {
 			user.Provider = provider
 			user.ProviderID = providerID

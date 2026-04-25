@@ -11,9 +11,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
-	"github.com/pushp314/digitalstudio/go-server/config"
-	"github.com/pushp314/digitalstudio/go-server/models"
-	"github.com/pushp314/digitalstudio/go-server/services"
+	"github.com/pushp314/bizcode/go-server/config"
+	"github.com/pushp314/bizcode/go-server/models"
+	"github.com/pushp314/bizcode/go-server/services"
 	"strings"
 )
 
@@ -466,10 +466,10 @@ func SendChatMessage(c *gin.Context) {
 		go func() {
 			botPrompt := strings.TrimSpace(strings.TrimPrefix(strings.ToLower(content), "@bot"))
 			if botPrompt == "" {
-				botPrompt = "Hello! I am your DigitalStudio technical consultant. How can I help with a product, setup, deployment, or custom build today?"
+				botPrompt = "Hello! I am your BizCode technical consultant. How can I help with a product, setup, deployment, or custom build today?"
 			} else {
 				// Augment prompt for technical context
-				botPrompt = "You are a technical consultant for DigitalStudio, a developer commerce and service platform for ready apps, implementation help, and custom builds. A Pro member asks: " + botPrompt + "\n\nProvide a technical, concise, and helpful response (max 100 words)."
+				botPrompt = "You are a technical consultant for BizCode, a developer commerce and service platform for ready apps, implementation help, and custom builds. A Pro member asks: " + botPrompt + "\n\nProvide a technical, concise, and helpful response (max 100 words)."
 			}
 
 			botAnswer, err := requestAIAnswer(botPrompt)
@@ -478,7 +478,7 @@ func SendChatMessage(c *gin.Context) {
 			}
 
 			botMsg := models.ChatMessage{
-				UserName:   "DigitalStudio Consultant @bot",
+				UserName:   "BizCode Consultant @bot",
 				UserHandle: "bot",
 				Content:    botAnswer,
 				IsPro:      true,

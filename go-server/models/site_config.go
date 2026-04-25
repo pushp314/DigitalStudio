@@ -44,7 +44,7 @@ type AISettings struct {
 	EnableDocsAI bool   `json:"enableDocsAi"`
 	EnableChatAI bool   `json:"enableChatAi"`
 	ServiceURL   string `json:"serviceUrl"`
-	Provider     string `json:"provider"` // ollama, groq, gemini
+	Provider     string `json:"provider"` // gemini (locked)
 	Model        string `json:"model"`
 	APIKey       string `json:"apiKey,omitempty"`
 }
@@ -54,6 +54,7 @@ type EliteSettings struct {
 	NegotiationFee     float64 `json:"negotiationFee"`
 	SupportMonthlyFee  float64 `json:"supportMonthlyFee"`
 	ServiceBenefitDays int     `json:"serviceBenefitDays"` // e.g. 30 days of chat for buyers
+	DeploymentFee      float64 `json:"deploymentFee"`
 }
 
 type MemberPlan struct {

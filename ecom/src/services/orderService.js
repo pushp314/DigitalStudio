@@ -6,6 +6,7 @@ const orderService = {
     adminList: (status = 'all') => api.get(`/admin/orders${status && status !== 'all' ? `?status=${encodeURIComponent(status)}` : ''}`),
     adminGetById: (id) => api.get(`/admin/orders/${id}`),
     adminUpdate: (id, data) => api.patch(`/admin/orders/${id}`, data),
+    adminRefund: (id) => api.post(`/admin/orders/${id}/refund`),
 };
 
 export default orderService;

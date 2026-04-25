@@ -4,8 +4,8 @@ import (
 	"log"
 	"os"
 
-	"github.com/pushp314/digitalstudio/go-server/config"
-	"github.com/pushp314/digitalstudio/go-server/models"
+	"github.com/pushp314/bizcode/go-server/config"
+	"github.com/pushp314/bizcode/go-server/models"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -146,11 +146,11 @@ func Run() {
 			Announcements: []string{
 				"New ready app: Horizon AI Analytics Dashboard is now available.",
 				"Pro members get priority support and premium implementation guides.",
-				"Need changes? Request custom work from the DigitalStudio team.",
+				"Need changes? Request custom work from the BizCode team.",
 				"Submit your own project for approval-based listing.",
 			},
 			ShowAnnouncement:    true,
-			SupportEmail:        "support@digitalstudio.app",
+			SupportEmail:        "support@bizcode.app",
 			Features: map[string]bool{
 				"docs":          true,
 				"reviews":       true,
@@ -183,9 +183,19 @@ func Run() {
 					IsPopular:  true,
 					IsPrimary:  true,
 				},
+				{
+					Name:       "Elite Membership",
+					Badge:      "Enterprise",
+					Price:      8999,
+					Period:     "year",
+					Features:   []string{"Commercial Multi-Project License", "1 Free Custom Build per quarter", "Private Slack channel", "Direct Lead Dev access"},
+					ButtonText: "Go Elite",
+					IsPopular:  false,
+					IsPrimary:  false,
+				},
 			},
 			FAQs: []models.FAQItem{
-				{Question: "What technologies do you support?", Answer: "DigitalStudio lists ready apps, templates, fullstack projects, UI kits, and backend modules across React, Next.js, Tailwind CSS, Go, and Node.js."},
+				{Question: "What technologies do you support?", Answer: "BizCode lists ready apps, templates, fullstack projects, UI kits, and backend modules across React, Next.js, Tailwind CSS, Go, and Node.js."},
 				{Question: "Do I get free updates?", Answer: "Yes! Every purchase includes lifetime access to all future updates for that specific product."},
 				{Question: "How does the license work?", Answer: "Standard products come with a Commercial License for one project. Extended licenses are available for agency use."},
 			},
@@ -199,16 +209,37 @@ func Run() {
 				{
 					Title:       "Admin Experience",
 					Subtitle:    "Fully managed dashboards",
-					Description: "Our ready products include full-featured admin surfaces for order tracking and user management.",
-					Image:       "https://images.unsplash.com/photo-1551288049-bbbda536639a?q=80&w=1200",
-					Footer:      "Dashboard View",
+					Description: "Our products include full-featured admin surfaces for order tracking, user management, and real-time analytics.",
+					Image:       "/showcase/admin.png",
+					Footer:      "Admin Dashboard",
+				},
+				{
+					Title:       "Mobile First",
+					Subtitle:    "Responsive by default",
+					Description: "Every asset is stress-tested for mobile performance and touch-optimized navigation.",
+					Image:       "/showcase/mobile.png",
+					Footer:      "Mobile UI",
+				},
+				{
+					Title:       "Modular Architecture",
+					Subtitle:    "Clean & Scalable Code",
+					Description: "Engineered with industry-standard patterns (Clean Architecture in Go, Composition in React) for easy extension.",
+					Image:       "/showcase/code.png",
+					Footer:      "Source Code",
 				},
 			},
 			Contact: models.ContactConfig{
 				Heading: "Get in touch",
-				Email:   "hello@digitalstudio.app",
+				Email:   "hello@bizcode.app",
 				Phone:   "+1 (555) 000-0000",
 				Address: "Global Studio HQ",
+			},
+			EliteSettings: models.EliteSettings{
+				NegotiationEnabled: true,
+				NegotiationFee:     9,
+				SupportMonthlyFee:  29,
+				ServiceBenefitDays: 30,
+				DeploymentFee:      149,
 			},
 			AISettings: models.AISettings{
 				Enabled:  true,
@@ -258,7 +289,9 @@ func Run() {
 			StatusFlags: "featured,new,bestseller",
 			TechStacks:  []string{"React", "Next.js", "Go"},
 			LiveDemo:    "https://horizon-ui.com/horizon-tailwind-react-ts-main/",
-			FileURL:     "https://github.com/pushp314/digitalstudio/archive/refs/heads/main.zip",
+			VideoURL:    "https://cdn.bizcode.appnity.co.in/demo/horizon-preview.mp4",
+			Snippet:     "// Implementation Hook\nconst useHorizon = (config) => {\n  const [data, setData] = useState(null);\n  useEffect(() => {\n    fetch('/api/horizon/metrics', config).then(setData);\n  }, [config]);\n  return data;\n};",
+			FileURL:     "https://github.com/pushp314/bizcode/archive/refs/heads/main.zip",
 		},
 		{
 			AuthorID: admin.ID,
@@ -272,33 +305,63 @@ func Run() {
 			StatusFlags: "trending,featured",
 			TechStacks:  []string{"React", "GSAP"},
 			LiveDemo:    "https://portfolio-starter-kit.vercel.app/",
-			FileURL:     "https://github.com/pushp314/digitalstudio/archive/refs/heads/main.zip",
+			VideoURL:    "https://cdn.bizcode.appnity.co.in/demo/portfolio-tour.mp4",
+			Snippet:     "export default function Portfolio() {\n  return (\n    <div className=\"ds-shell py-20\">\n      <h1 className=\"ds-heading\">Creative Identity</h1>\n      <ProjectGrid />\n    </div>\n  );\n}",
+			FileURL:     "https://github.com/pushp314/bizcode/archive/refs/heads/main.zip",
 		},
 		{
 			AuthorID: admin.ID,
-			Title: "DigitalStudio Pro Membership",
+			Title: "BizCode Pro Membership",
 			Slug: "pro-membership",
 			Category: "Membership",
-			Price: 29,
+			Price: 1999,
 			Image: "https://images.unsplash.com/photo-1579389083078-4e7018379f7e?q=80&w=800",
 			Description: "Premium guides, community chat access, priority support, and implementation help for active builders.",
 			Type: models.ProductTypeSubscription,
 			StatusFlags: "featured",
+			Duration: "month",
 			RequiresSubscription: false,
 			TechStacks: []string{"All-Access"},
 		},
 		{
 			AuthorID: admin.ID,
-			Title: "DigitalStudio Team Support",
-			Slug: "institutional-membership",
+			Title:    "BizCode Elite Monthly",
+			Slug:     "elite-membership",
 			Category: "Institutional",
-			Price: 59,
-			Image: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=800",
-			Description: "Team-oriented support for custom development, deployment planning, and technical handoff.",
-			Type: models.ProductTypeSubscription,
-			StatusFlags: "premium",
-			RequiresSubscription: false,
-			TechStacks: []string{"Enterprise"},
+			Price:    999,
+			Image:    "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=800",
+			Description: "Private Slack access, commercial multi-project licensing, and 1 free custom feature build per quarter.",
+			Type:        models.ProductTypeSubscription,
+			StatusFlags: "premium,featured",
+			Duration:    "month",
+			TechStacks:  []string{"Enterprise", "Priority"},
+			Features: []string{
+				"Private Slack/Discord channel access",
+				"Commercial Multi-Project License",
+				"1 Free Custom Build Request per quarter",
+				"Direct access to lead developers",
+				"Priority deployment consulting",
+			},
+		},
+		{
+			AuthorID: admin.ID,
+			Title:    "BizCode Elite Yearly",
+			Slug:     "elite-membership-yearly",
+			Category: "Institutional",
+			Price:    8999,
+			Image:    "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=800",
+			Description: "Save with annual billing. Private Slack access, commercial multi-project licensing, and 1 free custom feature build per quarter.",
+			Type:        models.ProductTypeSubscription,
+			StatusFlags: "premium,featured,bestseller",
+			Duration:    "year",
+			TechStacks:  []string{"Enterprise", "Priority"},
+			Features: []string{
+				"Private Slack/Discord channel access",
+				"Commercial Multi-Project License",
+				"1 Free Custom Build Request per quarter",
+				"Direct access to lead developers",
+				"Priority deployment consulting",
+			},
 		},
 	}
 
@@ -408,14 +471,14 @@ Don't just return errors. Wrap them with context using fmt.Errorf to ensure logs
 				Price: 25,
 			},
 			{
-				Title:       "Getting Started with DigitalStudio",
+				Title:       "Getting Started with BizCode",
 				Description: "The essential guide to buying ready products, requesting help, and using post-purchase support.",
 				Category:    "General",
 				IsPremium:   false,
 				Icon:        "🚀",
 				Image:       "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&q=80&w=800",
 				Content: `
-# Welcome to DigitalStudio
+# Welcome to BizCode
 
 We are excited to help you ship your next big idea.
 
@@ -430,7 +493,7 @@ Our team can help with product fit, setup, deployment, implementation questions,
 `,
 				PreviewContent: "Get up and running with your new product in minutes. Basic installation, configuration, and support overview.",
 				TableOfContents: []models.TOCItem{
-					{ID: "welcome-to-digitalstudio", Title: "Welcome to DigitalStudio", Level: 1},
+					{ID: "welcome-to-bizcode", Title: "Welcome to BizCode", Level: 1},
 				},
 			},
 		}

@@ -64,6 +64,14 @@ type Product struct {
 	RequiresSubscription bool             `gorm:"default:false" json:"requiresSubscription"`
 	RevenueShare         float64          `gorm:"default:0" json:"revenueShare"`
 
+	// Storage Integration Fields
+	StorageProvider      string           `gorm:"size:50;default:'local'" json:"storageProvider"`
+	StorageKey           string           `gorm:"size:255" json:"storageKey"`
+	OriginalFilename     string           `gorm:"size:255" json:"originalFilename"`
+	FileSize             int64            `json:"fileSize"`
+	MimeType             string           `gorm:"size:100" json:"mimeType"`
+	IsPrivateAsset       bool             `gorm:"default:true" json:"isPrivateAsset"`
+
 	VideoURL        string   `json:"videoUrl"`
 	CourseOutline   string   `gorm:"type:text" json:"courseOutline"`
 	Duration        string   `json:"duration"`
@@ -77,6 +85,11 @@ type Product struct {
 	Changelog     []ChangelogEntry `gorm:"serializer:json;type:jsonb" json:"changelog,omitempty"`
 	Documentation []string `gorm:"serializer:json;type:jsonb" json:"documentation,omitempty"`
 	Tags          []Tag    `gorm:"many2many:product_tags;" json:"tags,omitempty"`
+
+	// SEO Meta
+	SEOTitle       string `gorm:"size:255" json:"seoTitle"`
+	SEODescription string `gorm:"type:text" json:"seoDescription"`
+	OGImage        string `gorm:"size:255" json:"ogImage"`
 
 	PreviewURL string  `gorm:"-" json:"previewUrl,omitempty"`
 	Rating     float64 `gorm:"-" json:"rating"`

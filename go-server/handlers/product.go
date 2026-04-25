@@ -2,15 +2,15 @@ package handlers
 
 import (
 	"net/http"
-	"net/url"
 	"strconv"
 	"strings"
-
+	"time"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/gosimple/slug"
-	"github.com/pushp314/digitalstudio/go-server/config"
-	"github.com/pushp314/digitalstudio/go-server/models"
-	"github.com/pushp314/digitalstudio/go-server/services"
+	"github.com/pushp314/bizcode/go-server/config"
+	"github.com/pushp314/bizcode/go-server/models"
+	"github.com/pushp314/bizcode/go-server/services"
 )
 
 // ... (other handlers)
@@ -56,7 +56,7 @@ generateUrl:
 		ActorUserID:  func() *uint { id := userID.(uint); return &id }(),
 		EventType:    "asset.download_initiated",
 		ResourceType: "product",
-		ResourceID:   func() *uint { pid, _ := strconv.ParseUint(productID, 10, 32); uid := uint(pid); return &uid }(),
+		ResourceID:   &product.ID,
 		Message:      "Secure presigned URL generated for entitlement holder",
 		Metadata: map[string]interface{}{
 			"productId": product.ID,
@@ -64,33 +64,28 @@ generateUrl:
 			"userRole":  c.GetString("userRole"),
 		},
 	})
-	if fileKey, managed := services.StorageKeyFromURL(product.FileURL); managed {
-		if services.IsManagedPrivateAssetKey(fileKey) {
-			url, err := services.GeneratePresignedURL(fileKey)
-			if err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate security payload"})
-				return
-			}
 
-			c.JSON(http.StatusOK, gin.H{
-				"downloadUrl": url,
-				"expiresIn":   "15m",
-			})
+	// Managed Storage Path (R2 / S3)
+	if product.StorageKey != "" {
+		url, err := services.Storage.GenerateSignedDownloadURL(c.Request.Context(), product.StorageKey, 15*time.Minute)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate security payload"})
 			return
 		}
 
-		publicURL := strings.TrimSpace(product.FileURL)
 		c.JSON(http.StatusOK, gin.H{
-			"downloadUrl": publicURL,
-			"expiresIn":   "public",
+			"downloadUrl": url,
+			"expiresIn":   "15m",
+			"filename":    product.OriginalFilename,
 		})
 		return
 	}
 
-	if parsed, err := url.Parse(strings.TrimSpace(product.FileURL)); err == nil && parsed.Scheme == "https" && parsed.Host != "" {
+	// Legacy / External Fallback
+	if product.FileURL != "" {
 		c.JSON(http.StatusOK, gin.H{
-			"downloadUrl": parsed.String(),
-			"expiresIn":   "external",
+			"downloadUrl": product.FileURL,
+			"expiresIn":   "public_fallback",
 		})
 		return
 	}
@@ -126,6 +121,12 @@ type CreateProductReq struct {
 	Features             []string                `json:"features"`
 	Pages                []string                `json:"pages"`
 	ModerationStatus     models.ModerationStatus `json:"moderationStatus"`
+	
+	// Storage Fields
+	StorageProvider      string                  `json:"storageProvider"`
+	StorageKey           string                  `json:"storageKey"`
+	OriginalFilename     string                  `json:"originalFilename"`
+	IsPrivateAsset       *bool                   `json:"isPrivateAsset"`
 }
 
 type reviewMetric struct {
@@ -141,6 +142,15 @@ type salesMetric struct {
 }
 
 func ListProducts(c *gin.Context) {
+	// Generate cache key from query params
+	cacheKey := "products:list:" + c.Request.URL.RawQuery
+	
+	var cachedProducts []models.Product
+	if err := services.Cache.Get(c.Request.Context(), cacheKey, &cachedProducts); err == nil {
+		c.JSON(http.StatusOK, cachedProducts)
+		return
+	}
+
 	keyword := strings.TrimSpace(c.Query("keyword"))
 	category := strings.TrimSpace(c.Query("category"))
 	categorySlug := strings.TrimSpace(c.Query("categorySlug"))
@@ -151,6 +161,9 @@ func ListProducts(c *gin.Context) {
 	featured := strings.EqualFold(c.Query("featured"), "true")
 	includeAll := strings.EqualFold(c.Query("includeAll"), "true")
 	limitValue := strings.TrimSpace(c.Query("limit"))
+	pageValue := strings.TrimSpace(c.Query("page"))
+	pageSizeValue := strings.TrimSpace(c.Query("pageSize"))
+	techStack := strings.TrimSpace(c.Query("techStack"))
 
 	var products []models.Product
 	query := config.DB.Preload("Tags").Preload("CategoryRel")
@@ -183,11 +196,32 @@ func ListProducts(c *gin.Context) {
 	if statusFlag != "" {
 		query = query.Where("status_flags ILIKE ?", "%"+statusFlag+"%")
 	}
+	if techStack != "" {
+		query = query.Where("tech_stacks @> ?", fmt.Sprintf("[\"%s\"]", techStack))
+	}
+
+	// Pagination
+	limit := 20
 	if limitValue != "" {
-		if limit, err := strconv.Atoi(limitValue); err == nil && limit > 0 {
-			query = query.Limit(limit)
+		if l, err := strconv.Atoi(limitValue); err == nil && l > 0 {
+			limit = l
 		}
 	}
+	if pageSizeValue != "" {
+		if ps, err := strconv.Atoi(pageSizeValue); err == nil && ps > 0 {
+			limit = ps
+		}
+	}
+
+	page := 1
+	if pageValue != "" {
+		if p, err := strconv.Atoi(pageValue); err == nil && p > 0 {
+			page = p
+		}
+	}
+
+	offset := (page - 1) * limit
+	query = query.Limit(limit).Offset(offset)
 
 	if err := query.Order("created_at desc").Find(&products).Error; err != nil {
 		respondError(c, http.StatusInternalServerError, err.Error())
@@ -195,6 +229,10 @@ func ListProducts(c *gin.Context) {
 	}
 
 	enrichProducts(&products)
+	
+	// Cache result (TTL 5 minutes for lists as they are more dynamic)
+	_ = services.Cache.Set(c.Request.Context(), cacheKey, products, 5*time.Minute)
+	
 	c.JSON(http.StatusOK, products)
 }
 
@@ -221,7 +259,15 @@ func GetOwnedProducts(c *gin.Context) {
 
 func GetProduct(c *gin.Context) {
 	id := c.Param("id")
+	cacheKey := "product:" + id
+
 	var product models.Product
+	// Try cache first
+	if err := services.Cache.Get(c.Request.Context(), cacheKey, &product); err == nil {
+		c.JSON(http.StatusOK, product)
+		return
+	}
+
 	query := config.DB.Preload("Tags").Preload("CategoryRel")
 	if !canViewAllProducts(c, strings.EqualFold(c.Query("includeAll"), "true")) {
 		query = query.Where("moderation_status = ? AND status_flags NOT ILIKE ?", models.ModStatusApproved, "%archived%")
@@ -232,6 +278,10 @@ func GetProduct(c *gin.Context) {
 	}
 
 	enrichProduct(&product)
+	
+	// Save to cache (TTL 30 minutes)
+	_ = services.Cache.Set(c.Request.Context(), cacheKey, product, 30*time.Minute)
+	
 	c.JSON(http.StatusOK, product)
 }
 
@@ -278,6 +328,14 @@ func CreateProduct(c *gin.Context) {
 		PreviewImages:        req.PreviewImages,
 		Features:             req.Features,
 		Pages:                req.Pages,
+
+		// Storage fields
+		StorageProvider:  req.StorageProvider,
+		StorageKey:       req.StorageKey,
+		OriginalFilename: req.OriginalFilename,
+	}
+	if req.IsPrivateAsset != nil {
+		product.IsPrivateAsset = *req.IsPrivateAsset
 	}
 
 	if product.Type == "" {
@@ -311,6 +369,10 @@ func CreateProduct(c *gin.Context) {
 	}
 
 	enrichProduct(&product)
+	
+	// Invalidate caches
+	_ = services.Cache.InvalidateByPrefix(c.Request.Context(), "products:list")
+	
 	c.JSON(http.StatusCreated, product)
 }
 
@@ -380,6 +442,18 @@ func UpdateProduct(c *gin.Context) {
 	if req.Version != "" {
 		product.Version = req.Version
 	}
+	if req.StorageProvider != "" {
+		product.StorageProvider = req.StorageProvider
+	}
+	if req.StorageKey != "" {
+		product.StorageKey = req.StorageKey
+	}
+	if req.OriginalFilename != "" {
+		product.OriginalFilename = req.OriginalFilename
+	}
+	if req.IsPrivateAsset != nil {
+		product.IsPrivateAsset = *req.IsPrivateAsset
+	}
 	
 	// Governance: Authors can unpublish (set to pending), but only admins can approve
 	if req.ModerationStatus != "" {
@@ -418,6 +492,11 @@ func UpdateProduct(c *gin.Context) {
 	}
 
 	enrichProduct(&product)
+
+	// Invalidate caches
+	_ = services.Cache.Delete(c.Request.Context(), "product:"+id)
+	_ = services.Cache.InvalidateByPrefix(c.Request.Context(), "products:list")
+
 	c.JSON(http.StatusOK, product)
 }
 
@@ -443,6 +522,11 @@ func DeleteProduct(c *gin.Context) {
 		respondError(c, http.StatusInternalServerError, err.Error())
 		return
 	}
+
+	// Invalidate caches
+	_ = services.Cache.Delete(c.Request.Context(), "product:"+id)
+	_ = services.Cache.InvalidateByPrefix(c.Request.Context(), "products:list")
+
 	c.JSON(http.StatusOK, gin.H{"message": "Product record purged successfully"})
 }
 

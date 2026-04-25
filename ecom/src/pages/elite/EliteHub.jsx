@@ -71,8 +71,8 @@ const EliteHub = () => {
 
     useEffect(() => {
         fetchSessions();
-        window.addEventListener('ds_support_read', fetchSessions);
-        return () => window.removeEventListener('ds_support_read', fetchSessions);
+        window.addEventListener('bc_support_read', fetchSessions);
+        return () => window.removeEventListener('bc_support_read', fetchSessions);
     }, [fetchSessions]);
 
     const [searchTerm, setSearchTerm] = useState('');
@@ -129,7 +129,7 @@ const EliteHub = () => {
                 key: data.keyId,
                 amount: data.amount,
                 currency: data.currency,
-                name: "DigitalStudio Expert Help",
+                name: "BizCode Expert Help",
                 description: activeIntent?.headline || "1:1 Consultation with a Developer",
                 order_id: data.orderId,
                 handler: async function (response) {

@@ -8,7 +8,7 @@ const BuildSitesHeader = ({
     return (
         <section className="ds-page px-6 pt-6 pb-8 md:pt-8 md:pb-12">
             <div className="ds-shell flex flex-col gap-4">
-                <p className="ds-eyebrow">DigitalStudio</p>
+                <p className="ds-eyebrow">BizCode</p>
                 <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr),auto] lg:items-end">
                     <div className="space-y-4">
                         <h1 className="text-4xl font-bold tracking-tight text-slate-900 md:text-5xl">

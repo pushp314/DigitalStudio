@@ -1,5 +1,7 @@
 import React, { Suspense, lazy, useContext, useState, useEffect } from "react";
 import { Routes, Route, useLocation, useNavigate, Navigate } from "react-router-dom";
+import NProgress from 'nprogress';
+import 'nprogress/nprogress.css';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 // Components
@@ -16,8 +18,9 @@ import ConfigContext, { ConfigProvider } from './context/ConfigContext';
 import ErrorBoundary from './components/ErrorBoundary';
 import MaintenancePage from "./pages/MaintenancePage";
 import ScrollToTop from "./components/common/ScrollToTop";
-import { HelpCircle, MessageCircle, ArrowUpRight } from 'lucide-react';
+import { HelpCircle, MessageCircle, ArrowUpRight, X } from 'lucide-react';
 import { Link } from "react-router-dom";
+import { HelmetProvider } from 'react-helmet-async';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -72,6 +75,17 @@ const AppShell = () => {
   const location = useLocation();
   const isAdminPath = location.pathname.startsWith('/admin');
   const features = config?.features ?? {};
+  
+  useEffect(() => {
+    NProgress.start();
+    const timeout = setTimeout(() => {
+      NProgress.done();
+    }, 100); // Small delay to handle fast loads
+    return () => {
+      clearTimeout(timeout);
+      NProgress.done();
+    };
+  }, [location.pathname]);
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -93,12 +107,30 @@ const AppShell = () => {
   }, []);
 
   useEffect(() => {
-    // Referral captured
+    const handleClickOutside = () => setIsSupportOpen(false);
+    if (isSupportOpen) {
+      window.addEventListener('click', handleClickOutside);
+    }
+    return () => window.removeEventListener('click', handleClickOutside);
+  }, [isSupportOpen]);
+
+  useEffect(() => {
+    // Referral captured — track click on backend
     const params = new URLSearchParams(location.search);
     const ref = params.get('ref');
     if (ref) {
-      sessionStorage.setItem('ds_partner_ref', ref);
-      console.log('Referral captured:', ref);
+      const alreadyTracked = sessionStorage.getItem('bc_partner_ref');
+      sessionStorage.setItem('bc_partner_ref', ref);
+      // Only fire tracking call once per session per referral code
+      if (alreadyTracked !== ref) {
+        import('./services/api').then(({ default: apiClient }) => {
+          apiClient.post('/referral/track', {
+            referralCode: ref,
+            landingUrl: window.location.href,
+            visitorId: sessionStorage.getItem('bc_visitor_id') || crypto.randomUUID?.() || String(Date.now()),
+          }).catch(() => {}); // silently fail — must not block UX
+        });
+      }
     }
 
     const handleMaintenance = (e) => {
@@ -122,7 +154,7 @@ const AppShell = () => {
   }, [events, toast]);
 
   if (loading) {
-    return <div className="h-screen w-full flex items-center justify-center bg-[#F5F5F7] text-black font-bold uppercase tracking-widest text-[10px]">DigitalStudio: Loading workspace...</div>;
+    return <div className="h-screen w-full flex items-center justify-center bg-[#F5F5F7] text-black font-bold uppercase tracking-widest text-[10px]">BizCode: Loading workspace...</div>;
   }
 
   // Allow access to admin and auth paths during maintenance
@@ -149,7 +181,7 @@ const AppShell = () => {
     : (config?.showAnnouncement && config?.announcements?.length > 0 ? 'pt-28 md:pt-32' : 'pt-16 md:pt-20');
 
   return (
-    <Suspense fallback={<div className="h-screen w-full flex items-center justify-center bg-[#F5F5F7] text-black font-bold uppercase tracking-widest text-[10px]">DigitalStudio: Opening catalog...</div>}>
+    <Suspense fallback={<div className="h-screen w-full flex items-center justify-center bg-[#F5F5F7] text-black font-bold uppercase tracking-widest text-[10px]">BizCode: Opening catalog...</div>}>
       <ErrorBoundary>
         <ScrollToTop />
         <div className="flex flex-col min-h-screen bg-[#F5F5F7] relative">
@@ -177,7 +209,7 @@ const AppShell = () => {
               <Route path="/chat" element={<ProtectedRoute><DevChat /></ProtectedRoute>} />
               <Route path="/support" element={<ProtectedRoute><EliteHub /></ProtectedRoute>} />
               <Route path="/expert-help/:intent" element={<ProtectedRoute><EliteHub /></ProtectedRoute>} />
-              <Route path="/support/chat/:id" element={<ProtectedRoute><EliteChat /></ProtectedRoute>} />
+              <Route path="/elite/chat/:sessionId" element={<ProtectedRoute><EliteChat /></ProtectedRoute>} />
 
               {features.docs && (
                 <>
@@ -223,35 +255,42 @@ const AppShell = () => {
           </main>
           
           {/* Universal Help FAB - High-Access Positioning */}
-          <div 
-            className="fixed bottom-8 right-8 z-[100] flex flex-col items-end gap-3"
-            onMouseEnter={() => setIsSupportOpen(true)}
-            onMouseLeave={() => setIsSupportOpen(false)}
-          >
-            <div className={`transition-all duration-300 transform ${isSupportOpen ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-2 pointer-events-none'} bg-white border border-slate-200 rounded-2xl p-4 shadow-xl mb-2 w-64`}>
-               <p className="text-[10px] font-black text-slate-900 uppercase tracking-widest mb-1">Support Central</p>
-               <p className="text-[9px] text-slate-500 font-medium mb-4 leading-relaxed">Expert guidance for product choice, technical issues, or custom builds.</p>
+          <div className="fixed bottom-8 right-8 z-[100] flex flex-col items-end gap-3">
+            {/* Modal Menu */}
+            <div className={`transition-all duration-500 transform origin-bottom-right ${isSupportOpen ? 'opacity-100 scale-100 translate-y-0 pointer-events-auto' : 'opacity-0 scale-95 translate-y-4 pointer-events-none'} bg-white border border-slate-200 rounded-[2rem] p-6 shadow-2xl mb-2 w-72 ring-1 ring-black/5`}>
+               <div className="flex items-center justify-between mb-2">
+                  <p className="text-[10px] font-black text-slate-900 uppercase tracking-widest">Support Central</p>
+                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
+               </div>
+               <p className="text-[9px] text-slate-500 font-medium mb-5 leading-relaxed">Expert guidance for product choice, technical issues, or custom builds.</p>
                
                <div className="space-y-2">
-                 <Link to="/support" className="flex items-center justify-between p-2 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors">
-                    <span className="text-[9px] font-bold text-slate-900 uppercase">Expert Chat</span>
-                    <ArrowUpRight size={10} className="text-slate-400" />
+                 <Link onClick={() => setIsSupportOpen(false)} to="/support" className="flex items-center justify-between p-3 rounded-xl bg-slate-50 hover:bg-slate-900 hover:text-white group/item transition-all duration-300">
+                    <span className="text-[9px] font-black uppercase tracking-widest">Expert Chat</span>
+                    <ArrowUpRight size={10} className="text-slate-400 group-hover/item:text-white group-hover/item:translate-x-0.5 group-hover/item:-translate-y-0.5 transition-all" />
                  </Link>
-                 <Link to="/support" className="flex items-center justify-between p-2 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors">
-                    <span className="text-[9px] font-bold text-slate-900 uppercase">Support Tickets</span>
-                    <ArrowUpRight size={10} className="text-slate-400" />
+                 <Link onClick={() => setIsSupportOpen(false)} to="/support" className="flex items-center justify-between p-3 rounded-xl bg-slate-50 hover:bg-slate-900 hover:text-white group/item transition-all duration-300">
+                    <span className="text-[9px] font-black uppercase tracking-widest">Support Tickets</span>
+                    <ArrowUpRight size={10} className="text-slate-400 group-hover/item:text-white group-hover/item:translate-x-0.5 group-hover/item:-translate-y-0.5 transition-all" />
                  </Link>
-                 <Link to="/hire-developer" className="flex items-center justify-between p-2 rounded-lg bg-indigo-50 hover:bg-indigo-100 transition-colors">
-                    <span className="text-[9px] font-bold text-indigo-600 uppercase">Hire Developer</span>
-                    <ArrowUpRight size={10} className="text-indigo-400" />
+                 <Link onClick={() => setIsSupportOpen(false)} to="/hire-developer" className="flex items-center justify-between p-3 rounded-xl bg-indigo-50 hover:bg-indigo-600 hover:text-white group/item transition-all duration-300">
+                    <span className="text-[9px] font-black text-indigo-600 group-hover/item:text-white uppercase tracking-widest">Hire Developer</span>
+                    <ArrowUpRight size={10} className="text-indigo-400 group-hover/item:text-white group-hover/item:translate-x-0.5 group-hover/item:-translate-y-0.5 transition-all" />
                  </Link>
                </div>
             </div>
+
+            {/* Main Toggle Button */}
             <button 
-              onClick={() => setIsSupportOpen(!isSupportOpen)}
-              className="w-14 h-14 bg-slate-900 text-white rounded-full flex items-center justify-center shadow-2xl hover:scale-110 active:scale-95 transition-all shadow-slate-900/40"
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsSupportOpen(!isSupportOpen);
+              }}
+              className={`w-14 h-14 rounded-full flex items-center justify-center shadow-2xl transition-all duration-500 active:scale-90 relative group overflow-hidden ${
+                isSupportOpen ? 'bg-slate-900 text-white rotate-180' : 'bg-white text-slate-900 hover:bg-slate-50'
+              }`}
             >
-               <HelpCircle size={24} />
+              {isSupportOpen ? <X size={20} strokeWidth={2.5} /> : <HelpCircle size={24} strokeWidth={2.5} />}
             </button>
           </div>
 
@@ -262,23 +301,26 @@ const AppShell = () => {
   );
 };
 
+
 function App() {
   return (
-    <AuthProvider>
-      <ConfigProvider>
-        <RealtimeProvider>
-          <CartProvider>
-            <WishlistProvider>
-              <ToastProvider>
-                <QueryClientProvider client={queryClient}>
-                  <AppShell />
-                </QueryClientProvider>
-              </ToastProvider>
-            </WishlistProvider>
-          </CartProvider>
-        </RealtimeProvider>
-      </ConfigProvider>
-    </AuthProvider>
+    <QueryClientProvider client={queryClient}>
+      <HelmetProvider>
+        <AuthProvider>
+          <ConfigProvider>
+            <RealtimeProvider>
+              <CartProvider>
+                <WishlistProvider>
+                  <ToastProvider>
+                    <AppShell />
+                  </ToastProvider>
+                </WishlistProvider>
+              </CartProvider>
+            </RealtimeProvider>
+          </ConfigProvider>
+        </AuthProvider>
+      </HelmetProvider>
+    </QueryClientProvider>
   );
 };
 

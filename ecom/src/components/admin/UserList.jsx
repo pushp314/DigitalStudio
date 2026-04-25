@@ -54,13 +54,13 @@ const UserList = () => {
     if (loading) return (
         <div className="py-20 flex flex-col items-center justify-center space-y-4">
             <div className="w-8 h-8 border-2 border-slate-900 border-t-transparent rounded-full animate-spin"></div>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Accessing Registry...</p>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Loading Users...</p>
         </div>
     );
 
     if (error) return (
         <div className="bg-red-50 border border-red-100 rounded-xl p-8 text-red-600">
-            <h3 className="text-xs font-bold uppercase tracking-widest mb-1">Registry Disconnect</h3>
+            <h3 className="text-xs font-bold uppercase tracking-widest mb-1">Connection Error</h3>
             <p className="text-sm font-medium">{error.message}</p>
         </div>
     );
@@ -85,8 +85,8 @@ const UserList = () => {
                     <table className="w-full text-left border-collapse">
                         <thead>
                             <tr className="bg-slate-50 border-b border-slate-200">
-                                <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Subject</th>
-                                <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-center">Authorization</th>
+                                <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">User</th>
+                                <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-center">Role</th>
                                 <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-center">Subscription</th>
                                 <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-center">Status</th>
                                 <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-right">Actions</th>
@@ -116,8 +116,8 @@ const UserList = () => {
                                             className="bg-transparent text-[10px] font-bold text-slate-900 uppercase tracking-widest border-none outline-none cursor-pointer hover:text-blue-600 transition-colors text-center"
                                         >
                                             <option value="user">User</option>
-                                            <option value="contributor">Staff</option>
-                                            <option value="admin">Director</option>
+                                            <option value="contributor">Contributor</option>
+                                            <option value="admin">Admin</option>
                                         </select>
                                     </td>
                                     <td className="px-6 py-4 text-center">

@@ -1,6 +1,8 @@
 package utils
 
 import (
+	"crypto/rand"
+	"encoding/base64"
 	"errors"
 	"os"
 	"strconv"
@@ -8,10 +10,10 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/pushp314/digitalstudio/go-server/models"
+	"github.com/pushp314/bizcode/go-server/models"
 )
 
-const TokenIssuer = "digitalstudio-api"
+const TokenIssuer = "bizcode-api"
 
 type AuthClaims struct {
 	UserID           uint        `json:"user_id"`
@@ -80,4 +82,11 @@ func ParseJWT(tokenString string) (*AuthClaims, error) {
 	}
 
 	return claims, nil
+}
+func GenerateRefreshToken() (string, error) {
+	b := make([]byte, 32)
+	if _, err := rand.Read(b); err != nil {
+		return "", err
+	}
+	return base64.URLEncoding.EncodeToString(b), nil
 }

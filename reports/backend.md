@@ -11,8 +11,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/pushp314/digitalstudio/go-server/config"
-	"github.com/pushp314/digitalstudio/go-server/models"
+	"github.com/pushp314/bizcode/go-server/config"
+	"github.com/pushp314/bizcode/go-server/models"
 )
 
 func AuthMiddleware() gin.HandlerFunc {
@@ -221,8 +221,8 @@ func RateLimitMiddleware(maxRequests int, window time.Duration) gin.HandlerFunc 
 package middleware
 
 import (
-	"github.com/pushp314/digitalstudio/go-server/config"
-	"github.com/pushp314/digitalstudio/go-server/models"
+	"github.com/pushp314/bizcode/go-server/config"
+	"github.com/pushp314/bizcode/go-server/models"
 	"net/http"
 	"strings"
 
@@ -274,8 +274,8 @@ import (
 	"log"
 	"os"
 
-	"github.com/pushp314/digitalstudio/go-server/config"
-	"github.com/pushp314/digitalstudio/go-server/models"
+	"github.com/pushp314/bizcode/go-server/config"
+	"github.com/pushp314/bizcode/go-server/models"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -322,7 +322,7 @@ func Run() {
 				"🚀 Join our Discord for exclusive product walkthroughs and support.",
 			},
 			ShowAnnouncement:    true,
-			SupportEmail:        "support@digitalstudio.com",
+			SupportEmail:        "support@bizcode.com",
 			Features: map[string]bool{
 				"docs":          true,
 				"reviews":       true,
@@ -378,7 +378,7 @@ func Run() {
 			},
 			Contact: models.ContactConfig{
 				Heading: "Get in touch",
-				Email:   "hello@digitalstudio.com",
+				Email:   "hello@bizcode.com",
 				Phone:   "+1 (555) 000-0000",
 				Address: "Global Studio HQ",
 			},
@@ -420,7 +420,7 @@ func Run() {
 			Type: models.ProductTypeTemplate,
 			StatusFlags: "featured,new",
 			TechStacks: []string{"React", "Next.js", "Go"},
-			FileURL: "https://github.com/pushp314/digitalstudio/archive/refs/heads/main.zip",
+			FileURL: "https://github.com/pushp314/bizcode/archive/refs/heads/main.zip",
 		},
 		{
 			AuthorID: admin.ID,
@@ -433,11 +433,11 @@ func Run() {
 			Type: models.ProductTypeTemplate,
 			StatusFlags: "trending",
 			TechStacks: []string{"React", "GSAP"},
-			FileURL: "https://github.com/pushp314/digitalstudio/archive/refs/heads/main.zip",
+			FileURL: "https://github.com/pushp314/bizcode/archive/refs/heads/main.zip",
 		},
 		{
 			AuthorID: admin.ID,
-			Title: "DigitalStudio Pro Pass",
+			Title: "BizCode Pro Pass",
 			Slug: "pro-membership",
 			Category: "Membership",
 			Price: 1999,
@@ -556,14 +556,14 @@ Don't just return errors. Wrap them with context using fmt.Errorf to ensure logs
 				Price: 25,
 			},
 			{
-				Title:       "Getting Started with DigitalStudio",
+				Title:       "Getting Started with BizCode",
 				Description: "The essential guide to using our marketplace templates effectively.",
 				Category:    "General",
 				IsPremium:   false,
 				Icon:        "🚀",
 				Image:       "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&q=80&w=800",
 				Content: `
-# Welcome to DigitalStudio
+# Welcome to BizCode
 
 We are excited to help you ship your next big idea.
 
@@ -578,7 +578,7 @@ Our team is available for technical support Monday through Friday via the dashbo
 `,
 				PreviewContent: "Get up and running with your new templates in minutes. Basic installation, configuration, and support overview.",
 				TableOfContents: []models.TOCItem{
-					{ID: "welcome-to-digitalstudio", Title: "Welcome to DigitalStudio", Level: 1},
+					{ID: "welcome-to-bizcode", Title: "Welcome to BizCode", Level: 1},
 				},
 			},
 		}
@@ -600,7 +600,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/pushp314/digitalstudio/go-server/models"
+	"github.com/pushp314/bizcode/go-server/models"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -1202,7 +1202,7 @@ import (
 	"os"
 
 	"github.com/joho/godotenv"
-	"github.com/pushp314/digitalstudio/go-server/models"
+	"github.com/pushp314/bizcode/go-server/models"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -1237,8 +1237,8 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/pushp314/digitalstudio/go-server/config"
-	"github.com/pushp314/digitalstudio/go-server/models"
+	"github.com/pushp314/bizcode/go-server/config"
+	"github.com/pushp314/bizcode/go-server/models"
 )
 
 func ServeProductSEO(c *gin.Context) {
@@ -1250,14 +1250,14 @@ func ServeProductSEO(c *gin.Context) {
 	}
 
 	// Dynamic Metadata Payload
-	title := fmt.Sprintf("%s | DigitalStudio Premium", product.Title)
+	title := fmt.Sprintf("%s | BizCode Premium", product.Title)
 	description := product.Description
 	if len(description) > 160 {
 		description = description[:157] + "..."
 	}
 	image := product.Image
 	price := fmt.Sprintf("₹%.2f", product.Price)
-	siteURL := "https://digitalstudio.com" // Update for production
+	siteURL := "https://bizcode.com" // Update for production
 
 	html := fmt.Sprintf(`<!DOCTYPE html>
 <html lang="en">
@@ -1310,7 +1310,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/pushp314/digitalstudio/go-server/services"
+	"github.com/pushp314/bizcode/go-server/services"
 )
 
 func UploadFile(c *gin.Context) {
@@ -1340,7 +1340,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"github.com/pushp314/digitalstudio/go-server/models"
+	"github.com/pushp314/bizcode/go-server/models"
 	"net/http"
 	"strings"
 
@@ -1551,8 +1551,8 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/pushp314/digitalstudio/go-server/config"
-	"github.com/pushp314/digitalstudio/go-server/models"
+	"github.com/pushp314/bizcode/go-server/config"
+	"github.com/pushp314/bizcode/go-server/models"
 )
 
 type UpdateConfigReq struct {
@@ -1584,7 +1584,7 @@ func defaultSiteConfig() models.SiteConfig {
 			"Check out our new premium documentation section. 📚",
 		},
 		ShowAnnouncement:    true,
-		SupportEmail:        "support@digitalstudio.com",
+		SupportEmail:        "support@bizcode.com",
 		Features: map[string]bool{
 			"docs":          true,
 			"reviews":       true,
@@ -1661,7 +1661,7 @@ func defaultSiteConfig() models.SiteConfig {
 		Contact: models.ContactConfig{
 			Heading:    "Contact us",
 			Subheading: "Questions about templates, docs, or custom work? Reach out and we will reply quickly.",
-			Email:      "support@digitalstudio.com",
+			Email:      "support@bizcode.com",
 			Address:    "Remote-first product studio",
 			Phone:      "+91 00000 00000",
 		},
@@ -1770,8 +1770,8 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/pushp314/digitalstudio/go-server/config"
-	"github.com/pushp314/digitalstudio/go-server/models"
+	"github.com/pushp314/bizcode/go-server/config"
+	"github.com/pushp314/bizcode/go-server/models"
 	razorpay "github.com/razorpay/razorpay-go"
 )
 
@@ -2072,8 +2072,8 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/pushp314/digitalstudio/go-server/middleware"
-	"github.com/pushp314/digitalstudio/go-server/models"
+	"github.com/pushp314/bizcode/go-server/middleware"
+	"github.com/pushp314/bizcode/go-server/models"
 )
 
 func TestRegisterReturnsTokenAndUser(t *testing.T) {
@@ -2153,8 +2153,8 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/pushp314/digitalstudio/go-server/config"
-	"github.com/pushp314/digitalstudio/go-server/models"
+	"github.com/pushp314/bizcode/go-server/config"
+	"github.com/pushp314/bizcode/go-server/models"
 )
 
 
@@ -2258,8 +2258,8 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/pushp314/digitalstudio/go-server/config"
-	"github.com/pushp314/digitalstudio/go-server/models"
+	"github.com/pushp314/bizcode/go-server/config"
+	"github.com/pushp314/bizcode/go-server/models"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -2363,9 +2363,9 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/pushp314/digitalstudio/go-server/config"
-	"github.com/pushp314/digitalstudio/go-server/models"
-	"github.com/pushp314/digitalstudio/go-server/utils"
+	"github.com/pushp314/bizcode/go-server/config"
+	"github.com/pushp314/bizcode/go-server/models"
+	"github.com/pushp314/bizcode/go-server/utils"
 	"time"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -2515,8 +2515,8 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/pushp314/digitalstudio/go-server/config"
-	"github.com/pushp314/digitalstudio/go-server/models"
+	"github.com/pushp314/bizcode/go-server/config"
+	"github.com/pushp314/bizcode/go-server/models"
 )
 
 type CreateReviewReq struct {
@@ -2700,8 +2700,8 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/pushp314/digitalstudio/go-server/config"
-	"github.com/pushp314/digitalstudio/go-server/models"
+	"github.com/pushp314/bizcode/go-server/config"
+	"github.com/pushp314/bizcode/go-server/models"
 )
 
 type OrderItemReq struct {
@@ -2805,8 +2805,8 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
-	"github.com/pushp314/digitalstudio/go-server/config"
-	"github.com/pushp314/digitalstudio/go-server/models"
+	"github.com/pushp314/bizcode/go-server/config"
+	"github.com/pushp314/bizcode/go-server/models"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
@@ -3000,8 +3000,8 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/pushp314/digitalstudio/go-server/config"
-	"github.com/pushp314/digitalstudio/go-server/models"
+	"github.com/pushp314/bizcode/go-server/config"
+	"github.com/pushp314/bizcode/go-server/models"
 )
 
 func GetAIRecommendation(c *gin.Context) {
@@ -3178,8 +3178,8 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/pushp314/digitalstudio/go-server/config"
-	"github.com/pushp314/digitalstudio/go-server/services"
+	"github.com/pushp314/bizcode/go-server/config"
+	"github.com/pushp314/bizcode/go-server/services"
 )
 
 func Healthz(c *gin.Context) {
@@ -3255,8 +3255,8 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/pushp314/digitalstudio/go-server/config"
-	"github.com/pushp314/digitalstudio/go-server/models"
+	"github.com/pushp314/bizcode/go-server/config"
+	"github.com/pushp314/bizcode/go-server/models"
 )
 
 type ValidateLicenseReq struct {
@@ -3347,9 +3347,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/gosimple/slug"
-	"github.com/pushp314/digitalstudio/go-server/config"
-	"github.com/pushp314/digitalstudio/go-server/models"
-	"github.com/pushp314/digitalstudio/go-server/services"
+	"github.com/pushp314/bizcode/go-server/config"
+	"github.com/pushp314/bizcode/go-server/models"
+	"github.com/pushp314/bizcode/go-server/services"
 )
 
 // ... (other handlers)
@@ -3779,8 +3779,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/pushp314/digitalstudio/go-server/config"
-	"github.com/pushp314/digitalstudio/go-server/models"
+	"github.com/pushp314/bizcode/go-server/config"
+	"github.com/pushp314/bizcode/go-server/models"
 	"gorm.io/gorm"
 )
 
@@ -3888,8 +3888,8 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/pushp314/digitalstudio/go-server/config"
-	"github.com/pushp314/digitalstudio/go-server/models"
+	"github.com/pushp314/bizcode/go-server/config"
+	"github.com/pushp314/bizcode/go-server/models"
 	"gorm.io/gorm"
 )
 
@@ -4027,8 +4027,8 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/pushp314/digitalstudio/go-server/config"
-	"github.com/pushp314/digitalstudio/go-server/models"
+	"github.com/pushp314/bizcode/go-server/config"
+	"github.com/pushp314/bizcode/go-server/models"
 )
 
 func ListDocs(c *gin.Context) {
@@ -4195,8 +4195,8 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/pushp314/digitalstudio/go-server/config"
-	"github.com/pushp314/digitalstudio/go-server/models"
+	"github.com/pushp314/bizcode/go-server/config"
+	"github.com/pushp314/bizcode/go-server/models"
 )
 
 type SubmitShowcaseReq struct {
@@ -4290,8 +4290,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
-	"github.com/pushp314/digitalstudio/go-server/config"
-	"github.com/pushp314/digitalstudio/go-server/models"
+	"github.com/pushp314/bizcode/go-server/config"
+	"github.com/pushp314/bizcode/go-server/models"
 )
 
 var upgrader = websocket.Upgrader{
@@ -4578,8 +4578,8 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/pushp314/digitalstudio/go-server/config"
-	"github.com/pushp314/digitalstudio/go-server/models"
+	"github.com/pushp314/bizcode/go-server/config"
+	"github.com/pushp314/bizcode/go-server/models"
 )
 
 func CreateContactInquiry(c *gin.Context) {
@@ -4683,8 +4683,8 @@ import (
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/pushp314/digitalstudio/go-server/config"
-	"github.com/pushp314/digitalstudio/go-server/models"
+	"github.com/pushp314/bizcode/go-server/config"
+	"github.com/pushp314/bizcode/go-server/models"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/github"
 	"golang.org/x/oauth2/google"
@@ -4867,8 +4867,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/pushp314/digitalstudio/go-server/config"
-	"github.com/pushp314/digitalstudio/go-server/models"
+	"github.com/pushp314/bizcode/go-server/config"
+	"github.com/pushp314/bizcode/go-server/models"
 )
 
 type authResponse struct {
@@ -5033,9 +5033,9 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/pushp314/digitalstudio/go-server/config"
-	"github.com/pushp314/digitalstudio/go-server/middleware"
-	"github.com/pushp314/digitalstudio/go-server/models"
+	"github.com/pushp314/bizcode/go-server/config"
+	"github.com/pushp314/bizcode/go-server/middleware"
+	"github.com/pushp314/bizcode/go-server/models"
 )
 
 func TestCreateOrderCreatesPendingDraft(t *testing.T) {
@@ -5202,8 +5202,8 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/pushp314/digitalstudio/go-server/config"
-	"github.com/pushp314/digitalstudio/go-server/models"
+	"github.com/pushp314/bizcode/go-server/config"
+	"github.com/pushp314/bizcode/go-server/models"
 )
 
 type DocSummaryReq struct {
@@ -5274,7 +5274,7 @@ func AskDocAI(c *gin.Context) {
 		return
 	}
 
-	prompt := "You are a technical support AI for DigitalStudio. Use the following documentation context to answer the user's question accurately. Be concise and technical.\n\n[CONTEXT]\n" + req.Markdown + "\n\n[USER QUESTION]\n" + req.Question
+	prompt := "You are a technical support AI for BizCode. Use the following documentation context to answer the user's question accurately. Be concise and technical.\n\n[CONTEXT]\n" + req.Markdown + "\n\n[USER QUESTION]\n" + req.Question
 	aiReqBody, _ := json.Marshal(map[string]interface{}{
 		"prompt":         prompt,
 		"model":          aiModel(),
@@ -5355,7 +5355,7 @@ func UniversalDocSearchChat(c *gin.Context) {
 	// 2. Aggregate Context
 	context := "Here are relevant documentation snippets to help you answer:\n\n"
 	if len(docs) == 0 {
-		context = "No specific documentation matches found. Use your general knowledge about our platform DigitalStudio to help."
+		context = "No specific documentation matches found. Use your general knowledge about our platform BizCode to help."
 	} else {
 		for _, doc := range docs {
 			context += fmt.Sprintf("DOC [%s]: %s\n\n", doc.Title, doc.Content)
@@ -5363,7 +5363,7 @@ func UniversalDocSearchChat(c *gin.Context) {
 	}
 
 	// 3. AI Stream Request
-	prompt := fmt.Sprintf("You are an elite DigitalStudio Support AI. Use the provided INTERNAL CONTEXT to answer the user's question. If the context doesn't have the answer, use your technical knowledge but mention it's general guidance.\n\n[INTERNAL CONTEXT]\n%s\n\n[USER QUESTION]\n%s", context, req.Question)
+	prompt := fmt.Sprintf("You are an elite BizCode Support AI. Use the provided INTERNAL CONTEXT to answer the user's question. If the context doesn't have the answer, use your technical knowledge but mention it's general guidance.\n\n[INTERNAL CONTEXT]\n%s\n\n[USER QUESTION]\n%s", context, req.Question)
 	
 	aiReqBody, _ := json.Marshal(map[string]interface{}{
 		"prompt":         prompt,
@@ -5412,7 +5412,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/pushp314/digitalstudio/go-server/config"
+	"github.com/pushp314/bizcode/go-server/config"
 )
 
 type RevenuePoint struct {
@@ -5501,11 +5501,11 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/pushp314/digitalstudio/go-server/config"
-	"github.com/pushp314/digitalstudio/go-server/handlers"
-	"github.com/pushp314/digitalstudio/go-server/middleware"
-	"github.com/pushp314/digitalstudio/go-server/seeder"
-	"github.com/pushp314/digitalstudio/go-server/services"
+	"github.com/pushp314/bizcode/go-server/config"
+	"github.com/pushp314/bizcode/go-server/handlers"
+	"github.com/pushp314/bizcode/go-server/middleware"
+	"github.com/pushp314/bizcode/go-server/seeder"
+	"github.com/pushp314/bizcode/go-server/services"
 )
 
 func main() {
@@ -5541,7 +5541,7 @@ func main() {
 		SameSite: sameSiteMode(),
 		MaxAge:   60 * 60,
 	})
-	r.Use(sessions.Sessions("digitalstudio_session", store))
+	r.Use(sessions.Sessions("bizcode_session", store))
 
 	allowOrigins := allowedOriginsFromEnv()
 	allowCredentials := len(allowOrigins) > 0 && !(len(allowOrigins) == 1 && allowOrigins[0] == "*")

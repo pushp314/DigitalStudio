@@ -28,11 +28,11 @@ const Register = () => {
     const handleSubmit = async (event) => {
         event.preventDefault();
         setError('');
-        const referrerCode = sessionStorage.getItem('ds_partner_ref');
+        const referrerCode = sessionStorage.getItem('bc_partner_ref');
         const result = await register(name, email, password, referrerCode);
 
         if (result.success) {
-            sessionStorage.removeItem('ds_partner_ref');
+            sessionStorage.removeItem('bc_partner_ref');
             if (redirectUrl) {
                 navigate(`/${redirectUrl}`);
             } else {
@@ -59,14 +59,14 @@ const Register = () => {
             <div className="hidden lg:block lg:w-[55%] relative overflow-hidden bg-slate-900">
                 <img 
                     src="/assets/auth-bg.png" 
-                    alt="DigitalStudio workspace" 
+                    alt="BizCode workspace" 
                     className="absolute inset-0 w-full h-full object-cover opacity-80"
                 />
                 <div className="absolute inset-0 bg-gradient-to-tr from-slate-950/80 via-transparent to-transparent"></div>
                 <div className="absolute bottom-12 left-12 right-12 z-10">
                     <div className="flex items-center gap-3 mb-6">
-                        <div className="w-10 h-10 bg-white/10 backdrop-blur-md rounded-xl flex items-center justify-center border border-white/20 text-white font-bold">D</div>
-                        <h2 className="text-sm font-bold text-white uppercase tracking-widest">DigitalStudio</h2>
+                        <div className="w-10 h-10 bg-white/10 backdrop-blur-md rounded-xl flex items-center justify-center border border-white/20 text-white font-bold">B</div>
+                        <h2 className="text-sm font-bold text-white uppercase tracking-widest">BizCode</h2>
                     </div>
                     <h1 className="text-4xl font-bold text-white tracking-tight leading-tight mb-4 max-w-xl">
                         Start with a ready product or ask us to build.
@@ -85,7 +85,7 @@ const Register = () => {
 
                 <div className="w-full max-w-[400px] py-20 animate-in fade-in slide-in-from-right-8 duration-700">
                     <div className="mb-10">
-                        <h2 className="text-2xl font-bold text-slate-900 tracking-tight mb-2">Create a DigitalStudio account</h2>
+                        <h2 className="text-2xl font-bold text-slate-900 tracking-tight mb-2">Create a BizCode account</h2>
                         <p className="text-sm text-slate-500 font-medium">Buy ready apps, get expert help, or submit your own project.</p>
                     </div>
 

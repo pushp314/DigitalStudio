@@ -30,6 +30,7 @@ const Checkout = () => {
     const [couponCode, setCouponCode] = useState('');
     const [appliedCoupon, setAppliedCoupon] = useState(null);
     const [validatingCoupon, setValidatingCoupon] = useState(false);
+    const [addDeployment, setAddDeployment] = useState(false);
 
     useEffect(() => {
         if (!user) {
@@ -44,9 +45,28 @@ const Checkout = () => {
         }
     }, [cartItems, config, error, navigate, user]);
 
+    // Track checkout session for abandoned cart recovery
+    useEffect(() => {
+        if (!user || cartItems.length === 0) return;
+        const trackSession = async () => {
+            try {
+                await api.post('/checkout/track', {
+                    email: user.email,
+                    cartItems: cartItems.map(i => ({ id: i.id, title: i.title, price: i.price })),
+                    cartTotal: cartItems.reduce((s, i) => s + Number(i.price || 0), 0),
+                    whiteGloveSelected: addDeployment,
+                    deploymentFee: addDeployment ? (config?.eliteSettings?.deploymentFee || 149) : 0,
+                    couponCode,
+                });
+            } catch { /* silently fail */ }
+        };
+        trackSession();
+    }, [user, cartItems.length, addDeployment]); // eslint-disable-line
+
+    const deploymentFee = config?.eliteSettings?.deploymentFee || 149;
     const subtotal = cartItems.reduce((sum, item) => sum + Number(item.price || 0), 0);
     const discountAmount = appliedCoupon ? appliedCoupon.discount : 0;
-    const total = Math.max(0, subtotal - discountAmount);
+    const total = Math.max(0, subtotal - discountAmount + (addDeployment ? deploymentFee : 0));
 
     const handleApplyCoupon = async () => {
         if (!couponCode) return;
@@ -82,13 +102,14 @@ const Checkout = () => {
             const order = await api.post('/payments/create-order', {
                 items,
                 couponCode: appliedCoupon?.code,
+                addDeploymentService: addDeployment,
             });
 
             const options = {
                 key: order.keyId,
                 amount: order.amount,
                 currency: order.currency,
-                name: 'DigitalStudio',
+                name: 'BizCode',
                 description: 'Ready product purchase',
                 order_id: order.orderId,
                 prefill: {
@@ -180,6 +201,40 @@ const Checkout = () => {
                             </div>
                         )}
                     </div>
+
+                    <div className={`ds-card p-8 transition-all duration-500 border-2 ${addDeployment ? 'border-indigo-600 bg-indigo-50/30' : 'border-slate-200'}`}>
+                        <div className="flex flex-col md:flex-row gap-6 items-start">
+                            <div className={`p-4 rounded-2xl border transition-colors duration-500 ${addDeployment ? 'bg-indigo-600 border-indigo-400 text-white' : 'bg-white border-slate-200 text-indigo-600'}`}>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 14 4-4-4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></svg>
+                            </div>
+                            <div className="flex-1 space-y-2">
+                                <div className="flex items-center gap-2">
+                                    <h3 className="text-xl font-bold tracking-tight text-slate-900">White-glove Setup & Deployment</h3>
+                                    <span className="px-2 py-0.5 bg-indigo-100 text-indigo-700 text-[10px] font-black uppercase tracking-widest rounded-md">Highly Recommended</span>
+                                </div>
+                                <p className="text-sm leading-6 text-slate-600 font-medium">
+                                    Don't waste hours on environment variables and SSL configs. Our team will handle the full deployment, database setup, and production optimization for you.
+                                </p>
+                                <div className="pt-4 flex flex-wrap items-center justify-between gap-4">
+                                    <div className="flex items-baseline gap-2">
+                                        <span className="text-2xl font-black text-slate-900">{formatCurrency(deploymentFee)}</span>
+                                        <span className="text-xs font-bold text-slate-400 line-through">{formatCurrency(deploymentFee + 100)}</span>
+                                    </div>
+                                    <button 
+                                        type="button"
+                                        onClick={() => setAddDeployment(!addDeployment)}
+                                        className={`px-6 py-3 rounded-xl text-[11px] font-black uppercase tracking-[0.15em] transition-all transform active:scale-95 shadow-md ${
+                                            addDeployment 
+                                            ? 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-200' 
+                                            : 'bg-white text-slate-900 border border-slate-200 hover:bg-slate-50'
+                                        }`}
+                                    >
+                                        {addDeployment ? '✓ Added to order' : '+ Add to order'}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </section>
 
                 <aside className="ds-card h-fit p-6">
@@ -195,6 +250,12 @@ const Checkout = () => {
                                 <span className="font-medium text-emerald-700">- {formatCurrency(discountAmount)}</span>
                             </div>
                         )}
+                        {addDeployment && (
+                            <div className="flex items-center justify-between animate-in fade-in slide-in-from-right-2">
+                                <span>Deployment Service</span>
+                                <span className="font-medium text-indigo-600">+ {formatCurrency(deploymentFee)}</span>
+                            </div>
+                        )}
                     </div>
                     <div className="mt-6 border-t border-slate-200 pt-4">
                         <div className="flex items-center justify-between">
@@ -205,7 +266,7 @@ const Checkout = () => {
                     <button type="button" onClick={submitHandler} disabled={loading} className="ds-button-primary mt-6 w-full disabled:cursor-not-allowed disabled:opacity-50">
                         {loading ? 'Preparing payment...' : 'Pay securely'}
                     </button>
-                    <p className="mt-4 text-sm text-slate-500">Payments are processed securely through Razorpay. Downloads are delivered through your DigitalStudio account.</p>
+                    <p className="mt-4 text-sm text-slate-500">Payments are processed securely through Razorpay. Downloads are delivered through your BizCode account.</p>
                 </aside>
             </div>
         </div>

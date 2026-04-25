@@ -4,8 +4,9 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/pushp314/digitalstudio/go-server/config"
-	"github.com/pushp314/digitalstudio/go-server/models"
+	"github.com/pushp314/bizcode/go-server/config"
+	"github.com/pushp314/bizcode/go-server/models"
+	"github.com/pushp314/bizcode/go-server/services"
 )
 
 func CreateContactInquiry(c *gin.Context) {
@@ -206,6 +207,12 @@ func AdminReplyToInquiry(c *gin.Context) {
 		expertReq.Reply = body.Reply
 		expertReq.Status = "replied"
 		config.DB.Save(&expertReq)
+
+		// Async Email Notification
+		go func(email, subject, reply string) {
+			_ = services.Mailer.SendSupportReply(email, subject, reply)
+		}(expertReq.Email, expertReq.Subject, body.Reply)
+
 		c.JSON(http.StatusOK, gin.H{"message": "Expert request replied"})
 		return
 	}
@@ -216,6 +223,12 @@ func AdminReplyToInquiry(c *gin.Context) {
 		hireReq.Reply = body.Reply
 		hireReq.Status = "replied"
 		config.DB.Save(&hireReq)
+
+		// Async Email Notification
+		go func(email, subject, reply string) {
+			_ = services.Mailer.SendSupportReply(email, subject, reply)
+		}(hireReq.Email, hireReq.Subject, body.Reply)
+
 		c.JSON(http.StatusOK, gin.H{"message": "Hire request replied"})
 		return
 	}

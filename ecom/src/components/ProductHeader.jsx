@@ -197,7 +197,7 @@ const ProductHeader = ({ product }) => {
                                             key: orderData.keyId,
                                             amount: orderData.amount,
                                             currency: orderData.currency,
-                                            name: "DigitalStudio",
+                                            name: "BizCode",
                                             description: `Expert help for ${title}`,
                                             order_id: orderData.orderId,
                                             handler: async function (response) {

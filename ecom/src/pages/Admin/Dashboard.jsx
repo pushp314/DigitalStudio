@@ -26,6 +26,16 @@ import {
     MessageSquare
 } from 'lucide-react';
 
+import { 
+    LineChart, 
+    Line, 
+    XAxis, 
+    YAxis, 
+    CartesianGrid, 
+    Tooltip, 
+    ResponsiveContainer 
+} from 'recharts';
+
 // Specialized Sub-Components
 import TemplatesManager from '../../components/admin/TemplatesManager';
 import OrderList from '../../components/admin/OrderList';
@@ -42,6 +52,7 @@ import AdminSearchPalette from '../../components/admin/AdminSearchPalette';
 import ContactManager from '../../components/admin/ContactManager';
 import IdentityManager from '../../components/admin/IdentityManager';
 import EliteAdminManager from '../../components/admin/EliteAdminManager';
+import ReviewManager from '../../components/admin/ReviewManager';
 import { Layers } from 'lucide-react';
 
 const Dashboard = ({ defaultTab }) => {
@@ -74,21 +85,21 @@ const Dashboard = ({ defaultTab }) => {
     });
 
     const menuItems = [
-        { id: 'analytics', label: 'Dashboard', icon: <BarChart3 size={18} /> },
-        { id: 'templates', label: 'Inventory', icon: <Package size={18} /> },
-        { id: 'architecture', label: 'Architecture', icon: <Layers size={18} /> },
-        { id: 'orders', label: 'Sales & Revenue', icon: <ShoppingCart size={18} /> },
-        { id: 'users', label: 'User Management', icon: <Users size={18} /> },
-        { id: 'identity', label: 'Profile Operations', icon: <Fingerprint size={18} /> },
-        { id: 'licenses', label: 'Digital Keys', icon: <Key size={18} /> },
-        { id: 'subscriptions', label: 'Memberships', icon: <Zap size={18} /> },
+        { id: 'analytics', label: 'Overview', icon: <BarChart3 size={18} /> },
+        { id: 'templates', label: 'Products', icon: <Package size={18} /> },
+        { id: 'architecture', label: 'Categories', icon: <Layers size={18} /> },
+        { id: 'orders', label: 'Orders', icon: <ShoppingCart size={18} /> },
+        { id: 'users', label: 'Users', icon: <Users size={18} /> },
+        { id: 'identity', label: 'Profiles', icon: <Fingerprint size={18} /> },
+        { id: 'licenses', label: 'Licenses', icon: <Key size={18} /> },
+        { id: 'subscriptions', label: 'Subscriptions', icon: <Zap size={18} /> },
         { id: 'marketing', label: 'Marketing', icon: <Megaphone size={18} /> },
-        { id: 'config', label: 'Core Features', icon: <Layout size={18} /> },
+        { id: 'config', label: 'Site Config', icon: <Layout size={18} /> },
         { id: 'docs', label: 'Documentation', icon: <BookOpen size={18} /> },
-        { id: 'testimonials', label: 'Customer Reviews', icon: <Star size={18} /> },
-        { id: 'messages', label: 'Support Inbox', icon: <Mail size={18} /> },
-        { id: 'elite', label: 'Expert Support', icon: <MessageSquare size={18} /> },
-        { id: 'maintenance', label: 'Security & Auth', icon: <Shield size={18} /> },
+        { id: 'testimonials', label: 'Reviews', icon: <Star size={18} /> },
+        { id: 'messages', label: 'Support', icon: <Mail size={18} /> },
+        { id: 'elite', label: 'Expert Help', icon: <MessageSquare size={18} /> },
+        { id: 'maintenance', label: 'Security', icon: <Shield size={18} /> },
         { id: 'settings', label: 'Settings', icon: <SettingsIcon size={18} /> },
     ];
 
@@ -113,9 +124,9 @@ const Dashboard = ({ defaultTab }) => {
                 {/* Enterprise Sidebar - Minimalism */}
                 <aside className="w-64 bg-white border-r border-slate-200 flex flex-col pt-8">
                     <div className="flex items-center gap-3 px-6 mb-10 overflow-hidden">
-                        <div className="w-8 h-8 bg-slate-900 rounded-lg flex items-center justify-center font-bold text-white text-sm shrink-0">D</div>
+                        <div className="w-8 h-8 bg-slate-900 rounded-lg flex items-center justify-center font-bold text-white text-sm shrink-0">B</div>
                         <div className="min-w-0">
-                            <h1 className="text-xs font-bold text-slate-900 uppercase tracking-widest truncate">DigitalStudio Admin</h1>
+                            <h1 className="text-xs font-bold text-slate-900 uppercase tracking-widest truncate">BizCode Admin</h1>
                             <p className="text-[10px] text-slate-400 font-medium">Enterprise Suite V4.0</p>
                         </div>
                     </div>
@@ -207,8 +218,50 @@ const Dashboard = ({ defaultTab }) => {
                                             <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest">Revenue Trends (Last 7 Days)</h3>
                                             <button className="text-[10px] font-bold text-blue-600 flex items-center gap-1">View Full Report <ExternalLink size={10} /></button>
                                         </div>
-                                        <div className="h-[300px] flex items-center justify-center bg-slate-50 rounded-xl border border-slate-100 group">
-                                            <p className="text-xs font-medium text-slate-400 group-hover:text-slate-600 transition-colors">Analyzing revenue distribution...</p>
+                                        <div className="h-[300px] w-full">
+                                            {analytics?.revenueVelocity ? (
+                                                <ResponsiveContainer width="100%" height="100%">
+                                                    <LineChart data={analytics.revenueVelocity}>
+                                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                                                        <XAxis 
+                                                            dataKey="date" 
+                                                            axisLine={false} 
+                                                            tickLine={false} 
+                                                            tick={{ fontSize: 9, fontWeight: 700, fill: '#94a3b8' }}
+                                                            tickFormatter={(str) => {
+                                                                const date = new Date(str);
+                                                                return date.toLocaleDateString('en-US', { weekday: 'short' });
+                                                            }}
+                                                            dy={10}
+                                                        />
+                                                        <YAxis 
+                                                            axisLine={false} 
+                                                            tickLine={false} 
+                                                            tick={{ fontSize: 9, fontWeight: 700, fill: '#94a3b8' }}
+                                                            tickFormatter={(val) => `₹${val}`}
+                                                        />
+                                                        <Tooltip 
+                                                            contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)', padding: '12px' }}
+                                                            labelStyle={{ fontSize: '10px', fontWeight: 800, color: '#64748b', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}
+                                                            itemStyle={{ fontSize: '12px', fontWeight: 700, color: '#0f172a' }}
+                                                            formatter={(value) => [`₹${value}`, 'Revenue']}
+                                                        />
+                                                        <Line 
+                                                            type="monotone" 
+                                                            dataKey="revenue" 
+                                                            stroke="#0f172a" 
+                                                            strokeWidth={3} 
+                                                            dot={{ r: 4, fill: '#0f172a', strokeWidth: 2, stroke: '#fff' }}
+                                                            activeDot={{ r: 6, strokeWidth: 0 }}
+                                                            animationDuration={1500}
+                                                        />
+                                                    </LineChart>
+                                                </ResponsiveContainer>
+                                            ) : (
+                                                <div className="flex items-center justify-center h-full bg-slate-50 rounded-xl border border-slate-100 group w-full">
+                                                    <p className="text-xs font-medium text-slate-400 group-hover:text-slate-600 transition-colors">Analyzing revenue distribution...</p>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
 
@@ -244,7 +297,7 @@ const Dashboard = ({ defaultTab }) => {
                             {currentTab === 'docs' && <DocsManager />}
                             {currentTab === 'users' && <UserList />}
                             {currentTab === 'identity' && <IdentityManager />}
-                            {currentTab === 'testimonials' && <TestimonialManager />}
+                            {currentTab === 'testimonials' && <ReviewManager />}
                             {currentTab === 'showcase' && <ShowcaseManager />}
                             {currentTab === 'subscriptions' && <SubscriptionManager />}
                             {currentTab === 'messages' && <ContactManager />}

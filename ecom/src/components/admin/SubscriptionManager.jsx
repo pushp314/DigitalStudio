@@ -1,10 +1,11 @@
 import React from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../services/api';
 import { useToast } from '../../context/ToastContext';
 
 const SubscriptionManager = () => {
-    const { error: toastError } = useToast();
+    const { success, error: toastError, info } = useToast();
+    const queryClient = useQueryClient();
 
     const { data: subscribers, isLoading } = useQuery({
         queryKey: ['admin-subscribers'],
@@ -14,6 +15,23 @@ const SubscriptionManager = () => {
             return users.filter(u => u.subscriptionPlan === 'pro');
         }
     });
+
+    const downgradeMutation = useMutation({
+        mutationFn: async (userId) => {
+            return await api.patch(`/admin/users/${userId}`, { subscriptionPlan: 'free', isPro: false });
+        },
+        onSuccess: () => {
+            success("Member downgraded to Free plan");
+            queryClient.invalidateQueries({ queryKey: ['admin-subscribers'] });
+        },
+        onError: (err) => {
+            toastError(err.message || "Failed to downgrade member");
+        }
+    });
+
+    const handleShowBenefits = (user) => {
+        info(`${user.name} currently enjoys 1GB uploads, Unlimited AI chats, and 0% platform fees.`);
+    };
 
     if (isLoading) return (
         <div className="p-20 text-center flex flex-col items-center justify-center gap-4">
@@ -69,10 +87,21 @@ const SubscriptionManager = () => {
                             </div>
 
                             <div className="flex items-center gap-2.5 pt-4 md:pt-0">
-                                <button className="px-5 py-2.5 bg-black text-white rounded-lg font-black text-[9px] uppercase tracking-widest hover:bg-gray-800 transition-all active:scale-95 shadow-md">
+                                <button 
+                                    onClick={() => handleShowBenefits(user)}
+                                    className="px-5 py-2.5 bg-black text-white rounded-lg font-black text-[9px] uppercase tracking-widest hover:bg-gray-800 transition-all active:scale-95 shadow-md"
+                                >
                                     Benefits
                                 </button>
-                                <button className="w-9 h-9 bg-white border border-gray-100 text-gray-400 rounded-lg hover:text-red-500 hover:bg-red-50 transition-all flex items-center justify-center">
+                                <button 
+                                    onClick={() => {
+                                        if (window.confirm(`Revoke Pro access for ${user.name}?`)) {
+                                            downgradeMutation.mutate(user.id);
+                                        }
+                                    }}
+                                    disabled={downgradeMutation.isPending}
+                                    className="w-9 h-9 bg-white border border-gray-100 text-gray-400 rounded-lg hover:text-red-500 hover:bg-red-50 transition-all flex items-center justify-center disabled:opacity-50"
+                                >
                                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                     </svg>

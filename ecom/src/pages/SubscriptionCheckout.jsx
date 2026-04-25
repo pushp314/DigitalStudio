@@ -146,7 +146,7 @@ const SubscriptionCheckout = () => {
                 key: order.keyId,
                 amount: order.amount,
                 currency: order.currency,
-                name: 'DigitalStudio Membership',
+                name: 'BizCode Membership',
                 description: `Membership payment for ${resolvedPlan.name}`,
                 order_id: order.orderId,
                 prefill: {

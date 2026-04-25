@@ -1,6 +1,6 @@
-# DigitalStudio — Frontend Engineering Guide
+# BizCode — Frontend Engineering Guide
 
-Welcome to the DigitalStudio frontend repository. This platform is built for performance, trust, and high conversion.
+Welcome to the BizCode frontend repository. This platform is built for performance, trust, and high conversion.
 
 ## 1. Frontend Overview & Philosophy
 

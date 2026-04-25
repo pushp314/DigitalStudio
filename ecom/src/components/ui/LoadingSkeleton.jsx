@@ -3,8 +3,8 @@ import React from 'react';
 const LoadingSkeleton = ({ count = 6, type = 'product' }) => {
     if (type === 'product') {
         return (
-            <div className="w-full bg-[#F5F5F7] px-6 pb-20 font-sans">
-                <div className="max-w-[1400px] mx-auto flex flex-col gap-12">
+            <div className="w-full bg-[#fafafa] px-6 pb-20 pt-10">
+                <div className="ds-shell">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                         {[...Array(count)].map((_, index) => (
                             <ProductCardSkeleton key={index} />

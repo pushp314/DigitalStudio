@@ -101,7 +101,7 @@ const TemplateDetails = ({ product }) => {
                         <div className="ds-card p-8 bg-slate-50/50">
                             <h3 className="text-xl font-black tracking-tight text-slate-900 uppercase italic">Workflow Continuity</h3>
                             <p className="mt-4 text-[11px] leading-relaxed text-slate-500 font-medium tracking-tight">
-                                Verified payment unlocks the product in your registry. Every software asset includes established implementation paths. If you need deployment help or strategic technical guidance, you can initiate an expert session immediately after purchase.
+                                Verified payment unlocks the product in your account. Every software asset includes established implementation paths. If you need deployment help or strategic technical guidance, you can initiate a support request immediately after purchase.
                             </p>
                             <Link to="/support" className="inline-flex items-center gap-2 mt-8 text-[10px] font-black uppercase tracking-[0.2em] text-indigo-600 hover:text-indigo-800 transition-all">
                                 Open Support Inbox <ArrowRight size={14} />
@@ -198,18 +198,18 @@ const TemplateDetails = ({ product }) => {
                     )}
 
                     <section className="ds-card p-8 bg-white border-slate-200 shadow-sm">
-                        <h2 className="text-[12px] font-black text-slate-900 uppercase tracking-widest border-b border-slate-100 pb-4 mb-6 italic">Support Pathways</h2>
+                        <h2 className="text-[12px] font-black text-slate-900 uppercase tracking-widest border-b border-slate-100 pb-4 mb-6 italic">Support Options</h2>
                         <div className="space-y-6 mb-8">
                             <div className="flex flex-col gap-2">
-                                <span className="text-[10px] font-black text-slate-800 uppercase tracking-tight">1. Standard Implementation</span>
+                                <span className="text-[10px] font-black text-slate-800 uppercase tracking-tight">1. Standard Documentation</span>
                                 <p className="text-[9px] text-slate-500 font-medium leading-relaxed uppercase tracking-widest">Buy the product and use the included technical documentation for self-deployment.</p>
                             </div>
                             <div className="flex flex-col gap-2">
-                                <span className="text-[10px] font-black text-slate-800 uppercase tracking-tight">2. Guided Deployment</span>
+                                <span className="text-[10px] font-black text-slate-800 uppercase tracking-tight">2. Guided Setup</span>
                                 <p className="text-[9px] text-slate-500 font-medium leading-relaxed uppercase tracking-widest">Open a priority technical ticket after purchase for 1:1 setup and configuration help.</p>
                             </div>
                             <div className="flex flex-col gap-2">
-                                <span className="text-[10px] font-black text-slate-800 uppercase tracking-tight">3. Custom Extensions</span>
+                                <span className="text-[10px] font-black text-slate-800 uppercase tracking-tight">3. Custom Development</span>
                                 <p className="text-[9px] text-slate-500 font-medium leading-relaxed uppercase tracking-widest">Talk to an expert before purchase to discuss architecture changes or full custom builds.</p>
                             </div>
                         </div>

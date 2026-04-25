@@ -1,6 +1,7 @@
 import React, { useContext, useMemo, useState, useEffect } from 'react';
 import { Link, useSearchParams, useParams } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery } from '@tanstack/react-query';
+import { useInView } from 'react-intersection-observer';
 import productService from '../services/productService';
 import api from '../services/api';
 import BuildSitesHeader from '../components/BuildSitesHeader';
@@ -44,15 +45,48 @@ const Templates = () => {
         }
     }, [slug]);
 
-    const { data: rawTemplates, isLoading, error, refetch } = useQuery({
-        queryKey: ['templates', keyword, slug],
-        queryFn: () => productService.getAll(keyword, { categorySlug: slug }),
+    const { ref: loadMoreRef, inView } = useInView();
+    const PAGE_SIZE = 12;
+
+    const { 
+        data: infiniteData, 
+        isLoading, 
+        error, 
+        fetchNextPage, 
+        hasNextPage, 
+        isFetchingNextPage,
+        refetch 
+    } = useInfiniteQuery({
+        queryKey: ['templates', keyword, slug, sortBy, selectedCategory, selectedProductType, showMembersOnly, searchParams.get('techStack'), searchParams.get('priceMin'), searchParams.get('priceMax')],
+        queryFn: ({ pageParam = 1 }) => productService.getAll({ 
+            keyword, 
+            categorySlug: slug, 
+            page: pageParam, 
+            pageSize: PAGE_SIZE,
+            sortBy,
+            category: selectedCategory === 'all' ? undefined : selectedCategory,
+            productType: selectedProductType === 'all' ? undefined : selectedProductType,
+            requiresSubscription: showMembersOnly ? true : undefined,
+            techStack: searchParams.get('techStack') || undefined,
+            priceMin: searchParams.get('priceMin') || undefined,
+            priceMax: searchParams.get('priceMax') || undefined,
+        }),
+        getNextPageParam: (lastPage, allPages) => {
+            return lastPage.length === PAGE_SIZE ? allPages.length + 1 : undefined;
+        },
+        initialPageParam: 1,
     });
 
-    const templates = useMemo(
-        () => (Array.isArray(rawTemplates) ? rawTemplates.map(normalizeProduct) : []),
-        [rawTemplates],
-    );
+    useEffect(() => {
+        if (inView && hasNextPage && !isFetchingNextPage) {
+            fetchNextPage();
+        }
+    }, [inView, hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+    const templates = useMemo(() => {
+        if (!infiniteData) return [];
+        return infiniteData.pages.flat().map(normalizeProduct);
+    }, [infiniteData]);
 
     const categoriesList = useMemo(
         () => ['all', ...new Set(templates.map((template) => template.category).filter(Boolean))],
@@ -136,7 +170,7 @@ const Templates = () => {
                     <div className="ds-card p-3">
                         <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr),auto] lg:items-center">
                             <div className="flex flex-col gap-3">
-                                <div className="grid gap-3 md:grid-cols-3">
+                                <div className="grid gap-3 md:grid-cols-4">
                                     <select
                                         value={selectedProductType}
                                         onChange={(event) => setSelectedProductType(event.target.value)}
@@ -161,7 +195,54 @@ const Templates = () => {
                                         <option value="price-high">Price: high to low</option>
                                     </select>
 
+                                    <select
+                                        value={searchParams.get('techStack') || 'all'}
+                                        onChange={(e) => {
+                                            const val = e.target.value;
+                                            if (val === 'all') {
+                                                searchParams.delete('techStack');
+                                            } else {
+                                                searchParams.set('techStack', val);
+                                            }
+                                            setSearchParams(searchParams);
+                                        }}
+                                        className="ds-select"
+                                    >
+                                        <option value="all">Any Tech Stack</option>
+                                        <option value="React">React</option>
+                                        <option value="Next.js">Next.js</option>
+                                        <option value="Tailwind">Tailwind</option>
+                                        <option value="Go">Go / Gin</option>
+                                        <option value="Node.js">Node.js</option>
+                                        <option value="Python">Python / Django</option>
+                                        <option value="Flutter">Flutter</option>
+                                    </select>
 
+                                    <select
+                                        value={searchParams.get('priceRange') || 'all'}
+                                        onChange={(e) => {
+                                            const val = e.target.value;
+                                            if (val === 'all') {
+                                                searchParams.delete('priceRange');
+                                                searchParams.delete('priceMin');
+                                                searchParams.delete('priceMax');
+                                            } else {
+                                                const [min, max] = val.split('-');
+                                                searchParams.set('priceRange', val);
+                                                searchParams.set('priceMin', min);
+                                                if (max) searchParams.set('priceMax', max);
+                                                else searchParams.delete('priceMax');
+                                            }
+                                            setSearchParams(searchParams);
+                                        }}
+                                        className="ds-select"
+                                    >
+                                        <option value="all">Any Price</option>
+                                        <option value="0-999">Under ₹1,000</option>
+                                        <option value="1000-4999">₹1,000 - ₹5,000</option>
+                                        <option value="5000-14999">₹5,000 - ₹15,000</option>
+                                        <option value="15000">₹15,000+</option>
+                                    </select>
                                 </div>
 
                                 <div className="flex flex-wrap gap-2">
@@ -242,8 +323,25 @@ const Templates = () => {
                     </div>
                 </section>
             ) : (
-                <div className="mt-2 md:mt-4">
+                <div className="mt-2 md:mt-4 space-y-12">
                     <TemplateGrid items={sortedTemplates} />
+                    
+                    {/* Infinite Scroll Trigger */}
+                    <div ref={loadMoreRef} className="py-20 flex justify-center">
+                        {isFetchingNextPage ? (
+                            <div className="flex flex-col items-center gap-3">
+                                <div className="w-6 h-6 border-2 border-slate-900 border-t-transparent rounded-full animate-spin"></div>
+                                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Loading next batch...</span>
+                            </div>
+                        ) : hasNextPage ? (
+                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-300">Scroll for more</span>
+                        ) : (
+                            <div className="flex flex-col items-center gap-4">
+                                <div className="h-px w-24 bg-slate-200"></div>
+                                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">You've reached the end of the catalog</span>
+                            </div>
+                        )}
+                    </div>
                 </div>
             )}
 

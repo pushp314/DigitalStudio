@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/pushp314/digitalstudio/go-server/config"
-	"github.com/pushp314/digitalstudio/go-server/services"
+	"github.com/pushp314/bizcode/go-server/config"
+	"github.com/pushp314/bizcode/go-server/services"
 )
 
 func Healthz(c *gin.Context) {
@@ -33,8 +33,13 @@ func Readyz(c *gin.Context) {
 		statusCode = http.StatusServiceUnavailable
 	}
 
-	if err := services.CheckR2(ctx); err != nil {
-		checks["r2"] = err.Error()
+	if services.Storage != nil {
+		if err := services.Storage.HealthCheck(ctx); err != nil {
+			checks["r2"] = err.Error()
+			statusCode = http.StatusServiceUnavailable
+		}
+	} else {
+		checks["r2"] = "uninitialized"
 		statusCode = http.StatusServiceUnavailable
 	}
 
@@ -49,26 +54,10 @@ func Readyz(c *gin.Context) {
 	})
 }
 
-func checkAIService(ctx context.Context) error {
-	serviceURL := aiServiceURL()
-	if serviceURL == "" {
-		return errors.New("ai service is not configured")
+func checkAIService(_ context.Context) error {
+	key := aiApiKey()
+	if key == "" {
+		return errors.New("gemini API key is not configured")
 	}
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, serviceURL+"/healthz", nil)
-	if err != nil {
-		return err
-	}
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode >= http.StatusBadRequest {
-		return errors.New("ai service healthcheck failed")
-	}
-
 	return nil
 }

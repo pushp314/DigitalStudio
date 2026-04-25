@@ -24,7 +24,7 @@ const Features = () => {
             <BuildSitesHeader
                 title="What the platform"
                 highlight="includes"
-                description="DigitalStudio helps customers evaluate ready products quickly, buy with confidence, request expert help, and manage access in one place."
+                description="BizCode helps customers evaluate ready products quickly, buy with confidence, request expert help, and manage access in one place."
             />
 
             <section className="px-6 py-8 md:py-12">

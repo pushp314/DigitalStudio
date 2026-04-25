@@ -21,7 +21,7 @@ const PricingPlan = () => {
 
     const products = useMemo(() => (Array.isArray(rawProducts) ? rawProducts.map(normalizeProduct) : []), [rawProducts]);
     const proPlanProduct = products.find((product) => product.slug === 'pro-membership');
-    const elitePlanProduct = products.find((product) => product.slug === 'institutional-membership');
+    const elitePlanProduct = products.find((product) => product.slug === 'elite-membership');
 
     const plans = [
         {
@@ -67,26 +67,25 @@ const PricingPlan = () => {
             key: 'pro'
         },
         {
-            name: 'Elite / Custom',
-            badge: 'Scalable Solutions',
-            description: 'For companies and founders requiring custom development, deployment help, or specialized builds.',
-            originalPrice: elitePlanProduct ? (elitePlanProduct.price || 59) + 40 : 0,
-            price: elitePlanProduct?.price || 0,
-            period: elitePlanProduct ? 'month' : 'project',
-            features: [
-                'Full custom builds from scratch',
-                'Advanced implementation & forking',
-                'Priority architecture consulting',
-                'End-to-end deployment management',
-                'Dedicated project handoff'
+            name: 'Elite Membership',
+            badge: 'Enterprise Access',
+            description: 'For agencies and high-growth founders requiring direct access and priority delivery.',
+            originalPrice: (elitePlanProduct?.price || 99) + 50,
+            price: elitePlanProduct?.price || 99,
+            period: 'month',
+            features: elitePlanProduct?.features?.length > 0 ? elitePlanProduct.features : [
+                'Private Slack/Discord channel access',
+                'Commercial Multi-Project License',
+                '1 Free Custom Build Request per quarter',
+                'Priority deployment consulting',
+                'Direct access to lead developers'
             ],
-            buttonText: 'Request Project Quote',
+            buttonText: 'Join Elite Tier',
             isPrimary: false,
-            marketingBadge: 'Best for Founders',
-            icon: <ShieldCheck className="text-indigo-600" size={24} />,
+            marketingBadge: 'Best for Agencies',
+            icon: <Zap className="text-indigo-600" size={24} fill="currentColor" />,
             product: elitePlanProduct,
-            key: 'institutional',
-            contactOnly: true
+            key: 'elite'
         },
     ];
 
@@ -121,7 +120,7 @@ const PricingPlan = () => {
             return;
         }
 
-        handleSubscribe(plan.product || { slug: plan.key === 'pro' ? 'pro-membership' : 'institutional-membership', title: plan.name, price: plan.price });
+        handleSubscribe(plan.product || { slug: plan.key === 'pro' ? 'pro-membership' : 'elite-membership', title: plan.name, price: plan.price });
     };
 
     return (

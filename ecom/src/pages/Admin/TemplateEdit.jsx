@@ -24,6 +24,12 @@ const emptyForm = {
     version: '1.0.0',
     requiresSubscription: false,
     previewImages: [],
+    // Technical & Media
+    videoURL: '',
+    duration: '',
+    courseOutline: '',
+    snippetLanguage: 'javascript',
+    snippet: '',
     // SEO Fields
     seoTitle: '',
     seoDescription: '',
@@ -173,6 +179,7 @@ const TemplateEdit = () => {
     const tabs = [
         { id: 'general', label: 'Meta', icon: '📝' },
         { id: 'gallery', label: 'Gallery', icon: '🖼️' },
+        { id: 'technical', label: 'Content', icon: '💻' },
         { id: 'seo', label: 'SEO', icon: '🔍' },
         { id: 'preview', label: 'Mockup', icon: '📱' },
     ];
@@ -187,7 +194,7 @@ const TemplateEdit = () => {
                         <h1 className="text-4xl font-bold text-black tracking-tight">{isAdminPath ? pageTitle : (isCreateMode ? 'Sell Your Project' : 'Edit Submission')}</h1>
                         {!isAdminPath && (
                             <p className="mt-3 max-w-2xl text-sm font-medium leading-6 text-gray-500">
-                                Submit an app, template, dashboard, software kit, or technical asset. DigitalStudio reviews every listing before it appears in the catalog.
+                                Submit an app, template, dashboard, software kit, or technical asset. BizCode reviews every listing before it appears in the catalog.
                             </p>
                         )}
                     </div>
@@ -315,12 +322,70 @@ const TemplateEdit = () => {
                                 </div>
                             </div>
                         )}
+                        {activeTab === 'technical' && (
+                            <div className="space-y-10 animate-in slide-in-from-right-4 duration-500">
+                                <div className="grid grid-cols-2 gap-8">
+                                    <Field label="Video Showcase URL (YouTube/Vimeo)">
+                                        <input name="videoURL" value={formData.videoURL} onChange={handleChange} className="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:border-black font-bold text-sm" placeholder="https://..." />
+                                    </Field>
+                                    <Field label="Content Duration (e.g. 10h 30m)">
+                                        <input name="duration" value={formData.duration} onChange={handleChange} className="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:border-black font-bold text-sm" placeholder="10h 30m" />
+                                    </Field>
+                                </div>
+
+                                <Field label="Course Outline / Curriculum (Text or JSON)">
+                                    <textarea name="courseOutline" value={formData.courseOutline} onChange={handleChange} rows={6} className="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:border-black font-medium text-sm" placeholder="List the modules or sections..." />
+                                </Field>
+
+                                <div className="space-y-4 pt-10 border-t border-gray-50">
+                                    <div className="grid grid-cols-2 gap-8">
+                                        <Field label="Snippet Language">
+                                            <input name="snippetLanguage" value={formData.snippetLanguage} onChange={handleChange} className="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:border-black font-bold text-sm" placeholder="javascript" />
+                                        </Field>
+                                    </div>
+                                    <Field label="Code Snippet / Preview Code">
+                                        <textarea name="snippet" value={formData.snippet} onChange={handleChange} rows={10} className="w-full p-6 bg-[#0d1117] text-[#c9d1d9] rounded-2xl outline-none font-mono text-xs leading-relaxed" placeholder="// Paste a representative code snippet here..." />
+                                    </Field>
+                                </div>
+                            </div>
+                        )}
 
                         {activeTab === 'seo' && (
                             <div className="space-y-10 animate-in slide-in-from-right-4 duration-500">
-                                <div>
-                                    <h2 className="text-2xl font-bold text-black tracking-tight mb-2">Search Optimization</h2>
-                                    <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">Configure metadata for high-fidelity social previews</p>
+                                <div className="flex justify-between items-end">
+                                    <div>
+                                        <h2 className="text-2xl font-bold text-black tracking-tight mb-2">Search Optimization</h2>
+                                        <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">Configure metadata for high-fidelity social previews</p>
+                                    </div>
+                                    <button 
+                                        onClick={async () => {
+                                            if (!formData.title) return error('Add a title first');
+                                            setAiGenerating(true);
+                                            try {
+                                                const result = await aiService.improveProductContent(formData.title, formData.description, formData.category);
+                                                if (result?.data) {
+                                                    const d = result.data;
+                                                    if (window.confirm('Apply AI-generated SEO content? This will update your SEO fields.')) {
+                                                        setFormData(prev => ({
+                                                            ...prev,
+                                                            seoTitle: d.seoTitle || prev.seoTitle,
+                                                            seoDescription: d.seoDescription || prev.seoDescription,
+                                                            description: d.shortDescription || prev.description,
+                                                        }));
+                                                        success('SEO content applied');
+                                                    }
+                                                }
+                                            } catch (err) {
+                                                error('AI SEO generation failed');
+                                            } finally {
+                                                setAiGenerating(false);
+                                            }
+                                        }}
+                                        disabled={aiGenerating}
+                                        className="px-6 py-3 bg-black text-white rounded-2xl text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 hover:bg-gray-800 transition-all disabled:opacity-50 shadow-lg shadow-black/10"
+                                    >
+                                        {aiGenerating ? '✨ Generating...' : '✨ Improve with AI'}
+                                    </button>
                                 </div>
                                 <Field label="Meta Title (SEO)">
                                     <input name="seoTitle" value={formData.seoTitle} onChange={handleChange} className="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:border-black font-bold text-sm" />

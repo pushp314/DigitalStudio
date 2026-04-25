@@ -8,10 +8,11 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/pushp314/digitalstudio/go-server/config"
-	"github.com/pushp314/digitalstudio/go-server/models"
+	"github.com/pushp314/bizcode/go-server/config"
+	"github.com/pushp314/bizcode/go-server/models"
 )
 
 type DocSummaryReq struct {
@@ -77,49 +78,68 @@ func AskDocAI(c *gin.Context) {
 	var session models.DocChatSession
 	config.DB.Where("user_id = ? AND doc_id = ?", currentUser.ID, docID).Limit(1).Find(&session)
 
-	// Prepare history context for the AI service
+	// Prepare history context — keep only last 6 messages to limit token usage
 	historyContext := ""
 	if session.History != "" {
 		var messages []map[string]string
 		if err := json.Unmarshal([]byte(session.History), &messages); err == nil {
-			for _, m := range messages {
+			// Only use last 6 messages for context window
+			start := 0
+			if len(messages) > 6 {
+				start = len(messages) - 6
+			}
+			for _, m := range messages[start:] {
 				historyContext += fmt.Sprintf("[%s]: %s\n", strings.ToUpper(m["role"]), m["content"])
 			}
 		}
 	}
 
+	// Truncate doc content to prevent token budget blowout (max ~8K chars ≈ 2K tokens)
+	docContent := req.Markdown
+	if len(docContent) > 8000 {
+		docContent = docContent[:8000] + "\n\n[DOCUMENT TRUNCATED FOR BREVITY]"
+	}
+
 	// 3. Orchestrate AI Prompt
-	prompt := fmt.Sprintf("You are a senior technical assistant for Devnity. Use the provided documentation and previous conversation history to answer the user inquiry accurately.\n\n[DOCUMENTATION]\n%s\n\n[HISTORY]\n%s\n\n[USER INQUIRY]\n%s", req.Markdown, historyContext, req.Question)
+	prompt := fmt.Sprintf("You are a concise technical assistant for BizCode. Answer in 2-4 paragraphs max. Use the documentation and history below.\n\n[DOCUMENTATION]\n%s\n\n[HISTORY]\n%s\n\n[USER INQUIRY]\n%s", docContent, historyContext, req.Question)
 	
-	if aiProvider() == "gemini" {
-		answer, err := requestAIAnswer(prompt)
-		if err != nil {
-			respondError(c, http.StatusInternalServerError, "AI Assistant error: "+err.Error())
-			return
-		}
-		saveDocChat(currentUser.ID, docID, req.Question, answer)
-		c.JSON(http.StatusOK, gin.H{"answer": answer})
+	// 4. Gemini Streaming Orchestration
+	model := aiModel()
+	apiKey := aiApiKey()
+
+	if apiKey == "" {
+		respondError(c, http.StatusInternalServerError, "Gemini API key is not configured")
 		return
 	}
 
-	// 4. Stream & Capture for Persistence (Legacy Proxy)
-	aiReqBody, _ := json.Marshal(map[string]interface{}{
-		"prompt":         prompt,
-		"model":          aiModel(),
-		"provider":       aiProvider(),
-		"conversationId": fmt.Sprintf("doc-%d-%d", currentUser.ID, docID),
-		"stream":         true,
-	})
+	apiURL := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/%s:streamGenerateContent?alt=sse&key=%s", model, apiKey)
+	
+	reqPayload := map[string]interface{}{
+		"contents": []map[string]interface{}{
+			{
+				"parts": []map[string]interface{}{
+					{"text": prompt},
+				},
+			},
+		},
+		"generationConfig": map[string]interface{}{
+			"maxOutputTokens": 1024,
+			"temperature":     0.7,
+		},
+	}
 
-	resp, err := http.Post(aiServiceURL()+"/ai/prompt", "application/json", bytes.NewBuffer(aiReqBody))
+	body, _ := json.Marshal(reqPayload)
+
+	client := &http.Client{Timeout: 60 * time.Second}
+	resp, err := client.Post(apiURL, "application/json", bytes.NewBuffer(body))
 	if err != nil {
-		respondError(c, http.StatusInternalServerError, "AI service offline")
+		respondError(c, http.StatusInternalServerError, "Gemini service unreachable")
 		return
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		respondError(c, http.StatusBadGateway, "AI service response failed")
+		respondError(c, resp.StatusCode, "Gemini API failure")
 		return
 	}
 
@@ -132,37 +152,36 @@ func AskDocAI(c *gin.Context) {
 	c.Stream(func(w io.Writer) bool {
 		scanner := bufio.NewScanner(resp.Body)
 		for scanner.Scan() {
-			line := scanner.Bytes()
-			if len(line) == 0 {
+			line := scanner.Text()
+			if !strings.HasPrefix(line, "data: ") {
 				continue
 			}
 
-			var aiChunk struct {
-				Response string `json:"response"`
-				Done     bool   `json:"done"`
-			}
-			
-			if err := json.Unmarshal(line, &aiChunk); err != nil {
-				fmt.Printf("[AI_DOC_ERROR] Unmarshal failed for line: %s, Error: %v\n", string(line), err)
-				continue
+			data := strings.TrimPrefix(line, "data: ")
+			var geminiChunk struct {
+				Candidates []struct {
+					Content struct {
+						Parts []struct {
+							Text string `json:"text"`
+						} `json:"parts"`
+					} `json:"content"`
+				} `json:"candidates"`
 			}
 
-			if aiChunk.Response != "" {
-				fullAIResponse.WriteString(aiChunk.Response)
-				fmt.Fprintf(c.Writer, "data: %s\n\n", aiChunk.Response)
-				c.Writer.Flush()
+			if err := json.Unmarshal([]byte(data), &geminiChunk); err == nil {
+				if len(geminiChunk.Candidates) > 0 && len(geminiChunk.Candidates[0].Content.Parts) > 0 {
+					text := geminiChunk.Candidates[0].Content.Parts[0].Text
+					fullAIResponse.WriteString(text)
+					fmt.Fprintf(c.Writer, "data: %s\n\n", text)
+					c.Writer.Flush()
+				}
 			}
-			
-			if aiChunk.Done {
-				saveDocChat(currentUser.ID, docID, req.Question, fullAIResponse.String())
-				return false
-			}
-		}
-
-		if err := scanner.Err(); err != nil {
-			fmt.Printf("[AI_DOC_ERROR] Stream Scanner Error: %v\n", err)
 		}
 		
+		// Persistence after stream completion
+		if fullAIResponse.Len() > 0 {
+			saveDocChat(currentUser.ID, docID, req.Question, fullAIResponse.String())
+		}
 		return false
 	})
 }
@@ -266,53 +285,8 @@ func UniversalDocSearchChat(c *gin.Context) {
 		}
 	}
 
-	// 3. AI Stream Request
+	// 3. Gemini Stream Request
 	prompt := fmt.Sprintf("You are a Devnity support assistant. Use the provided internal context to answer the user's question. If the context does not have the answer, use your technical knowledge but mention it is general guidance.\n\n[INTERNAL CONTEXT]\n%s\n\n[USER QUESTION]\n%s", context, req.Question)
 	
-	if aiProvider() == "gemini" {
-		answer, err := requestAIAnswer(prompt)
-		if err != nil {
-			respondError(c, http.StatusInternalServerError, "AI Assistant error: "+err.Error())
-			return
-		}
-		c.JSON(http.StatusOK, gin.H{"answer": answer})
-		return
-	}
-
-	// Legacy Proxy Stream
-	aiReqBody, _ := json.Marshal(map[string]interface{}{
-		"prompt":         prompt,
-		"model":          aiModel(),
-		"conversationId": req.ConversationID,
-		"stream":         true,
-	})
-
-	resp, err := http.Post(aiServiceURL()+"/ai/prompt", "application/json", bytes.NewBuffer(aiReqBody))
-	if err != nil {
-		respondError(c, http.StatusInternalServerError, "AI service offline")
-		return
-	}
-	defer resp.Body.Close()
-
-	c.Header("Content-Type", "text/event-stream")
-	c.Header("Cache-Control", "no-cache")
-	c.Header("Connection", "keep-alive")
-
-	c.Stream(func(w io.Writer) bool {
-		scanner := bufio.NewScanner(resp.Body)
-		for scanner.Scan() {
-			line := scanner.Bytes()
-			var aiChunk struct {
-				Response string `json:"response"`
-				Done     bool   `json:"done"`
-			}
-			if err := json.Unmarshal(line, &aiChunk); err == nil {
-				c.SSEvent("message", aiChunk.Response)
-				if aiChunk.Done {
-					return false
-				}
-			}
-		}
-		return false
-	})
+	requestAIStream(c, prompt)
 }

@@ -9,8 +9,19 @@ const ProductReviews = ({ productId }) => {
     const [reviews, setReviews] = useState([]);
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
+    const [eligibility, setEligibility] = useState({ canReview: false, alreadyReviewed: false, hasPurchased: false });
     const [rating, setRating] = useState(5);
     const [comment, setComment] = useState('');
+
+    const fetchEligibility = useCallback(async () => {
+        if (!user) return;
+        try {
+            const data = await productService.getReviewEligibility(productId);
+            setEligibility(data);
+        } catch (err) {
+            console.error('Eligibility check failed', err);
+        }
+    }, [user, productId]);
 
     const fetchReviews = useCallback(async () => {
         try {
@@ -25,7 +36,8 @@ const ProductReviews = ({ productId }) => {
 
     useEffect(() => {
         fetchReviews();
-    }, [fetchReviews]);
+        fetchEligibility();
+    }, [fetchReviews, fetchEligibility]);
 
     const handleSubmit = async (event) => {
         event.preventDefault();
@@ -91,8 +103,19 @@ const ProductReviews = ({ productId }) => {
                     <p className="text-gray-500 text-sm mb-6">Share a quick rating and note for other buyers.</p>
 
                     {!user ? (
-                        <div className="rounded-2xl bg-gray-50 p-5 text-sm text-gray-600">
-                            Sign in to leave a review after purchase.
+                        <div className="rounded-2xl bg-gray-50 p-6 text-sm text-gray-600 border border-gray-100">
+                            <p className="font-bold text-black mb-1">Authenticated reviews only</p>
+                            Please sign in to share your experience with this product.
+                        </div>
+                    ) : !eligibility.hasPurchased ? (
+                        <div className="rounded-2xl bg-blue-50/50 p-6 text-sm text-blue-800 border border-blue-100">
+                            <p className="font-bold text-blue-900 mb-1">Purchase required</p>
+                            Reviews are gated to verified buyers. Purchase this asset to leave feedback.
+                        </div>
+                    ) : eligibility.alreadyReviewed ? (
+                        <div className="rounded-2xl bg-emerald-50/50 p-6 text-sm text-emerald-800 border border-emerald-100">
+                            <p className="font-bold text-emerald-900 mb-1">Feedback received</p>
+                            You have already submitted a review for this product. Thank you!
                         </div>
                     ) : (
                         <form onSubmit={handleSubmit} className="space-y-4">
@@ -106,7 +129,7 @@ const ProductReviews = ({ productId }) => {
                                     {[5, 4, 3, 2, 1].map((value) => (
                                         <option key={value} value={value}>
                                             {value} star{value > 1 ? 's' : ''}
-                                        </option>
+                                         </option>
                                     ))}
                                 </select>
                             </div>

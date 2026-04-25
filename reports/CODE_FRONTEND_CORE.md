@@ -1,4 +1,4 @@
-# Frontend Core Architecture - DigitalStudio
+# Frontend Core Architecture - BizCode
 
 This document contains the application shell, state management, and service layers.
 

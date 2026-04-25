@@ -43,7 +43,17 @@ const aiService = {
         api.delete(`/docs/${docId}/chat`),
     
     getUserRoadmap: (wishlistIds) =>
-        api.post('/ai/roadmap', { wishlistIds })
+        api.post('/ai/roadmap', { wishlistIds }),
+
+    // Platform AI Features
+    recommendProducts: (query, budget, category) =>
+        api.post('/ai/recommend-products', { query, budget, category }),
+
+    generateRequirements: (idea, businessType, budget) =>
+        api.post('/ai/generate-requirements', { idea, businessType, budget }),
+
+    improveProductContent: (title, description, category) =>
+        api.post('/ai/improve-product-content', { title, description, category }),
 };
 
 export default aiService;

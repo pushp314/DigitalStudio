@@ -6251,7 +6251,7 @@ const TemplateCarousel = ({ product }) => {
                     <div className="w-3 h-3 rounded-full bg-green-400"></div>
                   </div>
                   <div className="ml-4 flex-grow bg-white rounded-lg border border-gray-200 py-1.5 px-4 text-[10px] text-gray-400 font-mono truncate">
-                    https://digitalstudio.io/templates/{product.slug}/preview-{index + 1}
+                    https://bizcode.io/templates/{product.slug}/preview-{index + 1}
                   </div>
                 </div>
                 
@@ -6782,7 +6782,7 @@ const AppShell = () => {
   }, [location.search]);
 
   if (loading) {
-    return <div className="h-screen w-full flex items-center justify-center bg-[#F5F5F7] text-black font-bold">Starting DigitalStudio...</div>;
+    return <div className="h-screen w-full flex items-center justify-center bg-[#F5F5F7] text-black font-bold">Starting BizCode...</div>;
   }
 
   // Allow access to admin and auth paths during maintenance
@@ -6976,7 +6976,7 @@ const Profile = () => {
             const res = await api.get(`/products/${productId}/download`);
             const link = document.createElement('a');
             link.href = res.downloadUrl;
-            link.setAttribute('download', `${title.replace(/\s+/g, '_')}_DigitalStudio_Premium.zip`);
+            link.setAttribute('download', `${title.replace(/\s+/g, '_')}_BizCode_Premium.zip`);
             document.body.appendChild(link);
             link.click();
             link.remove();
@@ -7081,7 +7081,7 @@ const Profile = () => {
                                                 <p className={`text-sm font-medium leading-relaxed ${user.subscriptionPlan === 'pro' ? 'text-emerald-700' : 'text-gray-400'}`}>
                                                     {user.subscriptionPlan === 'pro' 
                                                         ? `Your Pro subscription is active. You have full access to all templates, documentation, and priority features.` 
-                                                        : 'Unlock the full power of DigitalStudio. Unlimited downloads, AI-tools, and premium support.'}
+                                                        : 'Unlock the full power of BizCode. Unlimited downloads, AI-tools, and premium support.'}
                                                 </p>
                                             </div>
                                             {user.subscriptionPlan !== 'pro' && (
@@ -7351,7 +7351,7 @@ const Profile = () => {
                                             <h4 className="font-bold text-black mb-6 uppercase tracking-widest text-xs">Account Details</h4>
                                             <div className="space-y-4">
                                                 <MetadataRow label="User ID" value={user.id} />
-                                                <MetadataRow label="Provider" value={user.provider || 'DigitalStudio'} />
+                                                <MetadataRow label="Provider" value={user.provider || 'BizCode'} />
                                                 <MetadataRow label="Expires" value={user.proExpiresAt ? new Date(user.proExpiresAt).toDateString() : 'Never'} />
                                             </div>
                                         </div>
@@ -7635,7 +7635,7 @@ const Docs = () => {
                                         <div>
                                             <p className="text-[10px] text-gray-400 font-bold uppercase mb-1">Pass Required</p>
                                             <div className="text-sm font-black text-black">
-                                                {doc.isPremium ? '💎 DigitalStudio Pro' : '✅ Free Content'}
+                                                {doc.isPremium ? '💎 BizCode Pro' : '✅ Free Content'}
                                             </div>
                                         </div>
                                         <div className="w-12 h-12 bg-black text-white rounded-full flex items-center justify-center group-hover:bg-primary group-hover:scale-110 transition-all shadow-lg">
@@ -7698,7 +7698,7 @@ const Docs = () => {
                 <div className="bg-gradient-to-r from-primary to-blue-600 rounded-2xl p-8 md:p-12 text-center text-white">
                     <h2 className="text-3xl md:text-4xl font-black mb-4">Need More Premium Access?</h2>
                     <p className="text-lg mb-6 opacity-90">
-                        Unlock premium guides and tutorials with a DigitalStudio Pro membership. Access exclusive resources to boost your workflow.
+                        Unlock premium guides and tutorials with a BizCode Pro membership. Access exclusive resources to boost your workflow.
                     </p>
                     <Link
                         to="/profile"
@@ -8836,7 +8836,7 @@ const Dashboard = ({ defaultTab }) => {
                         <div className="flex items-center gap-3 px-2">
                             <div className="w-8 h-8 bg-black rounded-xl flex items-center justify-center font-black text-white text-base shadow-lg shadow-black/10">D</div>
                             <div>
-                                <h1 className="text-sm font-black tracking-tighter text-black uppercase">DigitalStudio</h1>
+                                <h1 className="text-sm font-black tracking-tighter text-black uppercase">BizCode</h1>
                                 <p className="text-[9px] font-bold text-gray-500 uppercase tracking-widest -mt-0.5">Control Panel</p>
                             </div>
                         </div>
@@ -9571,7 +9571,7 @@ const Features = () => {
             <BuildSitesHeader
                 title="Supercharging your"
                 highlight="development workflow"
-                description="DigitalStudio is more than just a marketplace. We provide the tools, support, and community you need to scale from zero to production."
+                description="BizCode is more than just a marketplace. We provide the tools, support, and community you need to scale from zero to production."
             />
             
             {/* Context Section: Why wait? */}
@@ -9817,7 +9817,7 @@ const SubscriptionCheckout = () => {
                 key: keyId,
                 amount,
                 currency,
-                name: "DigitalStudio Pro",
+                name: "BizCode Pro",
                 description: `Upgrade to ${plan.name} Membership`,
                 order_id: orderId,
                 prefill: {
@@ -10727,7 +10727,7 @@ const MaintenancePage = ({ message }) => {
 
                     <div className="space-y-4 px-4">
                         <p className="text-lg md:text-xl font-medium text-gray-500 leading-relaxed italic">
-                            {message || "We’re currently perfecting your DigitalStudio experience. We'll be back online and ready for you very shortly."}
+                            {message || "We’re currently perfecting your BizCode experience. We'll be back online and ready for you very shortly."}
                         </p>
                         <p className="text-sm font-bold text-black/40 uppercase tracking-widest pt-4">
                             Thank you for your patience
@@ -10746,7 +10746,7 @@ const MaintenancePage = ({ message }) => {
                     </button>
                     
                     <div className="text-[9px] font-bold text-gray-300 uppercase tracking-[0.3em]">
-                        DigitalStudio &copy; {new Date().getFullYear()} — Engineering Excellence
+                        BizCode &copy; {new Date().getFullYear()} — Engineering Excellence
                     </div>
                 </div>
             </div>
@@ -10860,7 +10860,7 @@ const Checkout = () => {
                 key: keyId,
                 amount: amount,
                 currency: currency,
-                name: "DigitalStudio",
+                name: "BizCode",
                 description: "Digital Template Purchase",
                 order_id: orderId,
                 prefill: {
@@ -11338,7 +11338,7 @@ const DocViewer = () => {
                             </div>
                             <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-gray-50/50">
                                 <div className="bg-white p-4 rounded-2xl border border-gray-100 text-sm font-medium text-gray-600">
-                                    Hello! I'm your AI sidekick for DigitalStudio. Ask me anything about <span className="text-primary font-black">"{doc.title}"</span>.
+                                    Hello! I'm your AI sidekick for BizCode. Ask me anything about <span className="text-primary font-black">"{doc.title}"</span>.
                                 </div>
                                 {chatHistory.map((msg, i) => (
                                     <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>

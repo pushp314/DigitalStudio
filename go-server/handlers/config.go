@@ -5,8 +5,8 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/pushp314/digitalstudio/go-server/config"
-	"github.com/pushp314/digitalstudio/go-server/models"
+	"github.com/pushp314/bizcode/go-server/config"
+	"github.com/pushp314/bizcode/go-server/models"
 )
 
 type UpdateConfigReq struct {
@@ -121,8 +121,9 @@ func defaultSiteConfig() models.SiteConfig {
 			Phone:      "+91 00000 00000",
 		},
 		AISettings: models.AISettings{
-			Enabled: true,
-			Model:   "qwen3.5:2b",
+			Enabled:  true,
+			Provider: "gemini",
+			Model:    "gemini-2.5-flash",
 		},
 	}
 }

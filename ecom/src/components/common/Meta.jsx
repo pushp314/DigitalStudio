@@ -1,46 +1,34 @@
-import React, { useEffect } from 'react';
+import React from 'react';
+import { Helmet } from 'react-helmet-async';
 
 const Meta = ({ title, description, image, url, type = 'website' }) => {
-    const siteName = 'DigitalStudio';
+    const siteName = 'BizCode';
     const fullTitle = title ? `${title} | ${siteName}` : siteName;
-    const defaultDescription = 'DigitalStudio helps you buy ready apps, customize them, or hire developers to build for you.';
-    const defaultImage = 'https://digitalstudio.dev/og-image.png';
-    const defaultUrl = window.location.href;
+    const defaultDescription = 'BizCode helps you buy ready apps, customize them, or hire developers to build for you.';
+    const defaultImage = 'https://bizcode.appnity.co.in/og-image.png';
+    const currentUrl = url || window.location.href;
 
-    useEffect(() => {
-        document.title = fullTitle;
+    return (
+        <Helmet>
+            <title>{fullTitle}</title>
+            <meta name="description" content={description || defaultDescription} />
 
-        const metaDescription = document.querySelector('meta[name="description"]');
-        if (metaDescription) {
-            metaDescription.setAttribute('content', description || defaultDescription);
-        }
+            {/* Open Graph / Facebook */}
+            <meta property="og:type" content={type} />
+            <meta property="og:title" content={fullTitle} />
+            <meta property="og:description" content={description || defaultDescription} />
+            <meta property="og:image" content={image || defaultImage} />
+            <meta property="og:url" content={currentUrl} />
+            <meta property="og:site_name" content={siteName} />
 
-        const ogTitle = document.querySelector('meta[property="og:title"]');
-        if (ogTitle) ogTitle.setAttribute('content', fullTitle);
-
-        const ogDescription = document.querySelector('meta[property="og:description"]');
-        if (ogDescription) ogDescription.setAttribute('content', description || defaultDescription);
-
-        const ogImage = document.querySelector('meta[property="og:image"]');
-        if (ogImage) ogImage.setAttribute('content', image || defaultImage);
-
-        const ogUrl = document.querySelector('meta[property="og:url"]');
-        if (ogUrl) ogUrl.setAttribute('content', url || defaultUrl);
-
-        const ogType = document.querySelector('meta[property="og:type"]');
-        if (ogType) ogType.setAttribute('content', type);
-
-        const twitterTitle = document.querySelector('meta[property="twitter:title"]');
-        if (twitterTitle) twitterTitle.setAttribute('content', fullTitle);
-
-        const twitterDescription = document.querySelector('meta[property="twitter:description"]');
-        if (twitterDescription) twitterDescription.setAttribute('content', description || defaultDescription);
-
-        const twitterImage = document.querySelector('meta[property="twitter:image"]');
-        if (twitterImage) twitterImage.setAttribute('content', image || defaultImage);
-    }, [title, description, image, url, type, fullTitle]);
-
-    return null;
+            {/* Twitter */}
+            <meta name="twitter:card" content="summary_large_image" />
+            <meta name="twitter:title" content={fullTitle} />
+            <meta name="twitter:description" content={description || defaultDescription} />
+            <meta name="twitter:image" content={image || defaultImage} />
+            <meta name="twitter:url" content={currentUrl} />
+        </Helmet>
+    );
 };
 
 export default Meta;

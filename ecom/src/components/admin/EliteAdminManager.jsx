@@ -14,7 +14,8 @@ import {
     RotateCcw,
     CalendarPlus,
     Tag,
-    Lock
+    Lock,
+    Ticket
 } from 'lucide-react';
 import { useToast } from '../../context/ToastContext';
 
@@ -224,42 +225,64 @@ const EliteAdminManager = () => {
                                 <div className="flex items-center gap-2">
                                     {session.status === 'active' && (
                                         <>
-                                            <button 
-                                                onClick={() => handleGiftDiscount(session.id)}
-                                                disabled={actionLoading === session.id}
-                                                className="h-12 w-12 flex items-center justify-center rounded-2xl border border-slate-200 text-amber-500 hover:bg-amber-50 hover:border-amber-200 transition-all disabled:opacity-30"
-                                                title="Gift 50% Discount"
-                                            >
-                                                <Ticket size={18} />
-                                            </button>
-                                            <button 
-                                                onClick={() => handleResolve(session.id)}
-                                                disabled={actionLoading === session.id}
-                                                className="h-12 w-12 flex items-center justify-center rounded-2xl border border-slate-200 text-slate-400 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition-all disabled:opacity-30"
-                                                title="Mark Resolved"
-                                            >
-                                                <CheckCircle2 size={18} />
-                                            </button>
-                                            <button 
-                                                onClick={() => handleClose(session.id)}
-                                                disabled={actionLoading === session.id}
-                                                className="h-12 w-12 flex items-center justify-center rounded-2xl border border-slate-200 text-slate-400 hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-all disabled:opacity-30"
-                                                title="Finalize & Lock"
-                                            >
-                                                <Lock size={18} />
-                                            </button>
+                                            <div className="relative group/tooltip">
+                                                <button 
+                                                    onClick={() => handleGiftDiscount(session.id)}
+                                                    disabled={actionLoading === session.id}
+                                                    className="h-12 w-12 flex items-center justify-center rounded-2xl border border-slate-200 text-amber-500 hover:bg-amber-50 hover:border-amber-200 transition-all disabled:opacity-30"
+                                                >
+                                                    <Ticket size={18} />
+                                                </button>
+                                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-slate-900 text-white text-[8px] font-black uppercase tracking-widest rounded-lg opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
+                                                    Gift 50% Discount
+                                                    <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-900"></div>
+                                                </div>
+                                            </div>
+
+                                            <div className="relative group/tooltip">
+                                                <button 
+                                                    onClick={() => handleResolve(session.id)}
+                                                    disabled={actionLoading === session.id}
+                                                    className="h-12 w-12 flex items-center justify-center rounded-2xl border border-slate-200 text-slate-400 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition-all disabled:opacity-30"
+                                                >
+                                                    <CheckCircle2 size={18} />
+                                                </button>
+                                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-slate-900 text-white text-[8px] font-black uppercase tracking-widest rounded-lg opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
+                                                    Mark Resolved
+                                                    <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-900"></div>
+                                                </div>
+                                            </div>
+
+                                            <div className="relative group/tooltip">
+                                                <button 
+                                                    onClick={() => handleClose(session.id)}
+                                                    disabled={actionLoading === session.id}
+                                                    className="h-12 w-12 flex items-center justify-center rounded-2xl border border-slate-200 text-slate-400 hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-all disabled:opacity-30"
+                                                >
+                                                    <Lock size={18} />
+                                                </button>
+                                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-slate-900 text-white text-[8px] font-black uppercase tracking-widest rounded-lg opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
+                                                    Finalize & Lock
+                                                    <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-900"></div>
+                                                </div>
+                                            </div>
                                         </>
                                     )}
                                     {(isExpired(session) || session.status !== 'active') && (
-                                        <button 
-                                            onClick={() => handleExtend(session.id)}
-                                            disabled={actionLoading === session.id}
-                                            className="h-12 w-14 flex items-center justify-center rounded-2xl border border-slate-200 text-slate-400 hover:bg-emerald-50 hover:text-emerald-600 hover:border-emerald-200 transition-all disabled:opacity-30 font-black text-[9px] gap-2 px-6"
-                                            title="Grant 30 Days"
-                                        >
-                                            <CalendarPlus size={18} /> 
-                                            <span className="hidden xl:inline">EXTEND</span>
-                                        </button>
+                                        <div className="relative group/tooltip">
+                                            <button 
+                                                onClick={() => handleExtend(session.id)}
+                                                disabled={actionLoading === session.id}
+                                                className="h-12 w-14 flex items-center justify-center rounded-2xl border border-slate-200 text-slate-400 hover:bg-emerald-50 hover:text-emerald-600 hover:border-emerald-200 transition-all disabled:opacity-30 font-black text-[9px] gap-2 px-6"
+                                            >
+                                                <CalendarPlus size={18} /> 
+                                                <span className="hidden xl:inline">EXTEND</span>
+                                            </button>
+                                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-slate-900 text-white text-[8px] font-black uppercase tracking-widest rounded-lg opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
+                                                Grant 30 Days Extra
+                                                <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-900"></div>
+                                            </div>
+                                        </div>
                                     )}
                                 </div>
                             </div>

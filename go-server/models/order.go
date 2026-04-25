@@ -52,6 +52,8 @@ type Order struct {
 	SettlementSource     string      `gorm:"type:varchar(50)" json:"settlementSource,omitempty"`
 	PartnerRewardSettled bool        `gorm:"not null;default:false" json:"partnerRewardSettled"`
 	PartnerRewardAmount  float64     `gorm:"type:numeric(10,2);not null;default:0" json:"partnerRewardAmount"`
+	AddDeploymentService bool        `gorm:"not null;default:false" json:"addDeploymentService"`
+	DeploymentServiceFee float64     `gorm:"type:numeric(10,2);not null;default:0" json:"deploymentServiceFee"`
 	OrderItems           []OrderItem `gorm:"foreignKey:OrderID" json:"orderItems,omitempty"`
 	Entitled             bool        `gorm:"-" json:"entitled"`
 	CreatedAt            time.Time   `json:"createdAt"`

@@ -1,4 +1,4 @@
-# Backend Core - DigitalStudio
+# Backend Core - BizCode
 
 This file contains the main infrastructure code: entry point, middleware, and database config.
 
@@ -23,11 +23,11 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/pushp314/digitalstudio/go-server/config"
-	"github.com/pushp314/digitalstudio/go-server/handlers"
-	"github.com/pushp314/digitalstudio/go-server/middleware"
-	"github.com/pushp314/digitalstudio/go-server/seeder"
-	"github.com/pushp314/digitalstudio/go-server/services"
+	"github.com/pushp314/bizcode/go-server/config"
+	"github.com/pushp314/bizcode/go-server/handlers"
+	"github.com/pushp314/bizcode/go-server/middleware"
+	"github.com/pushp314/bizcode/go-server/seeder"
+	"github.com/pushp314/bizcode/go-server/services"
 )
 
 func main() {
@@ -63,7 +63,7 @@ func main() {
 		SameSite: sameSiteMode(),
 		MaxAge:   60 * 60,
 	})
-	r.Use(sessions.Sessions("digitalstudio_session", store))
+	r.Use(sessions.Sessions("bizcode_session", store))
 
 	allowOrigins := allowedOriginsFromEnv()
 	r.Use(cors.New(cors.Config{
@@ -96,7 +96,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/pushp314/digitalstudio/go-server/models"
+	"github.com/pushp314/bizcode/go-server/models"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -145,8 +145,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/pushp314/digitalstudio/go-server/config"
-	"github.com/pushp314/digitalstudio/go-server/models"
+	"github.com/pushp314/bizcode/go-server/config"
+	"github.com/pushp314/bizcode/go-server/models"
 )
 
 func AuthMiddleware() gin.HandlerFunc {

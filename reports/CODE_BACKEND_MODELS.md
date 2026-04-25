@@ -1,4 +1,4 @@
-# Backend Models - DigitalStudio
+# Backend Models - BizCode
 
 This file contains all GORM database models.
 

@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery } from '@tanstack/react-query';
 import productService from '../../services/productService';
 import { normalizeProduct } from '../../utils/normalizers';
 import docService from '../../services/docService';
@@ -13,32 +13,48 @@ const SearchPalette = ({ isOpen, onClose }) => {
     const inputRef = useRef(null);
     const navigate = useNavigate();
 
-    const { data, isLoading } = useQuery({
+    const { 
+        data, 
+        isLoading, 
+        fetchNextPage, 
+        hasNextPage, 
+        isFetchingNextPage 
+    } = useInfiniteQuery({
         queryKey: ['search-palette', debouncedQuery],
-        queryFn: async () => {
+        queryFn: async ({ pageParam = 1 }) => {
             if (debouncedQuery.length < 2) {
-                return { products: [], docs: [] };
+                return { products: [], docs: [], page: pageParam };
             }
 
             const [productsRes, docsRes] = await Promise.all([
-                productService.getAll(debouncedQuery),
-                docService.getAll('', debouncedQuery),
+                productService.getAll({ keyword: debouncedQuery, page: pageParam, pageSize: 5 }),
+                docService.getAll('', debouncedQuery, { page: pageParam, pageSize: 5 }),
             ]);
 
             return {
                 products: Array.isArray(productsRes) ? productsRes.map(normalizeProduct) : [],
                 docs: Array.isArray(docsRes) ? docsRes : [],
+                page: pageParam
             };
         },
+        getNextPageParam: (lastPage) => {
+            // If either list had results, try next page (capped for simplicity in search)
+            if (lastPage.products.length === 5 || lastPage.docs.length === 5) {
+                return lastPage.page + 1;
+            }
+            return undefined;
+        },
+        initialPageParam: 1,
         enabled: isOpen && debouncedQuery.length > 1,
     });
 
-    const products = data?.products || [];
-    const docs = data?.docs || [];
-    const allResults = [
-        ...products.map((product) => ({ ...product, type: 'product' })),
-        ...docs.map((doc) => ({ ...doc, type: 'doc' })),
-    ];
+    const allResults = useMemo(() => {
+        if (!data) return [];
+        return data.pages.flatMap(page => [
+            ...page.products.map(p => ({ ...p, type: 'product' })),
+            ...page.docs.map(d => ({ ...d, type: 'doc' }))
+        ]);
+    }, [data]);
 
     useEffect(() => {
         if (isOpen) {
@@ -109,7 +125,7 @@ const SearchPalette = ({ isOpen, onClose }) => {
                     </div>
                 </div>
 
-                <div className="max-h-[60vh] overflow-y-auto p-2">
+                <div className="max-h-[60vh] overflow-y-auto p-2 custom-scrollbar">
                     {query.length === 0 ? (
                         <div className="p-10 text-center">
                             <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 text-slate-500">
@@ -127,65 +143,72 @@ const SearchPalette = ({ isOpen, onClose }) => {
                         </div>
                     ) : allResults.length > 0 ? (
                         <div className="space-y-4">
-                            {products.length > 0 && (
+                            {allResults.filter(r => r.type === 'product').length > 0 && (
                                 <div className="space-y-1">
-                                    <div className="px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">Products</div>
-                                    {products.map((item, index) => (
+                                    <div className="px-4 py-2 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Products</div>
+                                    {allResults.filter(r => r.type === 'product').map((item, index) => (
                                         <button
                                             key={item.id}
                                             type="button"
-                                            className={`flex w-full items-center gap-4 rounded-xl p-4 text-left transition-colors ${
-                                                index === selectedIndex ? 'bg-slate-100' : 'hover:bg-slate-50'
+                                            className={`flex w-full items-center gap-4 rounded-xl p-4 text-left transition-all ${
+                                                allResults.indexOf(item) === selectedIndex ? 'bg-slate-100 shadow-sm' : 'hover:bg-slate-50'
                                             }`}
                                             onClick={() => handleSelect(item)}
                                         >
-                                            <div className="h-12 w-12 shrink-0 overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
+                                            <div className="h-12 w-12 shrink-0 overflow-hidden rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-center">
                                                 <img src={item.image} alt="" className="h-full w-full object-cover" />
                                             </div>
                                             <div className="min-w-0 flex-grow">
                                                 <div className="flex items-center justify-between gap-4">
-                                                    <h4 className="truncate font-semibold text-slate-900">{item.title}</h4>
-                                                    <span className="text-sm font-semibold text-slate-900">{item.formattedPrice}</span>
+                                                    <h4 className="truncate font-bold text-slate-900 text-sm uppercase tracking-tight">{item.title}</h4>
+                                                    <span className="text-xs font-bold text-slate-900">{item.formattedPrice}</span>
                                                 </div>
-                                                <p className="truncate text-[13px] text-slate-500">{item.description}</p>
+                                                <p className="truncate text-[11px] text-slate-500 font-medium">{item.description}</p>
                                             </div>
                                         </button>
                                     ))}
                                 </div>
                             )}
 
-                            {docs.length > 0 && (
+                            {allResults.filter(r => r.type === 'doc').length > 0 && (
                                 <div className="space-y-1">
-                                    <div className="px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">Documentation</div>
-                                    {docs.map((item, index) => {
-                                        const globalIndex = products.length + index;
-                                        return (
-                                            <button
-                                                key={item.id}
-                                                type="button"
-                                                className={`flex w-full items-center gap-4 rounded-xl p-4 text-left transition-colors ${
-                                                    globalIndex === selectedIndex ? 'bg-slate-100' : 'hover:bg-slate-50'
-                                                }`}
-                                                onClick={() => handleSelect({ ...item, type: 'doc' })}
-                                            >
-                                                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-500">
-                                                    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18 18.247 18.477 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                                                    </svg>
-                                                </div>
-                                                <div className="min-w-0 flex-grow">
-                                                    <h4 className="truncate font-semibold text-slate-900">{item.title}</h4>
-                                                    <p className="truncate text-[13px] text-slate-500">{item.description}</p>
-                                                </div>
-                                                {item.isPremium && (
-                                                    <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] font-medium text-slate-600">
-                                                        Paid
-                                                    </span>
-                                                )}
-                                            </button>
-                                        );
-                                    })}
+                                    <div className="px-4 py-2 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Documentation</div>
+                                    {allResults.filter(r => r.type === 'doc').map((item, index) => (
+                                        <button
+                                            key={item.id}
+                                            type="button"
+                                            className={`flex w-full items-center gap-4 rounded-xl p-4 text-left transition-all ${
+                                                allResults.indexOf(item) === selectedIndex ? 'bg-slate-100 shadow-sm' : 'hover:bg-slate-50'
+                                            }`}
+                                            onClick={() => handleSelect({ ...item, type: 'doc' })}
+                                        >
+                                            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-400">
+                                                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18 18.247 18.477 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                                                </svg>
+                                            </div>
+                                            <div className="min-w-0 flex-grow">
+                                                <h4 className="truncate font-bold text-slate-900 text-sm uppercase tracking-tight">{item.title}</h4>
+                                                <p className="truncate text-[11px] text-slate-500 font-medium">{item.description}</p>
+                                            </div>
+                                            {item.isPremium && (
+                                                <span className="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[9px] font-bold text-blue-600 uppercase tracking-widest">
+                                                    Pro
+                                                </span>
+                                            )}
+                                        </button>
+                                    ))}
                                 </div>
+                            )}
+
+                            {hasNextPage && (
+                                <button 
+                                    onClick={() => fetchNextPage()}
+                                    disabled={isFetchingNextPage}
+                                    className="w-full py-4 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 hover:text-slate-900 transition-colors"
+                                >
+                                    {isFetchingNextPage ? 'Syncing...' : 'Load more results'}
+                                </button>
                             )}
                         </div>
                     ) : (

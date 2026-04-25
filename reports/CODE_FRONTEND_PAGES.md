@@ -1,4 +1,4 @@
-# Frontend Pages - DigitalStudio
+# Frontend Pages - BizCode
 
 This document contains the source code for essential React pages.
 

@@ -2,11 +2,12 @@ package handlers
 
 import (
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/pushp314/digitalstudio/go-server/config"
-	"github.com/pushp314/digitalstudio/go-server/models"
+	"github.com/pushp314/bizcode/go-server/config"
+	"github.com/pushp314/bizcode/go-server/models"
 )
 
 func ListDocs(c *gin.Context) {
@@ -23,7 +24,21 @@ func ListDocs(c *gin.Context) {
 		query = query.Where("title ILIKE ? OR description ILIKE ?", "%"+keyword+"%", "%"+keyword+"%")
 	}
 
-	if err := query.Find(&docs).Error; err != nil {
+	limit := getEnvInt("DOC_PAGE_SIZE", 20)
+	page := 1
+	if pValue := c.Query("page"); pValue != "" {
+		if p, err := strconv.Atoi(pValue); err == nil && p > 0 {
+			page = p
+		}
+	}
+	if psValue := c.Query("pageSize"); psValue != "" {
+		if ps, err := strconv.Atoi(psValue); err == nil && ps > 0 {
+			limit = ps
+		}
+	}
+
+	offset := (page - 1) * limit
+	if err := query.Limit(limit).Offset(offset).Find(&docs).Error; err != nil {
 		respondError(c, http.StatusInternalServerError, err.Error())
 		return
 	}

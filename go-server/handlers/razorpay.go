@@ -9,19 +9,19 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/pushp314/digitalstudio/go-server/config"
-	"github.com/pushp314/digitalstudio/go-server/models"
-	"github.com/pushp314/digitalstudio/go-server/services"
+	"github.com/pushp314/bizcode/go-server/config"
+	"github.com/pushp314/bizcode/go-server/models"
+	"github.com/pushp314/bizcode/go-server/services"
 	razorpay "github.com/razorpay/razorpay-go"
 )
 
 type CreatePaymentOrderReq struct {
 	Items      []OrderItemReq `json:"items" binding:"required,min=1"`
-	CouponCode string         `json:"couponCode"`
+	CouponCode           string         `json:"couponCode"`
+	AddDeploymentService bool           `json:"addDeploymentService"`
 }
 
 func CreateRazorpayOrder(c *gin.Context) {
@@ -37,8 +37,8 @@ func CreateRazorpayOrder(c *gin.Context) {
 		return
 	}
 
-	keyID := strings.TrimSpace(os.Getenv("RAZORPAY_KEY_ID"))
-	keySecret := strings.TrimSpace(os.Getenv("RAZORPAY_KEY_SECRET"))
+	keyID := config.AppConfig.RazorpayKeyID
+	keySecret := config.AppConfig.RazorpayKeySecret
 	if keyID == "" || keySecret == "" {
 		respondError(c, http.StatusInternalServerError, "Razorpay credentials are not configured")
 		return
@@ -53,11 +53,12 @@ func CreateRazorpayOrder(c *gin.Context) {
 	}
 
 	order, err := services.CreateDraftOrder(c.Request.Context(), services.DraftOrderInput{
-		UserID:     userID.(uint),
-		Items:      items,
-		CouponCode: req.CouponCode,
-		Currency:   "INR",
-		RequestID:  requestIDFromContext(c),
+		UserID:               userID.(uint),
+		Items:                items,
+		CouponCode:           req.CouponCode,
+		AddDeploymentService: req.AddDeploymentService,
+		Currency:             "INR",
+		RequestID:            requestIDFromContext(c),
 	})
 	if err != nil {
 		switch err {
@@ -132,14 +133,14 @@ func VerifyRazorpayPayment(c *gin.Context) {
 		return
 	}
 
-	secret := strings.TrimSpace(os.Getenv("RAZORPAY_KEY_SECRET"))
+	secret := config.AppConfig.RazorpayKeySecret
 	if !verifyRazorpaySignature(req.RazorpayOrderID, req.RazorpayPaymentID, req.RazorpaySignature, secret) {
 		respondError(c, http.StatusForbidden, "Invalid payment signature")
 		return
 	}
 
 	if !strings.EqualFold(order.PaymentStatus, string(models.PaymentStatusPaid)) && !strings.EqualFold(order.Status, string(models.OrderStatusPaid)) {
-		keyID := strings.TrimSpace(os.Getenv("RAZORPAY_KEY_ID"))
+		keyID := config.AppConfig.RazorpayKeyID
 		client := razorpay.NewClient(keyID, secret)
 		paymentData, err := client.Payment.Fetch(req.RazorpayPaymentID, nil, nil)
 		if err != nil {
@@ -181,7 +182,7 @@ func VerifyRazorpayPayment(c *gin.Context) {
 }
 
 func RazorpayWebhook(c *gin.Context) {
-	secret := strings.TrimSpace(os.Getenv("RAZORPAY_WEBHOOK_SECRET"))
+	secret := config.AppConfig.RazorpayWebhookSecret
 	signature := strings.TrimSpace(c.GetHeader("X-Razorpay-Signature"))
 	if secret == "" || signature == "" {
 		respondError(c, http.StatusForbidden, "Invalid webhook signature")
@@ -242,6 +243,35 @@ func RazorpayWebhook(c *gin.Context) {
 			if err != nil && !errors.Is(err, services.ErrOrderNotFound) {
 				respondError(c, http.StatusInternalServerError, "Failed to process failed payment")
 				return
+			}
+		}
+
+	case "refund.created", "payment.refunded":
+		// Handle refund: suspend licenses and reverse affiliate commissions
+		if orderID != "" {
+			var order models.Order
+			if err := config.DB.Where("razorpay_order_id = ?", orderID).First(&order).Error; err == nil {
+				// Suspend all licenses for this order
+				_ = services.SuspendLicensesByOrder(config.DB, order.ID, "Refund processed via webhook", nil)
+
+				// Reverse affiliate commissions for this order
+				config.DB.Model(&models.AffiliateConversion{}).
+					Where("order_id = ? AND commission_status = ?", order.ID, "pending").
+					Update("commission_status", "reversed")
+
+				// Log the refund event
+				services.WriteAuditLog(config.DB, services.AuditEvent{
+					RequestID:    requestID,
+					EventType:    "payment.refunded",
+					ResourceType: "order",
+					ResourceID:   &order.ID,
+					Message:      "Refund webhook processed: licenses suspended, commissions reversed",
+					Metadata: map[string]interface{}{
+						"razorpayOrderId":   orderID,
+						"razorpayPaymentId": paymentID,
+						"event":             payload.Event,
+					},
+				})
 			}
 		}
 	}

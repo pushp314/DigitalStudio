@@ -5,9 +5,10 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/pushp314/digitalstudio/go-server/config"
-	"github.com/pushp314/digitalstudio/go-server/models"
-	"github.com/pushp314/digitalstudio/go-server/services"
+	"github.com/pushp314/bizcode/go-server/config"
+	"github.com/pushp314/bizcode/go-server/models"
+	"github.com/pushp314/bizcode/go-server/services"
+	"github.com/razorpay/razorpay-go"
 	"strconv"
 )
 
@@ -162,4 +163,80 @@ func AdminUpdateOrder(c *gin.Context) {
 
 	order.Entitled = computeOrderEntitled(order)
 	c.JSON(http.StatusOK, order)
+}
+func AdminRefundOrder(c *gin.Context) {
+	id := c.Param("id")
+	var order models.Order
+	if err := config.DB.Preload("User").First(&order, id).Error; err != nil {
+		respondError(c, http.StatusNotFound, "Order not found")
+		return
+	}
+
+	if !strings.EqualFold(order.PaymentStatus, string(models.PaymentStatusPaid)) {
+		respondError(c, http.StatusBadRequest, "Only paid orders can be refunded")
+		return
+	}
+
+	if order.RazorpayPaymentID == "" {
+		respondError(c, http.StatusBadRequest, "No Razorpay payment ID associated with this order")
+		return
+	}
+
+	keyID := config.AppConfig.RazorpayKeyID
+	keySecret := config.AppConfig.RazorpayKeySecret
+	if keyID == "" || keySecret == "" {
+		respondError(c, http.StatusInternalServerError, "Razorpay credentials not configured")
+		return
+	}
+
+	client := razorpay.NewClient(keyID, keySecret)
+	data := map[string]interface{}{
+		"amount": int64(order.TotalPrice * 100),
+		"notes": map[string]string{
+			"order_id": strconv.FormatUint(uint64(order.ID), 10),
+			"reason":   "Admin initiated refund",
+		},
+	}
+
+	amount := int(order.TotalPrice * 100)
+	_, err := client.Payment.Refund(order.RazorpayPaymentID, amount, data, nil)
+	if err != nil {
+		respondError(c, http.StatusInternalServerError, "Razorpay refund failed: "+err.Error())
+		return
+	}
+
+	// Update local order status
+	order.PaymentStatus = string(models.PaymentStatusRefunded)
+	order.Status = string(models.OrderStatusRefunded)
+	if err := config.DB.Save(&order).Error; err != nil {
+		respondError(c, http.StatusInternalServerError, "Failed to update order status after successful refund")
+		return
+	}
+
+	// Suspend licenses and reverse commissions
+	_ = services.SuspendLicensesByOrder(config.DB, order.ID, "Order refunded by administrator", nil)
+	
+	// Reverse affiliate commissions
+	config.DB.Model(&models.AffiliateConversion{}).
+		Where("order_id = ? AND commission_status = ?", order.ID, "pending").
+		Update("commission_status", "reversed")
+
+	if actorID, ok := c.Get("userID"); ok {
+		actor := actorID.(uint)
+		orderID := order.ID
+		services.WriteAuditLog(nil, services.AuditEvent{
+			RequestID:    requestIDFromContext(c),
+			ActorUserID:  &actor,
+			EventType:    "admin.order_refunded",
+			ResourceType: "order",
+			ResourceID:   &orderID,
+			Message:      "Admin initiated full refund via Razorpay",
+			Metadata: map[string]interface{}{
+				"totalRefunded": order.TotalPrice,
+				"paymentId":     order.RazorpayPaymentID,
+			},
+		})
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Refund processed and licenses suspended", "order": order})
 }

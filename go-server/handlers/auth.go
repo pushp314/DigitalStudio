@@ -5,9 +5,10 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/pushp314/digitalstudio/go-server/config"
-	"github.com/pushp314/digitalstudio/go-server/models"
-	"github.com/pushp314/digitalstudio/go-server/utils"
+	"github.com/pushp314/bizcode/go-server/config"
+	"github.com/pushp314/bizcode/go-server/models"
+	"github.com/pushp314/bizcode/go-server/services"
+	"github.com/pushp314/bizcode/go-server/utils"
 	"golang.org/x/crypto/bcrypt"
 	"time"
 )
@@ -60,6 +61,13 @@ func Register(c *gin.Context) {
 		respondError(c, http.StatusBadRequest, "Email already exists or internal error")
 		return
 	}
+
+	// Async Welcome Email
+	go func(email, name string) {
+		if err := services.Mailer.SendWelcomeEmail(email, name); err != nil {
+			services.LogServiceError("email.welcome", err, "to", email)
+		}
+	}(user.Email, user.Name)
 
 	respondAuthSuccess(c, http.StatusCreated, user)
 }
@@ -190,4 +198,37 @@ func ChangePassword(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Password changed successfully"})
+}
+func RefreshToken(c *gin.Context) {
+	var req struct {
+		RefreshToken string `json:"refreshToken" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		respondError(c, http.StatusBadRequest, "Refresh token is required")
+		return
+	}
+
+	var storedToken models.RefreshToken
+	if err := config.DB.Preload("User").Where("token = ?", req.RefreshToken).First(&storedToken).Error; err != nil {
+		respondError(c, http.StatusUnauthorized, "Invalid refresh token")
+		return
+	}
+
+	if storedToken.IsExpired() {
+		respondError(c, http.StatusUnauthorized, "Refresh token expired")
+		return
+	}
+
+	if storedToken.IsRevoked() {
+		respondError(c, http.StatusUnauthorized, "Refresh token revoked")
+		return
+	}
+
+	// Revoke old token
+	now := time.Now()
+	storedToken.RevokedAt = &now
+	config.DB.Save(&storedToken)
+
+	// Issue new pair
+	respondAuthSuccess(c, http.StatusOK, storedToken.User)
 }

@@ -1,7 +1,7 @@
 package services
 
 import (
-	"github.com/pushp314/digitalstudio/go-server/models"
+	"github.com/pushp314/bizcode/go-server/models"
 )
 
 // XP Constants

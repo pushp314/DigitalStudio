@@ -1,4 +1,4 @@
-# Frontend DigitalStudio Code Intelligence
+# Frontend BizCode Code Intelligence
 
 This document contains the core frontend architecture.
 

@@ -1,11 +1,9 @@
 package handlers
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/pushp314/digitalstudio/go-server/models"
-	"io"
+	"github.com/pushp314/bizcode/go-server/models"
 	"net/http"
 	"strconv"
 	"strings"
@@ -274,26 +272,21 @@ func (h *MarketingHandler) GetPersonalizedOffers(c *gin.Context) {
 	prompt := fmt.Sprintf("Analyze User Profile: Bought: [%s], Wants: [%s].\nGenerate a 'Limited Time VIP Offer'. Return ONLY a JSON object: {\"offerTitle\": \"string\", \"pitch\": \"short 10 word pitch\", \"discount\": number, \"code\": \"GEN-CODE\", \"expiryHours\": number}",
 		strings.Join(purchases, ", "), strings.Join(wishlist, ", "))
 
-	aiReqBody, _ := json.Marshal(map[string]string{
-		"prompt": prompt,
-		"model":  h.aiModel(),
-	})
-
-	resp, err := http.Post(h.aiServiceURL()+"/ai/prompt", "application/json", bytes.NewBuffer(aiReqBody))
+	answer, err := requestAIAnswer(prompt)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "AI connectivity issue"})
+		// Fallback
+		c.JSON(http.StatusOK, gin.H{
+			"offerTitle":  "Creator Loyalty Reward",
+			"pitch":       "Since you're growing with us, here is a special return gift.",
+			"discount":    15,
+			"code":        "GROWTH15",
+			"expiryHours": 24,
+		})
 		return
 	}
-	defer resp.Body.Close()
-
-	bodyBytes, _ := io.ReadAll(resp.Body)
-	var aiResp struct {
-		Answer string `json:"answer"`
-	}
-	json.Unmarshal(bodyBytes, &aiResp)
 
 	// Simple extraction
-	cleanJSON := aiResp.Answer
+	cleanJSON := answer
 	if strings.Contains(cleanJSON, "{") {
 		cleanJSON = "{" + strings.Split(cleanJSON, "{")[1]
 		cleanJSON = strings.Split(cleanJSON, "}")[0] + "}"
@@ -323,8 +316,5 @@ func (h *MarketingHandler) GetPersonalizedOffers(c *gin.Context) {
 }
 
 func (h *MarketingHandler) aiEnabled() bool {
-	// Simple reuse of check config
-	return true
+	return aiEnabled()
 }
-func (h *MarketingHandler) aiModel() string      { return "qwen3.5:2b" }
-func (h *MarketingHandler) aiServiceURL() string { return "http://localhost:8081" }

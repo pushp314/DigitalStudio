@@ -1,8 +1,8 @@
 package middleware
 
 import (
-	"github.com/pushp314/digitalstudio/go-server/config"
-	"github.com/pushp314/digitalstudio/go-server/models"
+	"github.com/pushp314/bizcode/go-server/config"
+	"github.com/pushp314/bizcode/go-server/models"
 	"net/http"
 	"strings"
 

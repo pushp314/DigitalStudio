@@ -12,7 +12,8 @@ import {
     Home, HelpCircle, User, Camera, 
     Download, ShoppingBag, Share2, Eye, Trash2,
     Settings2, AtSign, Lock, AlertCircle, Send, RefreshCw,
-    Wallet, Users, QrCode, Link as LinkIcon, X
+    Wallet, Users, QrCode, Link as LinkIcon, X,
+    Key, Copy, Monitor, Activity
 } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import OAuthButton from '../components/ui/OAuthButton';
@@ -42,13 +43,15 @@ const Profile = () => {
     const tabNames = {
         overview: 'Account Overview',
         assets: 'My Products',
+        licenses: 'License Keys',
         billing: 'Billing & Invoices',
         studio: 'Sell Your Project',
         messages: 'Support Inbox',
+        affiliate: 'Partner Portal',
+        referral: 'Referral Program',
         settings: 'Profile Settings',
         security: 'Security & Privacy',
         notifications: 'Notifications',
-        referral: 'Referral Program'
     };
 
     const [isEditing, setIsEditing] = useState(false);
@@ -212,10 +215,41 @@ const Profile = () => {
         onError: (err) => toastError(err.message || "Failed to delete project.")
     });
 
+    const BenefitItem = ({ icon, text, action }) => (
+        <button onClick={action} className="flex items-center gap-3 p-4 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all text-left w-full">
+            <div className="text-amber-400">{icon}</div>
+            <span className="text-[10px] font-bold uppercase tracking-widest">{text}</span>
+        </button>
+    );
+
+    const EliteBenefitsCard = () => {
+        if (user?.subscriptionPlan !== 'elite') return null;
+        return (
+            <div className="bg-gradient-to-br from-indigo-900 to-slate-900 p-8 rounded-3xl text-white relative overflow-hidden group shadow-2xl shadow-indigo-900/40">
+                <div className="absolute -top-10 -right-10 p-6 opacity-10 group-hover:scale-110 transition-transform duration-700">
+                    <Crown size={180} />
+                </div>
+                <div className="relative z-10">
+                    <div className="flex items-center gap-2 mb-4">
+                        <Crown size={16} className="text-amber-400" fill="currentColor" />
+                        <p className="text-[10px] font-bold text-amber-400 uppercase tracking-widest">Elite Member Benefits</p>
+                    </div>
+                    <h4 className="text-xl font-bold tracking-tight mb-6 leading-tight">Exclusive access to high-priority channels and custom builds.</h4>
+                    <div className="space-y-3 mb-8">
+                        <BenefitItem icon={<MessageSquare size={14} />} text="Private Developer Channel" action={() => window.open('https://discord.gg/your-link', '_blank')} />
+                        <BenefitItem icon={<Send size={14} />} text="1 Free Custom Build Request" action={() => setTab('messages')} />
+                        <BenefitItem icon={<ShieldCheck size={14} />} text="Commercial License Active" action={() => setTab('assets')} />
+                    </div>
+                    <Link to="/pricing" className="block w-full py-4 bg-white/10 backdrop-blur-md text-white border border-white/20 rounded-2xl text-[10px] font-bold text-center uppercase tracking-widest hover:bg-white hover:text-slate-900 transition-all">Manage Subscription</Link>
+                </div>
+            </div>
+        );
+    };
+
     const OverviewTab = () => (
         <div className="space-y-8 animate-in fade-in duration-500 pb-20">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <StatCard label="Account Level" value={user?.rank || 'Member'} change="Active" sub={`Member ID: ${user?.id}`} icon={<Crown size={18} />} color="text-slate-900" />
+                <StatCard label="Account Level" value={user?.isPro ? (user?.subscriptionPlan === 'elite' ? 'Elite' : 'Pro Member') : 'Free Member'} change="Active" sub={`Member ID: ${user?.id}`} icon={<Crown size={18} />} color={user?.isPro ? "text-amber-500" : "text-slate-900"} />
                 <StatCard label="Reward Points" value={(user?.xp || 0).toLocaleString()} change="+5%" sub="Community Experience" icon={<Zap size={18} />} color="text-blue-600" />
                 <StatCard label="Owned Products" value={ownedAssets?.length || 0} change="Verified" sub="Purchased apps and kits" icon={<Package size={18} />} color="text-emerald-500" />
             </div>
@@ -230,7 +264,12 @@ const Profile = () => {
                                 </div>
                                 <div className="min-w-0">
                                     <h3 className="text-2xl font-bold text-slate-900 tracking-tight mb-2">{user?.name}</h3>
-                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest bg-slate-50 border border-slate-100 px-3 py-1 rounded-lg inline-block">@{user?.username}</p>
+                                    <div className="flex items-center gap-2">
+                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest bg-slate-50 border border-slate-100 px-3 py-1 rounded-lg inline-block">@{user?.username}</p>
+                                        {user?.isPro && (
+                                            <span className="text-[8px] font-black text-amber-600 bg-amber-50 border border-amber-100 px-2 py-0.5 rounded-md uppercase tracking-widest">Pro</span>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                             <button onClick={() => setTab('settings')} className="p-3 bg-slate-50 text-slate-400 rounded-xl hover:bg-slate-900 hover:text-white transition-all shadow-sm">
@@ -241,6 +280,33 @@ const Profile = () => {
                             {user?.bio || "No bio established yet. Update your profile settings to share more about yourself."}
                         </p>
                     </div>
+
+                    {user?.isPro && (
+                        <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm overflow-hidden relative group">
+                            <div className="absolute top-0 right-0 p-8 opacity-5">
+                                <Zap size={120} />
+                            </div>
+                            <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                                <div>
+                                    <h3 className="text-[11px] font-bold text-slate-900 uppercase tracking-widest mb-2 flex items-center gap-2">
+                                        <ShieldCheck size={16} className="text-emerald-500" /> Active Membership
+                                    </h3>
+                                    <p className="text-lg font-bold text-slate-900 tracking-tight capitalize">
+                                        {user.subscriptionPlan} Access
+                                    </p>
+                                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">
+                                        Expires: {user.proExpiresAt ? new Date(user.proExpiresAt).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }) : 'Lifetime'}
+                                    </p>
+                                </div>
+                                <button 
+                                    onClick={() => navigate('/pricing')}
+                                    className="px-8 py-3 bg-slate-900 text-white rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-blue-600 transition-all shadow-lg"
+                                >
+                                    Renew / Upgrade
+                                </button>
+                            </div>
+                        </div>
+                    )}
 
                     <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm">
                         <h3 className="text-[11px] font-bold text-slate-900 uppercase tracking-widest mb-8 flex items-center gap-2">
@@ -275,19 +341,23 @@ const Profile = () => {
                     </div>
                 </div>
 
-                <div className="space-y-6">
-                    <div className="bg-slate-900 p-8 rounded-3xl text-white relative overflow-hidden group shadow-2xl shadow-slate-900/40">
-                         <div className="absolute -top-10 -right-10 p-6 opacity-10 group-hover:scale-110 transition-transform duration-700">
-                            <Zap size={180} />
-                        </div>
-                        <div className="relative z-10">
-                            <p className="text-[10px] font-bold text-blue-400 uppercase tracking-widest mb-4">Pro Membership</p>
-                            <h4 className="text-xl font-bold tracking-tight mb-8 leading-tight">Get priority help, premium guides, and better community access.</h4>
-                            <Link to="/pricing" className="block w-full py-4 bg-white text-slate-900 rounded-2xl text-[10px] font-bold text-center uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-xl">Compare Plans</Link>
-                        </div>
-                    </div>
+                    <div className="space-y-6">
+                        <EliteBenefitsCard />
+                        
+                        {!user?.isPro && (
+                            <div className="bg-slate-900 p-8 rounded-3xl text-white relative overflow-hidden group shadow-2xl shadow-slate-900/40">
+                                <div className="absolute -top-10 -right-10 p-6 opacity-10 group-hover:scale-110 transition-transform duration-700">
+                                    <Zap size={180} />
+                                </div>
+                                <div className="relative z-10">
+                                    <p className="text-[10px] font-bold text-blue-400 uppercase tracking-widest mb-4">Pro Membership</p>
+                                    <h4 className="text-xl font-bold tracking-tight mb-8 leading-tight">Get priority help, premium guides, and better community access.</h4>
+                                    <Link to="/pricing" className="block w-full py-4 bg-white text-slate-900 rounded-2xl text-[10px] font-bold text-center uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-xl">Compare Plans</Link>
+                                </div>
+                            </div>
+                        )}
                     
-                    <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm text-center group">
+                        <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm text-center group">
                         <div className="w-12 h-12 bg-slate-50 border border-slate-100 rounded-2xl flex items-center justify-center text-slate-400 mx-auto mb-6 group-hover:bg-blue-600 group-hover:text-white transition-all">
                              <HelpCircle size={20} />
                         </div>
@@ -391,6 +461,229 @@ const Profile = () => {
             )}
         </div>
     );
+
+    // ==================== LICENSES TAB ====================
+    const { data: licensesData } = useQuery({
+        queryKey: ['my-licenses'],
+        queryFn: () => api.get('/licenses/my'),
+        enabled: activeTab === 'licenses',
+    });
+
+    const handleCopyKey = (key) => {
+        navigator.clipboard.writeText(key);
+        success('Copied to clipboard');
+    };
+
+    const handleDeactivateLicense = async (licenseId, activationId) => {
+        try {
+            await api.post('/licenses/deactivate', { licenseId, activationId });
+            success('Activation deactivated');
+            queryClient.invalidateQueries(['my-licenses']);
+        } catch (err) {
+            error(err.message || 'Failed to deactivate');
+        }
+    };
+
+    const LicensesTab = () => {
+        const licenses = licensesData?.licenses || [];
+        return (
+            <div className="space-y-8 animate-in fade-in duration-500 pb-20">
+                <div className="flex items-center justify-between mb-8">
+                    <div>
+                        <h3 className="text-xl font-bold text-slate-900 uppercase tracking-tight">License Keys</h3>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Signed licenses for your purchased products.</p>
+                    </div>
+                    <div className="px-6 py-3 bg-white border border-slate-200 rounded-2xl flex items-center gap-3">
+                        <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
+                        <span className="text-[10px] font-bold text-slate-900 uppercase tracking-widest">{licenses.length} Licenses</span>
+                    </div>
+                </div>
+
+                {licenses.length === 0 ? (
+                    <div className="py-32 px-10 text-center bg-white rounded-[3rem] border border-slate-100 shadow-sm max-w-4xl mx-auto">
+                        <Key size={48} className="mx-auto text-slate-100 mb-8" />
+                        <h4 className="text-2xl font-bold text-slate-900 uppercase tracking-tight mb-4">No licenses yet</h4>
+                        <p className="text-sm text-slate-500 max-w-lg mx-auto mb-10 leading-relaxed">
+                            Licenses are automatically issued when you purchase a product.
+                        </p>
+                        <Link to="/apps" className="px-10 py-4 bg-slate-900 text-white rounded-2xl text-[11px] font-bold uppercase tracking-widest hover:scale-105 transition-all">Browse Products</Link>
+                    </div>
+                ) : (
+                    <div className="space-y-6">
+                        {licenses.map(lic => (
+                            <div key={lic.id} className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+                                <div className="px-8 py-6 border-b border-slate-100 flex items-center justify-between">
+                                    <div className="flex items-center gap-4">
+                                        <div className={`w-3 h-3 rounded-full ${lic.status === 'active' ? 'bg-emerald-500' : lic.status === 'suspended' ? 'bg-amber-500' : 'bg-rose-500'}`}></div>
+                                        <div>
+                                            <h4 className="text-sm font-bold text-slate-900 uppercase tracking-tight">{lic.product?.title || `Product #${lic.productId}`}</h4>
+                                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">
+                                                {lic.status} &middot; Plan: {lic.plan} &middot; {lic.activationCount}/{lic.maxActivations} activations
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <button onClick={() => handleCopyKey(lic.licenseKey)} className="flex items-center gap-2 px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-[9px] font-bold text-slate-600 uppercase tracking-widest hover:bg-slate-900 hover:text-white transition-all">
+                                        <Copy size={12} /> Copy Key
+                                    </button>
+                                </div>
+                                <div className="px-8 py-4">
+                                    <code className="text-[10px] font-mono text-slate-500 bg-slate-50 px-4 py-2 rounded-lg block overflow-x-auto">{lic.licenseKey}</code>
+                                </div>
+                                {lic.activations?.length > 0 && (
+                                    <div className="px-8 py-4 border-t border-slate-100">
+                                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-3">Active Deployments</p>
+                                        <div className="space-y-2">
+                                            {lic.activations.map(act => (
+                                                <div key={act.id} className="flex items-center justify-between px-4 py-3 bg-slate-50 rounded-xl">
+                                                    <div className="flex items-center gap-3">
+                                                        <Monitor size={14} className="text-slate-400" />
+                                                        <div>
+                                                            <p className="text-[10px] font-bold text-slate-700">{act.fingerprintValue}</p>
+                                                            <p className="text-[8px] text-slate-400 uppercase">{act.fingerprintType} &middot; {new Date(act.activatedAt).toLocaleDateString()}</p>
+                                                        </div>
+                                                    </div>
+                                                    <button onClick={() => handleDeactivateLicense(lic.id, act.id)} className="text-[8px] font-bold text-rose-500 uppercase tracking-widest hover:text-rose-700">
+                                                        Deactivate
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+        );
+    };
+
+    // ==================== AFFILIATE TAB ====================
+    const { data: affiliateData, refetch: refetchAffiliate } = useQuery({
+        queryKey: ['my-affiliate'],
+        queryFn: () => api.get('/affiliate/dashboard'),
+        enabled: activeTab === 'affiliate',
+        retry: false,
+    });
+
+    const [payoutAmount, setPayoutAmount] = useState('');
+
+    const handleApplyAffiliate = async () => {
+        try {
+            await api.post('/affiliate/apply', { displayName: user?.name, payoutEmail: user?.email });
+            success('Affiliate application submitted!');
+            refetchAffiliate();
+        } catch (err) {
+            error(err.message || 'Failed to apply');
+        }
+    };
+
+    const handleRequestPayout = async () => {
+        const amount = parseFloat(payoutAmount);
+        if (!amount || amount <= 0) { error('Enter a valid amount'); return; }
+        try {
+            await api.post('/affiliate/payout-request', { amount, method: 'bank_transfer' });
+            success('Payout request submitted for review');
+            setPayoutAmount('');
+            refetchAffiliate();
+        } catch (err) {
+            error(err.message || 'Failed to request payout');
+        }
+    };
+
+    const AffiliateTab = () => {
+        const aff = affiliateData?.affiliate;
+        if (!aff) {
+            return (
+                <div className="py-32 px-10 text-center bg-white rounded-[3rem] border border-slate-100 shadow-sm max-w-4xl mx-auto animate-in fade-in duration-500">
+                    <Users size={48} className="mx-auto text-slate-100 mb-8" />
+                    <h4 className="text-2xl font-bold text-slate-900 uppercase tracking-tight mb-4">Become a Partner</h4>
+                    <p className="text-sm text-slate-500 max-w-lg mx-auto mb-10 leading-relaxed">
+                        Earn commission by referring customers. Get your unique referral link and start earning.
+                    </p>
+                    <button onClick={handleApplyAffiliate} className="px-10 py-4 bg-slate-900 text-white rounded-2xl text-[11px] font-bold uppercase tracking-widest hover:scale-105 transition-all">
+                        Apply for Partner Program
+                    </button>
+                </div>
+            );
+        }
+
+        if (aff.status === 'pending') {
+            return (
+                <div className="py-20 px-10 text-center bg-amber-50 rounded-[3rem] border border-amber-200 max-w-4xl mx-auto animate-in fade-in duration-500">
+                    <AlertCircle size={48} className="mx-auto text-amber-400 mb-6" />
+                    <h4 className="text-xl font-bold text-slate-900 uppercase tracking-tight mb-3">Application Under Review</h4>
+                    <p className="text-sm text-slate-600">Your application is being reviewed. You will be notified once approved.</p>
+                </div>
+            );
+        }
+
+        const convs = affiliateData?.recentConversions || [];
+
+        return (
+            <div className="space-y-8 animate-in fade-in duration-500 pb-20">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    {[{ label: 'Total Clicks', value: aff.totalClicks, icon: <Eye size={16} /> },
+                      { label: 'Conversions', value: aff.totalConversions, icon: <Activity size={16} /> },
+                      { label: 'Pending Balance', value: `₹${aff.pendingBalance?.toLocaleString()}`, icon: <Wallet size={16} /> },
+                      { label: 'Total Earned', value: `₹${aff.totalEarnings?.toLocaleString()}`, icon: <CreditCard size={16} /> },
+                    ].map((stat, i) => (
+                        <div key={i} className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                            <div className="text-slate-400 mb-3">{stat.icon}</div>
+                            <p className="text-2xl font-bold text-slate-900">{stat.value}</p>
+                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">{stat.label}</p>
+                        </div>
+                    ))}
+                </div>
+
+                <div className="bg-white rounded-3xl border border-slate-200 p-8">
+                    <h4 className="text-xs font-bold text-slate-900 uppercase tracking-widest mb-4">Your Referral Code</h4>
+                    <div className="flex items-center gap-4">
+                        <code className="flex-1 bg-slate-50 px-6 py-4 rounded-2xl font-mono text-sm font-bold text-slate-900">{aff.referralCode}</code>
+                        <button onClick={() => handleCopyKey(aff.referralCode)} className="px-6 py-4 bg-slate-900 text-white rounded-2xl text-[10px] font-bold uppercase tracking-widest hover:bg-blue-600 transition-all">
+                            <Copy size={14} />
+                        </button>
+                    </div>
+                </div>
+
+                {aff.pendingBalance > 0 && (
+                    <div className="bg-white rounded-3xl border border-slate-200 p-8">
+                        <h4 className="text-xs font-bold text-slate-900 uppercase tracking-widest mb-4">Request Payout</h4>
+                        <div className="flex items-center gap-4">
+                            <input type="number" value={payoutAmount} onChange={e => setPayoutAmount(e.target.value)} placeholder="Amount" className="flex-1 bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 text-sm font-bold" />
+                            <button onClick={handleRequestPayout} className="px-8 py-4 bg-emerald-600 text-white rounded-2xl text-[10px] font-bold uppercase tracking-widest hover:bg-emerald-700 transition-all">Request</button>
+                        </div>
+                    </div>
+                )}
+
+                {convs.length > 0 && (
+                    <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden">
+                        <div className="px-8 py-6 border-b border-slate-100">
+                            <h4 className="text-xs font-bold text-slate-900 uppercase tracking-widest">Recent Conversions</h4>
+                        </div>
+                        <table className="w-full">
+                            <thead><tr className="bg-slate-50">
+                                <th className="px-8 py-4 text-left text-[9px] font-bold text-slate-400 uppercase">Order</th>
+                                <th className="px-8 py-4 text-left text-[9px] font-bold text-slate-400 uppercase">Commission</th>
+                                <th className="px-8 py-4 text-left text-[9px] font-bold text-slate-400 uppercase">Status</th>
+                                <th className="px-8 py-4 text-left text-[9px] font-bold text-slate-400 uppercase">Date</th>
+                            </tr></thead>
+                            <tbody>
+                                {convs.map(c => (
+                                    <tr key={c.id} className="hover:bg-slate-50 transition">
+                                        <td className="px-8 py-4 text-xs font-bold text-slate-900">#{c.orderId}</td>
+                                        <td className="px-8 py-4 text-xs font-bold text-emerald-600">₹{c.commissionAmount}</td>
+                                        <td className="px-8 py-4"><span className="text-[8px] font-bold uppercase tracking-widest px-3 py-1 rounded-full bg-slate-100 text-slate-600">{c.commissionStatus}</span></td>
+                                        <td className="px-8 py-4 text-xs text-slate-500">{new Date(c.createdAt).toLocaleDateString()}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+            </div>
+        );
+    };
 
     const SettingsTab = () => (
         <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-500 pb-20">
@@ -709,7 +1002,14 @@ const Profile = () => {
                         ) : (
                             orders.map(order => (
                                 <tr key={order.id} className="hover:bg-slate-50/50 transition-colors">
-                                    <td className="px-10 py-6 text-xs font-bold text-slate-900">#ORD-{order.id}</td>
+                                    <td className="px-10 py-6">
+                                        <p className="text-xs font-bold text-slate-900">#ORD-{order.id}</p>
+                                        {(order.addDeploymentService || order.add_deployment_service) && (
+                                            <span className="mt-1 inline-flex items-center gap-1 text-[8px] font-black text-indigo-600 uppercase tracking-widest bg-indigo-50 px-2 py-0.5 rounded-md">
+                                                + Deployment Service
+                                            </span>
+                                        )}
+                                    </td>
                                     <td className="px-10 py-6 text-xs font-medium text-slate-500">{new Date(order.createdAt).toLocaleDateString()}</td>
                                     <td className="px-10 py-6 text-xs font-bold text-slate-900">₹{order.totalPrice.toLocaleString()}</td>
                                     <td className="px-10 py-6">
@@ -764,15 +1064,15 @@ const Profile = () => {
                     <div id="invoice-content" className="p-12 md:p-16 overflow-y-auto print:p-0 print:overflow-visible">
                         <div className="flex justify-between items-start mb-14">
                             <div className="space-y-4">
-                                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-900 text-lg font-bold text-white">D</div>
+                                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-900 text-lg font-bold text-white">B</div>
                                 <div>
-                                    <h2 className="text-xl font-bold text-slate-900">DigitalStudio</h2>
+                                    <h2 className="text-xl font-bold text-slate-900">BizCode</h2>
                                     <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Premium Apps & Services</p>
                                 </div>
                             </div>
                             <div className="text-right">
                                 <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Invoice #</h4>
-                                <p className="text-lg font-bold text-slate-900">DS-{(order.id + 1000).toString()}</p>
+                                <p className="text-lg font-bold text-slate-900">BC-{(order.id + 1000).toString()}</p>
                                 <p className="text-[10px] text-slate-400 font-medium uppercase tracking-widest mt-1">Date: {new Date(order.createdAt).toLocaleDateString()}</p>
                             </div>
                         </div>
@@ -839,7 +1139,7 @@ const Profile = () => {
                         </div>
 
                         <div className="mt-12 text-center">
-                            <p className="text-[9px] text-slate-300 font-bold uppercase tracking-widest">Thank you for accelerating development with DigitalStudio.</p>
+                            <p className="text-[9px] text-slate-300 font-bold uppercase tracking-widest">Thank you for accelerating development with BizCode.</p>
                         </div>
                     </div>
                 </div>
@@ -1060,9 +1360,9 @@ const Profile = () => {
 
             <aside className="w-64 bg-white border-r border-slate-200 flex flex-col pt-8 flex-shrink-0">
                 <Link to="/account?tab=overview" className="flex items-center gap-3 px-6 mb-10 group/brand hover:opacity-80 transition-opacity">
-                    <div className="w-9 h-9 bg-slate-900 rounded-xl flex items-center justify-center font-bold text-white text-base group-hover/brand:scale-110 transition-transform shadow-xl shadow-slate-900/20">D</div>
+                    <div className="w-9 h-9 bg-slate-900 rounded-xl flex items-center justify-center font-bold text-white text-base group-hover/brand:scale-110 transition-transform shadow-xl shadow-slate-900/20">B</div>
                     <div>
-                        <h1 className="text-[11px] font-bold text-slate-900 uppercase tracking-[0.2em] leading-none mb-1">DigitalStudio Account</h1>
+                        <h1 className="text-[11px] font-bold text-slate-900 uppercase tracking-[0.2em] leading-none mb-1">BizCode Account</h1>
                         <p className="text-[8px] text-slate-400 font-bold uppercase tracking-widest">Products, support, billing</p>
                     </div>
                 </Link>
@@ -1070,16 +1370,19 @@ const Profile = () => {
                 <nav className="flex-1 px-4 space-y-1 overflow-y-auto custom-scrollbar">
                     <NavLink active={activeTab === 'overview'} onClick={() => setTab('overview')} icon={<LayoutDashboard size={18} />} label="Account Overview" />
                     <NavLink active={activeTab === 'assets'} onClick={() => setTab('assets')} icon={<Package size={18} />} label="My Products" />
+                    <NavLink active={activeTab === 'licenses'} onClick={() => setTab('licenses')} icon={<Key size={18} />} label="License Keys" />
                     <NavLink active={activeTab === 'billing'} onClick={() => setTab('billing')} icon={<CreditCard size={18} />} label="Billing & Invoices" />
                     <NavLink active={activeTab === 'studio'} onClick={() => setTab('studio')} icon={<Zap size={18} />} label="Sell Your Project" />
                     <NavLink active={activeTab === 'messages'} onClick={() => setTab('messages')} icon={<MessageSquare size={18} />} label="Support Inbox" />
+                    <div className="h-4"></div>
+                    <p className="text-[8px] font-bold text-slate-300 uppercase tracking-widest ml-4 mb-2">Growth</p>
+                    <NavLink active={activeTab === 'affiliate'} onClick={() => setTab('affiliate')} icon={<Activity size={18} />} label="Partner Portal" />
+                    <NavLink active={activeTab === 'referral'} onClick={() => setTab('referral')} icon={<Share2 size={18} />} label="Referral Program" />
                     <div className="h-4"></div>
                     <p className="text-[8px] font-bold text-slate-300 uppercase tracking-widest ml-4 mb-2">Account Settings</p>
                     <NavLink active={activeTab === 'settings'} onClick={() => setTab('settings')} icon={<Settings size={18} />} label="Profile Settings" />
                     <NavLink active={activeTab === 'security'} onClick={() => setTab('security')} icon={<Shield size={18} />} label="Security" />
                     <NavLink active={activeTab === 'notifications'} onClick={() => setTab('notifications')} icon={<Bell size={18} />} label="Notifications" />
-                    <div className="h-4"></div>
-                    <NavLink active={activeTab === 'referral'} onClick={() => setTab('referral')} icon={<Share2 size={18} />} label="Referral Program" />
                 </nav>
 
                 <div className="p-5 border-t border-slate-100 bg-slate-50/50 mt-auto">
@@ -1111,7 +1414,7 @@ const Profile = () => {
                         </div>
                         <div className="h-6 w-px bg-slate-200"></div>
                         <Link to="/" className="text-[10px] font-bold text-slate-400 hover:text-slate-900 uppercase tracking-widest flex items-center gap-2 group">
-                             <Home size={14} className="group-hover:-translate-y-0.5 transition-transform" /> Back to DigitalStudio
+                             <Home size={14} className="group-hover:-translate-y-0.5 transition-transform" /> Back to BizCode
                         </Link>
                     </div>
 
@@ -1136,6 +1439,8 @@ const Profile = () => {
                     {activeTab === 'referral' && <ReferralTab />}
                     {activeTab === 'billing' && <BillingTab />}
                     {activeTab === 'messages' && <MessagesTab />}
+                    {activeTab === 'licenses' && <LicensesTab />}
+                    {activeTab === 'affiliate' && <AffiliateTab />}
                 </div>
 
                 <AvatarCropModal 

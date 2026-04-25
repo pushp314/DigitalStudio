@@ -1,16 +1,19 @@
 package handlers
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/pushp314/digitalstudio/go-server/config"
-	"github.com/pushp314/digitalstudio/go-server/models"
+	"github.com/pushp314/bizcode/go-server/config"
+	"github.com/pushp314/bizcode/go-server/models"
 )
 
 type aiEditorReq struct {
@@ -263,92 +266,164 @@ func AnalyzeInquiry(message string) (string, int) {
 }
 
 func requestAIAnswer(prompt string) (string, error) {
-	provider := aiProvider()
 	model := aiModel()
 	apiKey := aiApiKey()
 
-	if provider == "gemini" {
-		if model == "" {
-			model = "gemini-1.5-flash"
-		}
-		if apiKey == "" {
-			return "", fmt.Errorf("Gemini API key is not configured")
-		}
+	if apiKey == "" {
+		return "", fmt.Errorf("Gemini API key is not configured")
+	}
 
-		apiURL := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent?key=%s", model, apiKey)
-		
-		reqPayload := map[string]interface{}{
-			"contents": []map[string]interface{}{
-				{
-					"parts": []map[string]interface{}{
-						{"text": prompt},
-					},
+	apiURL := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent?key=%s", model, apiKey)
+	
+	reqPayload := map[string]interface{}{
+		"contents": []map[string]interface{}{
+			{
+				"parts": []map[string]interface{}{
+					{"text": prompt},
 				},
 			},
-		}
-
-		body, _ := json.Marshal(reqPayload)
-		resp, err := http.Post(apiURL, "application/json", bytes.NewBuffer(body))
-		if err != nil {
-			return "", err
-		}
-		defer resp.Body.Close()
-
-		if resp.StatusCode != http.StatusOK {
-			respBody, _ := io.ReadAll(resp.Body)
-			return "", fmt.Errorf("Gemini API error (%d): %s", resp.StatusCode, string(respBody))
-		}
-
-		var geminiResp struct {
-			Candidates []struct {
-				Content struct {
-					Parts []struct {
-						Text string `json:"text"`
-					} `json:"parts"`
-				} `json:"content"`
-			} `json:"candidates"`
-		}
-
-		if err := json.NewDecoder(resp.Body).Decode(&geminiResp); err != nil {
-			return "", err
-		}
-
-		if len(geminiResp.Candidates) > 0 && len(geminiResp.Candidates[0].Content.Parts) > 0 {
-			return geminiResp.Candidates[0].Content.Parts[0].Text, nil
-		}
-		return "", fmt.Errorf("Gemini API returned no content")
+		},
+		"generationConfig": map[string]interface{}{
+			"maxOutputTokens": 2048,
+			"temperature":     0.7,
+		},
 	}
 
-	// Legacy Proxy Fallback
-	aiReqBody, _ := json.Marshal(map[string]string{
-		"prompt": prompt,
-		"model":  model,
-	})
+	body, _ := json.Marshal(reqPayload)
 
-	serviceURL := aiServiceURL()
-	if serviceURL == "" {
-		return "", fmt.Errorf("AI service URL is not configured")
-	}
+	// 30-second timeout to prevent hanging
+	client := &http.Client{Timeout: 30 * time.Second}
+	start := time.Now()
 
-	resp, err := http.Post(serviceURL+"/ai/prompt", "application/json", bytes.NewBuffer(aiReqBody))
+	resp, err := client.Post(apiURL, "application/json", bytes.NewBuffer(body))
+	elapsed := time.Since(start)
+
 	if err != nil {
+		log.Printf("[AI] model=%s duration=%s status=timeout error=%v", model, elapsed, err)
 		return "", err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return "", fmt.Errorf("AI service returned error (%d): %s", resp.StatusCode, string(body))
+		respBody, _ := io.ReadAll(resp.Body)
+		log.Printf("[AI] model=%s duration=%s status=%d", model, elapsed, resp.StatusCode)
+		return "", fmt.Errorf("Gemini API error (%d): %s", resp.StatusCode, string(respBody))
 	}
 
-	var aiResp struct {
-		Answer string `json:"answer"`
+	var geminiResp struct {
+		Candidates []struct {
+			Content struct {
+				Parts []struct {
+					Text string `json:"text"`
+				} `json:"parts"`
+			} `json:"content"`
+		} `json:"candidates"`
+		UsageMetadata struct {
+			PromptTokenCount     int `json:"promptTokenCount"`
+			CandidatesTokenCount int `json:"candidatesTokenCount"`
+			TotalTokenCount      int `json:"totalTokenCount"`
+		} `json:"usageMetadata"`
 	}
-	if err := json.NewDecoder(resp.Body).Decode(&aiResp); err != nil {
+
+	if err := json.NewDecoder(resp.Body).Decode(&geminiResp); err != nil {
+		log.Printf("[AI] model=%s duration=%s status=parse_error", model, elapsed)
 		return "", err
 	}
 
-	return aiResp.Answer, nil
+	log.Printf("[AI] model=%s duration=%s tokens_in=%d tokens_out=%d tokens_total=%d",
+		model, elapsed,
+		geminiResp.UsageMetadata.PromptTokenCount,
+		geminiResp.UsageMetadata.CandidatesTokenCount,
+		geminiResp.UsageMetadata.TotalTokenCount)
+
+	if len(geminiResp.Candidates) > 0 && len(geminiResp.Candidates[0].Content.Parts) > 0 {
+		return geminiResp.Candidates[0].Content.Parts[0].Text, nil
+	}
+	return "", fmt.Errorf("Gemini API returned no content")
+}
+
+func requestAIStream(c *gin.Context, prompt string) {
+	model := aiModel()
+	apiKey := aiApiKey()
+
+	if apiKey == "" {
+		respondError(c, http.StatusInternalServerError, "Gemini API key is not configured")
+		return
+	}
+
+	// Truncate input to prevent token budget blowout (max ~16K chars ≈ 4K tokens)
+	if len(prompt) > 16000 {
+		prompt = prompt[:16000] + "\n\n[CONTEXT TRUNCATED FOR BREVITY]"
+	}
+
+	apiURL := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/%s:streamGenerateContent?alt=sse&key=%s", model, apiKey)
+	
+	reqPayload := map[string]interface{}{
+		"contents": []map[string]interface{}{
+			{
+				"parts": []map[string]interface{}{
+					{"text": prompt},
+				},
+			},
+		},
+		"generationConfig": map[string]interface{}{
+			"maxOutputTokens": 1024,
+			"temperature":     0.7,
+		},
+	}
+
+	body, _ := json.Marshal(reqPayload)
+
+	client := &http.Client{Timeout: 60 * time.Second}
+	resp, err := client.Post(apiURL, "application/json", bytes.NewBuffer(body))
+	if err != nil {
+		respondError(c, http.StatusInternalServerError, "Failed to connect to Gemini: "+err.Error())
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		respBody, _ := io.ReadAll(resp.Body)
+		respondError(c, resp.StatusCode, fmt.Sprintf("Gemini API error: %s", string(respBody)))
+		return
+	}
+
+	c.Header("Content-Type", "text/event-stream")
+	c.Header("Cache-Control", "no-cache")
+	c.Header("Connection", "keep-alive")
+
+	// Create a scanner to read the SSE stream from Gemini
+	scanner := bufio.NewScanner(resp.Body)
+	for scanner.Scan() {
+		line := scanner.Text()
+		if line == "" {
+			continue
+		}
+
+		// Gemini SSE prefix is "data: "
+		if strings.HasPrefix(line, "data: ") {
+			data := strings.TrimPrefix(line, "data: ")
+			
+			var geminiChunk struct {
+				Candidates []struct {
+					Content struct {
+						Parts []struct {
+							Text string `json:"text"`
+						} `json:"parts"`
+					} `json:"content"`
+				} `json:"candidates"`
+			}
+
+			if err := json.Unmarshal([]byte(data), &geminiChunk); err == nil {
+				if len(geminiChunk.Candidates) > 0 && len(geminiChunk.Candidates[0].Content.Parts) > 0 {
+					text := geminiChunk.Candidates[0].Content.Parts[0].Text
+					// Format as the frontend expects: data: <text>\n\n
+					fmt.Fprintf(c.Writer, "data: %s\n\n", text)
+					c.Writer.Flush()
+				}
+			}
+		}
+	}
 }
 
 func stringifyAIMixedValue(value interface{}) string {
