@@ -1,0 +1,16 @@
+[Unit]
+Description=BizCode API Service
+After=network.target postgresql.service redis-server.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/var/www/bizcode/source/go-server
+ExecStart=/var/www/bizcode/source/go-server/bizcode-api
+Restart=on-failure
+RestartSec=5
+EnvironmentFile=/var/www/bizcode/source/go-server/.env
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target
