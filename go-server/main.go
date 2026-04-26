@@ -59,29 +59,37 @@ func main() {
 	r.RedirectTrailingSlash = false
 	r.RedirectFixedPath = false
 
-	// CORS must be the very first middleware to handle preflights and redirects properly
+	// CORS must be the very first middleware to handle preflights properly
 	allowOrigins := allowedOriginsFromEnv()
-	allowCredentials := len(allowOrigins) > 0 && !(len(allowOrigins) == 1 && allowOrigins[0] == "*")
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     allowOrigins,
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization", "X-Requested-With", "Cache-Control"},
-		ExposeHeaders:    []string{"Content-Length"},
-		AllowCredentials: allowCredentials,
+		ExposeHeaders:    []string{"Content-Length", "Access-Control-Allow-Origin"},
+		AllowCredentials: true,
 		MaxAge:           12 * time.Hour,
 	}))
+
+	// Normalize trailing slashes to prevent 301/CORS issues
+	r.Use(func(c *gin.Context) {
+		if c.Request.Method != "OPTIONS" && c.Request.URL.Path != "/" {
+			c.Request.URL.Path = strings.TrimSuffix(c.Request.URL.Path, "/")
+		}
+		c.Next()
+	})
 
 	r.Use(gin.Recovery())
 	r.Use(middleware.RequestIDMiddleware())
 	r.Use(middleware.RequestLogger())
 	r.Use(middleware.MaintenanceMiddleware())
 
-	// Default MaxMultipartMemory is 32MB. Increase to 100MB for faster handling of moderately large parts.
+	// Default MaxMultipartMemory is 32MB. Increase to 100MB
 	r.MaxMultipartMemory = 100 << 20
 
 	// Global Request Body Limit (except uploads)
 	r.Use(func(c *gin.Context) {
-		if !strings.HasPrefix(c.Request.URL.Path, "/api/upload") {
+		path := c.Request.URL.Path
+		if !strings.HasPrefix(path, "/api/upload") && !strings.HasPrefix(path, "/api/docs/upload") {
 			c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, 10<<20) // 10MB default
 		}
 		c.Next()
