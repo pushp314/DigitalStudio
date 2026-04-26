@@ -73,6 +73,7 @@ func ConnectDB() {
 			&models.CartRecoveryLog{},
 			&models.ImportJob{},
 			&models.RefreshToken{},
+			&models.Post{},
 		}
 		for _, m := range allModels {
 			err := DB.AutoMigrate(m)

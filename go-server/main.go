@@ -345,6 +345,16 @@ func main() {
 		adminTestimonials.DELETE("/:id", handlers.AdminDeleteTestimonial)
 	}
 
+	// Blog Post Routes
+	posts := api.Group("/posts")
+	{
+		posts.GET("", handlers.ListPosts)
+		posts.GET("/:slug", handlers.GetPost)
+		posts.POST("", middleware.AuthMiddleware(), middleware.AdminMiddleware(), handlers.CreatePost)
+		posts.PUT("/:id", middleware.AuthMiddleware(), middleware.AdminMiddleware(), handlers.UpdatePost)
+		posts.DELETE("/:id", middleware.AuthMiddleware(), middleware.AdminMiddleware(), handlers.DeletePost)
+	}
+
 	marketingHandler := handlers.NewMarketingHandler(config.DB)
 
 	adminMarketing := api.Group("/admin/marketing")

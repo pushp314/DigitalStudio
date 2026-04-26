@@ -7,7 +7,7 @@ import docService from '../services/docService';
 import { useToast } from '../context/ToastContext';
 import { normalizeDoc } from '../utils/normalizers';
 import ConfigContext from '../context/ConfigContext';
-import { LayoutGrid, List, Search as SearchIcon, FileText, Lock, Crown, Zap, ShieldCheck, Download, Users } from 'lucide-react';
+import { LayoutGrid, List, Search as SearchIcon, FileText, Lock, Crown, Zap, ShieldCheck, Download, Users, ChevronRight, BookOpen } from 'lucide-react';
 import { absoluteUrl, breadcrumbSchema } from '../utils/seo';
 
 const Docs = () => {
@@ -109,9 +109,23 @@ const Docs = () => {
             <div className="max-w-4xl mx-auto">
                 {/* Header Module - THE CONTEXT */}
                 <div className="mb-12 border-b border-slate-200 pb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
-                    <div className="space-y-2">
+                    <div className="space-y-4">
                         <h1 className="text-5xl font-black tracking-tight text-slate-900 md:text-6xl uppercase leading-none">Technical Guides</h1>
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] bg-slate-50 border border-slate-100 px-4 py-2 rounded-xl inline-block">Setup, deployment, and product implementation</p>
+                        
+                        {/* Clarification Node */}
+                        <div className="flex items-center gap-4 pt-2">
+                            <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                                <FileText size={12} className="text-blue-600" />
+                                Technical Manuals
+                            </div>
+                            <div className="w-1 h-1 bg-slate-200 rounded-full"></div>
+                            <Link to="/blog" className="flex items-center gap-2 text-[10px] font-bold text-slate-400 hover:text-slate-900 uppercase tracking-widest transition-colors group">
+                                <BookOpen size={12} className="group-hover:text-blue-600" />
+                                Strategic Blog
+                                <ChevronRight size={10} />
+                            </Link>
+                        </div>
                     </div>
                     
                     <div className="flex bg-slate-100/50 p-1.5 rounded-2xl border border-slate-200/50 shadow-inner">
