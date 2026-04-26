@@ -1,17 +1,17 @@
 package handlers
 
 import (
-	"log"
-	"net/http"
-	"strconv"
-	"strings"
-	"time"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/pushp314/bizcode/go-server/config"
 	"github.com/pushp314/bizcode/go-server/models"
 	"github.com/pushp314/bizcode/go-server/services"
 	"golang.org/x/crypto/bcrypt"
+	"log"
+	"net/http"
+	"strconv"
+	"strings"
+	"time"
 )
 
 type UpdateUserReq struct {
@@ -199,9 +199,32 @@ func GetPublicProfile(c *gin.Context) {
 	var products []models.Product
 	config.DB.Where("author_id = ? AND moderation_status = ?", user.ID, models.ModStatusApproved).Order("created_at desc").Limit(6).Find(&products)
 
-	// Fetch user's approved showcases
-	var showcases []models.DeploymentSubmission
-	config.DB.Where("user_id = ? AND status = ?", user.ID, "approved").Order("created_at desc").Limit(4).Find(&showcases)
+	// Fetch user's approved showcases and expose the legacy public-card shape.
+	var showcases []models.Showcase
+	config.DB.Preload("Product").
+		Where("user_id = ? AND status = ?", user.ID, models.ShowcaseApproved).
+		Order("created_at desc").
+		Limit(4).
+		Find(&showcases)
+	publicShowcases := make([]gin.H, 0, len(showcases))
+	for _, showcase := range showcases {
+		title := showcase.Product.Title
+		if title == "" {
+			title = "Live implementation"
+		}
+		thumbnail := showcase.Screenshot
+		if thumbnail == "" {
+			thumbnail = showcase.Product.Image
+		}
+		publicShowcases = append(publicShowcases, gin.H{
+			"id":          showcase.ID,
+			"projectName": title,
+			"liveUrl":     showcase.LiveURL,
+			"thumbnail":   thumbnail,
+			"productId":   showcase.ProductID,
+			"createdAt":   showcase.CreatedAt,
+		})
+	}
 
 	// Sanitize output
 	sanitized := gin.H{
@@ -225,7 +248,7 @@ func GetPublicProfile(c *gin.Context) {
 		"deployments":      user.TotalDeployments,
 		"avatarUrl":        user.AvatarURL,
 		"products":         products,
-		"showcases":        showcases,
+		"showcases":        publicShowcases,
 	}
 
 	c.JSON(http.StatusOK, sanitized)
@@ -233,15 +256,6 @@ func GetPublicProfile(c *gin.Context) {
 
 // UpdateMyProfile allows a user to update their own profile fields
 func UpdateMyProfile(c *gin.Context) {
-	// 1. Sync schema to ensure new fields are present
-	if err := config.DB.AutoMigrate(&models.User{}); err != nil {
-		log.Printf("AutoMigrate failed: %v", err)
-	}
-
-	// 2. Hotfix: Clean up partner_code conflicts (convert "" to NULL)
-	// This resolves the unique constraint violation for legacy users
-	config.DB.Exec("UPDATE users SET partner_code = NULL WHERE partner_code = ''")
-
 	userID, _ := c.Get("userID")
 	var user models.User
 	if err := config.DB.First(&user, userID).Error; err != nil {
@@ -265,7 +279,17 @@ func UpdateMyProfile(c *gin.Context) {
 		return
 	}
 
-	if req.Username != "" && (user.Username == nil || req.Username != *user.Username) {
+	normalizedUsername := ""
+	if req.Username != "" {
+		var valid bool
+		normalizedUsername, valid = normalizeUsername(req.Username)
+		if !valid {
+			respondError(c, http.StatusBadRequest, "Username must be 3-30 characters and use only letters, numbers, and underscores")
+			return
+		}
+	}
+
+	if normalizedUsername != "" && (user.Username == nil || normalizedUsername != *user.Username) {
 		// 30-Day Restriction Logic
 		if user.LastUsernameChangeAt != nil {
 			nextAvailable := user.LastUsernameChangeAt.Add(30 * 24 * time.Hour)
@@ -281,12 +305,11 @@ func UpdateMyProfile(c *gin.Context) {
 		}
 
 		var existing models.User
-		if err := config.DB.Where("username = ?", req.Username).First(&existing).Error; err == nil {
+		if err := config.DB.Where("username = ?", normalizedUsername).First(&existing).Error; err == nil {
 			c.JSON(http.StatusConflict, gin.H{"error": "Username already taken"})
 			return
 		}
-		uname := strings.ToLower(req.Username)
-		user.Username = &uname
+		user.Username = &normalizedUsername
 		now := time.Now()
 		user.LastUsernameChangeAt = &now
 	}
@@ -304,15 +327,10 @@ func UpdateMyProfile(c *gin.Context) {
 	if req.AvatarURL != "" {
 		user.AvatarURL = req.AvatarURL
 	}
-	if req.Username != "" {
-		// Basic validation: alphanumeric + underscores only
-		cleanUsername := strings.TrimLeft(strings.TrimSpace(req.Username), "@")
-		user.Username = &cleanUsername
-	}
 
 	if err := config.DB.Save(&user).Error; err != nil {
 		log.Printf("Profile update failed for user %d: %v", userID, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Update failed: " + err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update profile"})
 		return
 	}
 
@@ -348,17 +366,35 @@ func ReportUser(c *gin.Context) {
 	actorID, _ := c.Get("userID")
 	actor := actorID.(uint)
 	resourceID := user.ID
+	reportedName := user.Name
+	if user.Username != nil && *user.Username != "" {
+		reportedName = "@" + *user.Username
+	}
 	services.WriteAuditLog(nil, services.AuditEvent{
 		RequestID:    requestIDFromContext(c),
 		ActorUserID:  &actor,
 		EventType:    "user.profile_reported",
 		ResourceType: "user",
 		ResourceID:   &resourceID,
-		Message:      fmt.Sprintf("User @%s reported: %s", *user.Username, req.Reason),
+		Message:      fmt.Sprintf("User %s reported: %s", reportedName, req.Reason),
 		Metadata: map[string]interface{}{
 			"reason": req.Reason,
 		},
 	})
 
 	c.JSON(http.StatusOK, gin.H{"status": "Violation logged for administrative review"})
+}
+
+func normalizeUsername(raw string) (string, bool) {
+	username := strings.ToLower(strings.TrimLeft(strings.TrimSpace(raw), "@"))
+	if len(username) < 3 || len(username) > 30 {
+		return "", false
+	}
+	for _, ch := range username {
+		if (ch >= 'a' && ch <= 'z') || (ch >= '0' && ch <= '9') || ch == '_' {
+			continue
+		}
+		return "", false
+	}
+	return username, true
 }

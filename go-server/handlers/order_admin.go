@@ -31,7 +31,7 @@ func AdminListOrders(c *gin.Context) {
 		Preload("User").
 		Preload("OrderItems").
 		Preload("OrderItems.Product").
-		Order("created_at desc")
+		Order("orders.created_at desc")
 
 	switch status {
 	case "", "all":
@@ -46,7 +46,9 @@ func AdminListOrders(c *gin.Context) {
 	}
 
 	if search != "" {
-		query = query.Where("CAST(id AS TEXT) LIKE ? OR customer_email LIKE ?", "%"+search+"%", "%"+search+"%")
+		searchStr := "%" + strings.ToLower(search) + "%"
+		query = query.Joins("LEFT JOIN users ON users.id = orders.user_id").
+			Where("CAST(orders.id AS TEXT) LIKE ? OR LOWER(users.email) LIKE ? OR LOWER(users.name) LIKE ?", "%"+search+"%", searchStr, searchStr)
 	}
 
 	var total int64
@@ -201,7 +203,8 @@ func AdminRefundOrder(c *gin.Context) {
 	amount := int(order.TotalPrice * 100)
 	_, err := client.Payment.Refund(order.RazorpayPaymentID, amount, data, nil)
 	if err != nil {
-		respondError(c, http.StatusInternalServerError, "Razorpay refund failed: "+err.Error())
+		services.LogServiceError("payment.refund_failed", err, "orderId", order.ID)
+		respondError(c, http.StatusInternalServerError, "Razorpay refund failed")
 		return
 	}
 
@@ -215,7 +218,7 @@ func AdminRefundOrder(c *gin.Context) {
 
 	// Suspend licenses and reverse commissions
 	_ = services.SuspendLicensesByOrder(config.DB, order.ID, "Order refunded by administrator", nil)
-	
+
 	// Reverse affiliate commissions
 	config.DB.Model(&models.AffiliateConversion{}).
 		Where("order_id = ? AND commission_status = ?", order.ID, "pending").

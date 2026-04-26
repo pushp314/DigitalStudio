@@ -139,8 +139,8 @@ const Profile = () => {
         uploadData.append('file', file);
         try {
             const res = await api.post('/profile/upload-avatar', uploadData);
-            if (res.url) {
-                const newAvatarUrl = res.url;
+            const newAvatarUrl = res.filePath || res.url || res.storageKey;
+            if (newAvatarUrl) {
                 setFormData(prev => ({ ...prev, avatarUrl: newAvatarUrl }));
                 await updateProfile.mutateAsync({ ...formData, avatarUrl: newAvatarUrl });
                 success("Profile picture updated");
@@ -480,7 +480,7 @@ const Profile = () => {
             success('Activation deactivated');
             queryClient.invalidateQueries(['my-licenses']);
         } catch (err) {
-            error(err.message || 'Failed to deactivate');
+            toastError(err.message || 'Failed to deactivate');
         }
     };
 
@@ -574,20 +574,20 @@ const Profile = () => {
             success('Affiliate application submitted!');
             refetchAffiliate();
         } catch (err) {
-            error(err.message || 'Failed to apply');
+            toastError(err.message || 'Failed to apply');
         }
     };
 
     const handleRequestPayout = async () => {
         const amount = parseFloat(payoutAmount);
-        if (!amount || amount <= 0) { error('Enter a valid amount'); return; }
+        if (!amount || amount <= 0) { toastError('Enter a valid amount'); return; }
         try {
             await api.post('/affiliate/payout-request', { amount, method: 'bank_transfer' });
             success('Payout request submitted for review');
             setPayoutAmount('');
             refetchAffiliate();
         } catch (err) {
-            error(err.message || 'Failed to request payout');
+            toastError(err.message || 'Failed to request payout');
         }
     };
 

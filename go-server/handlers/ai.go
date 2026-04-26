@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -15,6 +16,8 @@ import (
 	"github.com/pushp314/bizcode/go-server/config"
 	"github.com/pushp314/bizcode/go-server/models"
 )
+
+var errAIProviderNotConfigured = errors.New("AI provider is not configured")
 
 type aiEditorReq struct {
 	Title     string      `json:"title"`
@@ -167,6 +170,10 @@ func GetAIRecommendation(c *gin.Context) {
 	prompt := fmt.Sprintf("Given a catalogue of ready apps, templates, and software kits and a tech stack of %s, recommend three relevant products with IDs and one-sentence descriptions.", techStack)
 	answer, err := requestAIAnswer(prompt)
 	if err != nil {
+		if errors.Is(err, errAIProviderNotConfigured) {
+			respondError(c, http.StatusServiceUnavailable, "AI service is not configured")
+			return
+		}
 		respondError(c, http.StatusInternalServerError, "Failed to get AI recommendation: "+err.Error())
 		return
 	}
@@ -213,9 +220,9 @@ func GetUserRoadmap(c *gin.Context) {
 	}
 
 	// 3. Build Strategic Prompt
-	profileContext := fmt.Sprintf("User Profile: Purchases: [%s], Wishlist: [%s].", 
+	profileContext := fmt.Sprintf("User Profile: Purchases: [%s], Wishlist: [%s].",
 		strings.Join(purchases, ", "), strings.Join(wishlistNames, ", "))
-	
+
 	prompt := fmt.Sprintf("%s\n\nTask: Generate a strategic 3-step implementation roadmap for this creator. What should they build next? Which documentation should they read? Suggest one specific ready product they don't own that would complete their toolkit. Keep it professional, encouraging, and high-density (max 150 words).", profileContext)
 
 	answer, err := requestAIAnswer(prompt)
@@ -270,11 +277,11 @@ func requestAIAnswer(prompt string) (string, error) {
 	apiKey := aiApiKey()
 
 	if apiKey == "" {
-		return "", fmt.Errorf("Gemini API key is not configured")
+		return "", errAIProviderNotConfigured
 	}
 
 	apiURL := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent?key=%s", model, apiKey)
-	
+
 	reqPayload := map[string]interface{}{
 		"contents": []map[string]interface{}{
 			{
@@ -357,7 +364,7 @@ func requestAIStream(c *gin.Context, prompt string) {
 	}
 
 	apiURL := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/%s:streamGenerateContent?alt=sse&key=%s", model, apiKey)
-	
+
 	reqPayload := map[string]interface{}{
 		"contents": []map[string]interface{}{
 			{
@@ -403,7 +410,7 @@ func requestAIStream(c *gin.Context, prompt string) {
 		// Gemini SSE prefix is "data: "
 		if strings.HasPrefix(line, "data: ") {
 			data := strings.TrimPrefix(line, "data: ")
-			
+
 			var geminiChunk struct {
 				Candidates []struct {
 					Content struct {

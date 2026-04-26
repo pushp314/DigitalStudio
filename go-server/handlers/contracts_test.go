@@ -88,8 +88,8 @@ func TestAIRecommendationRequiresConfiguredService(t *testing.T) {
 	router.GET("/api/ai/recommend", GetAIRecommendation)
 
 	recorder := performJSONRequest(t, router, http.MethodGet, "/api/ai/recommend?techStack=react", nil, "")
-	assertStatus(t, recorder, http.StatusInternalServerError)
-	assertErrorMessage(t, recorder, "AI service URL is not configured")
+	assertStatus(t, recorder, http.StatusServiceUnavailable)
+	assertErrorMessage(t, recorder, "AI service is not configured")
 }
 
 func TestUploadFileRequiresMultipartFile(t *testing.T) {

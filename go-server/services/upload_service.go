@@ -25,6 +25,7 @@ const (
 
 type UploadResult struct {
 	FilePath    string `json:"filePath"`
+	URL         string `json:"url"`
 	StorageKey  string `json:"storageKey"`
 	Scope       string `json:"scope"`
 	ContentType string `json:"contentType"`
@@ -47,6 +48,7 @@ func UploadValidatedFile(ctx context.Context, file multipart.File, header *multi
 		return nil, errors.New("file header is required")
 	}
 
+	scope = normalizeUploadScope(scope)
 	policy, err := uploadPolicyForScope(scope)
 	if err != nil {
 		return nil, err
@@ -80,6 +82,7 @@ func UploadValidatedFile(ctx context.Context, file multipart.File, header *multi
 
 	result := &UploadResult{
 		FilePath:    storageKey,
+		URL:         storageKey,
 		StorageKey:  storageKey,
 		Scope:       string(scope),
 		ContentType: contentType,
@@ -89,10 +92,24 @@ func UploadValidatedFile(ctx context.Context, file multipart.File, header *multi
 	if scope == UploadScopePublicImage {
 		if publicURL := strings.TrimRight(strings.TrimSpace(getEnv("R2_PUBLIC_URL")), "/"); publicURL != "" {
 			result.FilePath = publicURL + "/" + storageKey
+			result.URL = result.FilePath
 		}
 	}
 
 	return result, nil
+}
+
+func normalizeUploadScope(scope UploadScope) UploadScope {
+	normalized := strings.ToLower(strings.TrimSpace(string(scope)))
+	normalized = strings.ReplaceAll(normalized, "-", "_")
+	switch UploadScope(normalized) {
+	case "", UploadScopePublicImage:
+		return UploadScopePublicImage
+	case UploadScopePrivateAsset:
+		return UploadScopePrivateAsset
+	default:
+		return UploadScope(normalized)
+	}
 }
 
 func StorageKeyFromURL(filePath string) (string, bool) {
@@ -166,7 +183,9 @@ func detectFileSize(file multipart.File, header *multipart.FileHeader) (int64, e
 		return header.Size, nil
 	}
 
-	seeker, ok := file.(interface{ Seek(int64, int) (int64, error) })
+	seeker, ok := file.(interface {
+		Seek(int64, int) (int64, error)
+	})
 	if !ok {
 		return 0, nil
 	}
@@ -215,29 +234,29 @@ func uploadPolicyForScope(scope UploadScope) (*uploadPolicy, error) {
 		return &uploadPolicy{
 			maxSizeBytes: 1024 << 20, // 1GB
 			extensions: map[string]struct{}{
-				".zip":  {},
-				".rar":  {},
-				".pdf":  {},
-				".mp4":  {},
-				".mov":  {},
-				".avi":  {},
-				".mkv":  {},
-				".dmg":  {},
-				".exe":  {},
-				".iso":  {},
+				".zip": {},
+				".rar": {},
+				".pdf": {},
+				".mp4": {},
+				".mov": {},
+				".avi": {},
+				".mkv": {},
+				".dmg": {},
+				".exe": {},
+				".iso": {},
 			},
 			mimeTypes: map[string]struct{}{
-				"application/zip":              {},
-				"application/x-zip-compressed": {},
-				"application/x-rar-compressed": {},
-				"application/pdf":              {},
-				"video/mp4":                    {},
-				"video/quicktime":              {},
-				"video/x-msvideo":              {},
-				"video/x-matroska":             {},
+				"application/zip":               {},
+				"application/x-zip-compressed":  {},
+				"application/x-rar-compressed":  {},
+				"application/pdf":               {},
+				"video/mp4":                     {},
+				"video/quicktime":               {},
+				"video/x-msvideo":               {},
+				"video/x-matroska":              {},
 				"application/x-apple-diskimage": {},
 				"application/x-msdownload":      {},
-				"application/x-iso9660-image":  {},
+				"application/x-iso9660-image":   {},
 			},
 		}, nil
 	default:

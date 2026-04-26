@@ -30,6 +30,7 @@ func setupTestDB(t *testing.T) {
 
 	if err := db.AutoMigrate(
 		&models.User{},
+		&models.RefreshToken{},
 		&models.Tag{},
 		&models.Product{},
 		&models.Order{},

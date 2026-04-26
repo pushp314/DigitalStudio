@@ -117,9 +117,11 @@ func main() {
 		c.JSON(200, gin.H{"status": "running", "service": "BizCode API", "version": "1.0.0"})
 	})
 	r.GET("/sitemap.xml", handlers.ServeSitemap)
+	r.GET("/health", handlers.Healthz)
+	r.GET("/ready", handlers.Readyz)
 	r.GET("/healthz", handlers.Healthz)
 	r.GET("/readyz", handlers.Readyz)
-	r.GET("/metrics", gin.WrapH(promhttp.Handler()))
+	r.GET("/metrics", metricsAuthMiddleware(), gin.WrapH(promhttp.Handler()))
 
 	publicLimiter := middleware.RateLimitMiddleware("public", getEnvInt("RATE_LIMIT_RPM", 120), time.Minute)
 	authLimiter := middleware.RateLimitMiddleware("auth", getEnvInt("AUTH_RATE_LIMIT_RPM", 20), time.Minute)
@@ -336,6 +338,7 @@ func main() {
 		licenses.GET("/my", middleware.AuthMiddleware(), handlers.MyLicenses)
 		licenses.GET("/my/:id/token", middleware.AuthMiddleware(), handlers.GetLicenseToken)
 		licenses.POST("/activate", licenseLimiter, handlers.ActivateLicenseHandler)
+		licenses.POST("/validate", licenseLimiter, handlers.VerifyLicenseHandler)
 		licenses.POST("/verify", licenseLimiter, handlers.VerifyLicenseHandler)
 		licenses.POST("/heartbeat", licenseLimiter, handlers.HeartbeatLicenseHandler)
 		licenses.POST("/deactivate", middleware.AuthMiddleware(), handlers.DeactivateLicenseHandler)
@@ -503,7 +506,15 @@ func main() {
 	go startBackgroundPruner()
 	go handlers.RunPeriodicJobs() // Cart recovery scheduler
 
-	if err := r.Run(":" + port); err != nil {
+	server := &http.Server{
+		Addr:              ":" + port,
+		Handler:           r,
+		ReadHeaderTimeout: 10 * time.Second,
+		WriteTimeout:      5 * time.Minute,
+		IdleTimeout:       2 * time.Minute,
+	}
+
+	if err := server.ListenAndServe(); err != nil {
 		log.Fatal("Failed to start server:", err)
 	}
 }
@@ -537,8 +548,15 @@ func allowedOriginsFromEnv() []string {
 		"https://bizcode.appnity.co.in",
 		"https://bizcode.app",
 	}
+	productionDefaults := []string{
+		"https://bizcode.appnity.co.in",
+		"https://bizcode.app",
+	}
 
 	if raw == "" {
+		if config.AppConfig.AppEnv == "production" {
+			return productionDefaults
+		}
 		return defaults
 	}
 
@@ -556,6 +574,30 @@ func allowedOriginsFromEnv() []string {
 	}
 
 	return origins
+}
+
+func metricsAuthMiddleware() gin.HandlerFunc {
+	expectedToken := strings.TrimSpace(os.Getenv("METRICS_BEARER_TOKEN"))
+	return func(c *gin.Context) {
+		if expectedToken == "" {
+			if config.AppConfig.AppEnv == "production" {
+				c.JSON(http.StatusNotFound, gin.H{"error": "Not found"})
+				c.Abort()
+				return
+			}
+			c.Next()
+			return
+		}
+
+		authHeader := strings.TrimSpace(c.GetHeader("Authorization"))
+		if !strings.EqualFold(authHeader, "Bearer "+expectedToken) {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Metrics token required"})
+			c.Abort()
+			return
+		}
+
+		c.Next()
+	}
 }
 
 func sameSiteMode() http.SameSite {

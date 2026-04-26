@@ -170,7 +170,9 @@ const Navbar = ({ onSearchClick }) => {
                 const data = await api.get('/support/sessions');
                 const total = (data || []).reduce((acc, s) => acc + (s.unreadCount || 0), 0);
                 setUnreadChatCount(total);
-            } catch (err) {}
+            } catch {
+                setUnreadChatCount(0);
+            }
         };
         fetchUnreadCount();
         const interval = setInterval(fetchUnreadCount, 30000);

@@ -55,6 +55,8 @@ func ParseJWT(tokenString string) (*AuthClaims, error) {
 
 	parser := jwt.NewParser(
 		jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Alg()}),
+		jwt.WithIssuer(TokenIssuer),
+		jwt.WithExpirationRequired(),
 		jwt.WithLeeway(30*time.Second),
 	)
 
@@ -79,6 +81,11 @@ func ParseJWT(tokenString string) (*AuthClaims, error) {
 			return nil, errors.New("token subject is invalid")
 		}
 		claims.UserID = uint(parsed)
+	} else if claims.Subject != "" {
+		parsed, convErr := strconv.ParseUint(claims.Subject, 10, 64)
+		if convErr != nil || uint(parsed) != claims.UserID {
+			return nil, errors.New("token subject does not match user id")
+		}
 	}
 
 	return claims, nil

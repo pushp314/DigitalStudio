@@ -10,36 +10,36 @@ import (
 )
 
 type UpdateConfigReq struct {
-	HeroTitle           string                   `json:"heroTitle"`
-	HeroSubtitle        string                   `json:"heroSubtitle"`
-	HeroImages          []string                 `json:"heroImages"`
-	HeroVisualEffect    string                   `json:"heroVisualEffect"`
-	Announcements       []string                 `json:"announcements"`
-	CarouselStack       []models.CarouselItem    `json:"carouselStack"`
-	ShowAnnouncement    bool                     `json:"showAnnouncement"`
-	SupportEmail        string                   `json:"supportEmail"`
-	Features            map[string]bool          `json:"features"`
-	MemberPlans         []models.MemberPlan      `json:"memberPlans"`
-	FAQs                []models.FAQItem         `json:"faqs"`
-	SocialProof         models.SocialProofConfig `json:"socialProof"`
-	ShowcaseItems       []models.ShowcaseItem    `json:"showcaseItems"`
-	Contact             models.ContactConfig     `json:"contact"`
-	AISettings          models.AISettings        `json:"aiSettings"`
-	MaintenanceMode     bool                     `json:"maintenanceMode"`
-	MaintenanceMessage  string                   `json:"maintenanceMessage"`
+	HeroTitle          string                   `json:"heroTitle"`
+	HeroSubtitle       string                   `json:"heroSubtitle"`
+	HeroImages         []string                 `json:"heroImages"`
+	HeroVisualEffect   string                   `json:"heroVisualEffect"`
+	Announcements      []string                 `json:"announcements"`
+	CarouselStack      []models.CarouselItem    `json:"carouselStack"`
+	ShowAnnouncement   bool                     `json:"showAnnouncement"`
+	SupportEmail       string                   `json:"supportEmail"`
+	Features           map[string]bool          `json:"features"`
+	MemberPlans        []models.MemberPlan      `json:"memberPlans"`
+	FAQs               []models.FAQItem         `json:"faqs"`
+	SocialProof        models.SocialProofConfig `json:"socialProof"`
+	ShowcaseItems      []models.ShowcaseItem    `json:"showcaseItems"`
+	Contact            models.ContactConfig     `json:"contact"`
+	AISettings         models.AISettings        `json:"aiSettings"`
+	MaintenanceMode    bool                     `json:"maintenanceMode"`
+	MaintenanceMessage string                   `json:"maintenanceMessage"`
 }
 
 func defaultSiteConfig() models.SiteConfig {
 	return models.SiteConfig{
-		HeroTitle:           "Buy ready apps. Customize them. Or let us build for you.",
-		HeroSubtitle:        "Skip months of development with production-ready apps, technical guides, expert help, and custom build support in one place.",
+		HeroTitle:    "Buy ready apps. Customize them. Or let us build for you.",
+		HeroSubtitle: "Skip months of development with production-ready apps, technical guides, expert help, and custom build support in one place.",
 		Announcements: []string{
 			"New ready apps and product kits are live.",
 			"Pro members get priority support and premium implementation guides.",
 			"Need help choosing? Talk to an expert before you buy.",
 		},
-		ShowAnnouncement:    true,
-		SupportEmail:        "support@devnity.com",
+		ShowAnnouncement: true,
+		SupportEmail:     "support@devnity.com",
 		Features: map[string]bool{
 			"docs":          true,
 			"reviews":       true,
@@ -133,9 +133,6 @@ func ensureSiteConfig() (models.SiteConfig, error) {
 	if config.DB == nil {
 		return defaultSiteConfig(), nil
 	}
-	
-	// Force migrate to ensure FrontendURL column exists
-	_ = config.DB.AutoMigrate(&models.SiteConfig{})
 
 	if err := config.DB.First(&siteConfig).Error; err == nil {
 		return siteConfig, nil
@@ -157,7 +154,7 @@ func sanitizeSiteConfig(siteConfig models.SiteConfig) models.SiteConfig {
 func GetConfig(c *gin.Context) {
 	siteConfig, err := ensureSiteConfig()
 	if err != nil {
-		respondError(c, http.StatusInternalServerError, err.Error())
+		respondError(c, http.StatusInternalServerError, "Failed to load site configuration")
 		return
 	}
 
@@ -167,7 +164,7 @@ func GetConfig(c *gin.Context) {
 func GetAdminConfig(c *gin.Context) {
 	siteConfig, err := ensureSiteConfig()
 	if err != nil {
-		respondError(c, http.StatusInternalServerError, err.Error())
+		respondError(c, http.StatusInternalServerError, "Failed to load site configuration")
 		return
 	}
 
@@ -177,7 +174,7 @@ func GetAdminConfig(c *gin.Context) {
 func UpdateConfig(c *gin.Context) {
 	siteConfig, err := ensureSiteConfig()
 	if err != nil {
-		respondError(c, http.StatusInternalServerError, err.Error())
+		respondError(c, http.StatusInternalServerError, "Failed to load site configuration")
 		return
 	}
 

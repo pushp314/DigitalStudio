@@ -31,8 +31,6 @@ func AdminBroadcastNotification(c *gin.Context) {
 		CreatedAt: time.Now(),
 	}
 
-	// Persist to DB
-	config.DB.AutoMigrate(&models.Notification{})
 	if err := config.DB.Create(&notification).Error; err != nil {
 		respondError(c, http.StatusInternalServerError, "Failed to save notification")
 		return
@@ -49,7 +47,7 @@ func AdminBroadcastNotification(c *gin.Context) {
 	}
 
 	p, _ := json.Marshal(payload)
-	
+
 	// Non-blocking broadcast to all active sessions
 	select {
 	case GlobalHub.Broadcast <- p:
@@ -62,7 +60,7 @@ func AdminBroadcastNotification(c *gin.Context) {
 
 func GetMyNotifications(c *gin.Context) {
 	userID, _ := c.Get("userID")
-	
+
 	var notifications []models.Notification
 	err := config.DB.Where("target = ? OR user_id = ?", "all", userID).
 		Order("created_at desc").

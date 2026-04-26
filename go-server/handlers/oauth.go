@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
@@ -57,14 +58,17 @@ func GoogleCallback(c *gin.Context) {
 	_ = session.Save()
 
 	code := c.Query("code")
-	token, err := getGoogleOAuthConfig().Exchange(context.Background(), code)
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 10*time.Second)
+	defer cancel()
+
+	token, err := getGoogleOAuthConfig().Exchange(ctx, code)
 	if err != nil {
 		fmt.Printf("[OAuth Error] Google Exchange failed: %v\n", err)
 		respondError(c, http.StatusInternalServerError, "Failed to exchange token")
 		return
 	}
 
-	resp, err := http.Get("https://www.googleapis.com/oauth2/v2/userinfo?access_token=" + token.AccessToken)
+	resp, err := getGoogleOAuthConfig().Client(ctx, token).Get("https://www.googleapis.com/oauth2/v2/userinfo")
 	if err != nil {
 		respondError(c, http.StatusInternalServerError, "Failed to get user info")
 		return
@@ -77,6 +81,10 @@ func GoogleCallback(c *gin.Context) {
 		Email string `json:"email"`
 	}
 	json.NewDecoder(resp.Body).Decode(&userInfo)
+	if userInfo.Email == "" {
+		respondError(c, http.StatusBadRequest, "OAuth account email is required")
+		return
+	}
 
 	handleOAuthUser(c, "google", userInfo.ID, userInfo.Name, userInfo.Email)
 }
@@ -94,29 +102,32 @@ func GithubCallback(c *gin.Context) {
 	session := sessions.Default(c)
 	expectedState := session.Get("oauthState")
 	stateReceived := c.Query("state")
-	
+
 	if expectedState != stateReceived {
 		respondError(c, http.StatusBadRequest, "Invalid state")
 		return
 	}
-	
+
 	// Determine if this is a connect request
 	isConnect := session.Get("oauthMode") == "connect"
 	connectedUID := session.Get("oauthUID")
-	
+
 	session.Delete("oauthState")
 	session.Delete("oauthMode")
 	session.Delete("oauthUID")
 	_ = session.Save()
 
 	code := c.Query("code")
-	token, err := getGithubOAuthConfig().Exchange(context.Background(), code)
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 10*time.Second)
+	defer cancel()
+
+	token, err := getGithubOAuthConfig().Exchange(ctx, code)
 	if err != nil {
 		respondError(c, http.StatusInternalServerError, "Failed to exchange token")
 		return
 	}
 
-	client := getGithubOAuthConfig().Client(context.Background(), token)
+	client := getGithubOAuthConfig().Client(ctx, token)
 	resp, err := client.Get("https://api.github.com/user")
 	if err != nil {
 		respondError(c, http.StatusInternalServerError, "Failed to get user info")
@@ -150,9 +161,10 @@ func GithubCallback(c *gin.Context) {
 
 		// Identity Lock Check: If user already has a DIFFERENT GitHub ID linked, block it
 		if user.GithubID != "" && user.GithubID != ghIDStr {
-			frontendURL := os.Getenv("FRONTEND_URL")
+			frontendURL := getFrontendURL()
 			if frontendURL == "" {
-				frontendURL = "http://localhost:5173"
+				respondError(c, http.StatusInternalServerError, "Frontend URL is not configured")
+				return
 			}
 			c.Redirect(http.StatusTemporaryRedirect, frontendURL+"/account?tab=settings&github=error_mismatch")
 			return
@@ -161,24 +173,26 @@ func GithubCallback(c *gin.Context) {
 		// Duplicate account check: if this GitHub ID is already linked to another BizCode account.
 		var existingUser models.User
 		if err := config.DB.Where("github_id = ? AND id != ?", ghIDStr, user.ID).First(&existingUser).Error; err == nil {
-			frontendURL := os.Getenv("FRONTEND_URL")
+			frontendURL := getFrontendURL()
 			if frontendURL == "" {
-				frontendURL = "http://localhost:5173"
+				respondError(c, http.StatusInternalServerError, "Frontend URL is not configured")
+				return
 			}
 			c.Redirect(http.StatusTemporaryRedirect, frontendURL+"/account?tab=settings&github=error_duplicate")
 			return
 		}
-		
+
 		user.Github = ghUser.Login
 		user.GithubID = ghIDStr
 		user.TotalFollowers = ghUser.Followers
 		user.TotalGists = ghUser.Gists
-		
+
 		config.DB.Save(&user)
-		
-		frontendURL := os.Getenv("FRONTEND_URL")
+
+		frontendURL := getFrontendURL()
 		if frontendURL == "" {
-			frontendURL = "http://localhost:5173"
+			respondError(c, http.StatusInternalServerError, "Frontend URL is not configured")
+			return
 		}
 		c.Redirect(http.StatusTemporaryRedirect, frontendURL+"/account?tab=settings&github=connected")
 		return
@@ -202,6 +216,11 @@ func GithubCallback(c *gin.Context) {
 		}
 	}
 
+	if ghUser.Email == "" {
+		respondError(c, http.StatusBadRequest, "OAuth account email is required")
+		return
+	}
+
 	handleOAuthUser(c, "github", fmt.Sprintf("%d", ghUser.ID), ghUser.Name, ghUser.Email)
 }
 
@@ -220,12 +239,17 @@ func GithubConnect(c *gin.Context) {
 	session.Set("oauthMode", "connect")
 	session.Set("oauthUID", uid)
 	session.Save()
-	
+
 	url := getGithubOAuthConfig().AuthCodeURL(state)
 	c.Redirect(http.StatusTemporaryRedirect, url)
 }
 
 func handleOAuthUser(c *gin.Context, provider, providerID, name, email string) {
+	if email == "" {
+		respondError(c, http.StatusBadRequest, "OAuth account email is required")
+		return
+	}
+
 	var user models.User
 	result := config.DB.Where("provider = ? AND provider_id = ?", provider, providerID).First(&user)
 

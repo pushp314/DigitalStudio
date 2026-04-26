@@ -35,7 +35,9 @@ const EliteChat = () => {
             gainNode.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.1);
             oscillator.start();
             oscillator.stop(audioCtx.currentTime + 0.1);
-        } catch (e) {}
+        } catch {
+            // Audio playback can be unavailable until the browser grants it.
+        }
     };
 
     const playSendSound = () => {
@@ -52,7 +54,9 @@ const EliteChat = () => {
             gainNode.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.05);
             oscillator.start();
             oscillator.stop(audioCtx.currentTime + 0.05);
-        } catch (e) {}
+        } catch {
+            // Audio playback can be unavailable until the browser grants it.
+        }
     };
 
     const isSessionActive = (s) => {
@@ -66,7 +70,9 @@ const EliteChat = () => {
         try {
             await api.patch(`/support/sessions/${sessionId}/read`);
             window.dispatchEvent(new CustomEvent('bc_support_read'));
-        } catch (err) {}
+        } catch (err) {
+            console.debug('Support read marker failed', err);
+        }
     };
 
     const fetchMessages = async () => {
@@ -85,7 +91,9 @@ const EliteChat = () => {
                 }
                 setMessages(newMsgs);
             }
-        } catch (err) {}
+        } catch (err) {
+            console.debug('Support message refresh failed', err);
+        }
     };
 
     useEffect(() => {
@@ -161,13 +169,11 @@ const EliteChat = () => {
         setUploading(true);
         const formData = new FormData();
         formData.append('file', file);
-        formData.append('scope', 'public-image');
+        formData.append('scope', 'public_image');
 
         try {
-            const res = await api.post('/upload', formData, {
-                headers: { 'Content-Type': 'multipart/form-data' }
-            });
-            const imgMsg = `[IMAGE]${res.url}`;
+            const res = await api.post('/upload', formData);
+            const imgMsg = `[IMAGE]${res.filePath || res.url || res.storageKey}`;
             const data = await api.post(`/support/sessions/${sessionId}/messages`, {
                 message: imgMsg
             });

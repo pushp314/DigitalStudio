@@ -37,16 +37,15 @@ const ChatInput = ({ onSend, onTyping, status, user, isPro, messageCount, replyi
         setUploading(true);
         const formData = new FormData();
         formData.append('file', file);
-        formData.append('scope', 'public-image');
+        formData.append('scope', 'public_image');
 
         try {
-            const res = await api.post('/upload', formData, {
-                headers: { 'Content-Type': 'multipart/form-data' }
-            });
+            const res = await api.post('/upload', formData);
+            const uploadedUrl = res.filePath || res.url || res.storageKey;
             
             // Send as image message
             onSend("", { 
-                url: res.url, 
+                url: uploadedUrl,
                 isImage: true 
             });
             info("Image uploaded.");

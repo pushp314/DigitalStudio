@@ -99,7 +99,9 @@ const DevChat = () => {
             gainNode.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.1);
             oscillator.start();
             oscillator.stop(audioCtx.currentTime + 0.1);
-        } catch (e) {}
+        } catch {
+            // Audio playback can be unavailable until the browser grants it.
+        }
     };
 
     const playSendSound = () => {
@@ -116,7 +118,9 @@ const DevChat = () => {
             gainNode.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.05);
             oscillator.start();
             oscillator.stop(audioCtx.currentTime + 0.05);
-        } catch (e) {}
+        } catch {
+            // Audio playback can be unavailable until the browser grants it.
+        }
     };
 
     const handleUpdateSettings = (key, val) => {

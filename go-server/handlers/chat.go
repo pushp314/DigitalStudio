@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
 	"sync"
 	"time"
@@ -20,9 +21,40 @@ import (
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  4096,
 	WriteBufferSize: 4096,
-	CheckOrigin: func(r *http.Request) bool {
-		return true // Allow cross-origin for development
-	},
+	CheckOrigin:     allowedWebsocketOrigin,
+}
+
+func allowedWebsocketOrigin(r *http.Request) bool {
+	origin := strings.TrimSpace(r.Header.Get("Origin"))
+	if origin == "" {
+		return true
+	}
+
+	sameHostHTTP := "http://" + r.Host
+	sameHostHTTPS := "https://" + r.Host
+	if strings.EqualFold(origin, sameHostHTTP) || strings.EqualFold(origin, sameHostHTTPS) {
+		return true
+	}
+
+	rawAllowed := strings.TrimSpace(os.Getenv("ALLOWED_ORIGINS"))
+	if rawAllowed == "" && config.AppConfig.AppEnv != "production" {
+		rawAllowed = strings.Join([]string{
+			"http://localhost:5173",
+			"http://localhost:5174",
+			"http://127.0.0.1:5173",
+			"http://127.0.0.1:5174",
+			"http://localhost:3000",
+			"http://127.0.0.1:3000",
+		}, ",")
+	}
+
+	for _, allowed := range strings.Split(rawAllowed, ",") {
+		if strings.EqualFold(origin, strings.TrimSpace(allowed)) {
+			return true
+		}
+	}
+
+	return false
 }
 
 // Client represents a connected user in the chat
@@ -66,7 +98,7 @@ func (h *Hub) Run() {
 			h.mu.Lock()
 			h.Clients[client] = true
 			h.mu.Unlock()
-			
+
 			// Notify others
 			h.broadcastSystemMsg(fmt.Sprintf("%s joined the stream", client.UserName))
 			h.broadcastPresence()
@@ -77,7 +109,7 @@ func (h *Hub) Run() {
 				delete(h.Clients, client)
 				close(client.Send)
 				h.mu.Unlock()
-				
+
 				// Notify others
 				h.broadcastSystemMsg(fmt.Sprintf("%s disconnected", client.UserName))
 				h.broadcastPresence()
@@ -319,12 +351,12 @@ func GetChatHistory(c *gin.Context) {
 		respondError(c, http.StatusInternalServerError, "Failed to load history")
 		return
 	}
-	
+
 	// Reverse to show chronological order in UI
 	for i, j := 0, len(messages)-1; i < j; i, j = i+1, j-1 {
 		messages[i], messages[j] = messages[j], messages[i]
 	}
-	
+
 	c.JSON(http.StatusOK, messages)
 }
 
@@ -359,13 +391,13 @@ func SendChatMessage(c *gin.Context) {
 		config.DB.Model(&models.ChatMessage{}).Where("user_id = ? AND created_at >= ?", user.ID, today).Count(&count)
 		if count >= 2 {
 			c.JSON(http.StatusForbidden, gin.H{
-				"error": "Daily interaction limit (2/2) reached. Acquire Pro Membership for unlimited real-time uplink.",
+				"error":        "Daily interaction limit (2/2) reached. Acquire Pro Membership for unlimited real-time uplink.",
 				"limitReached": true,
-				"reason": "FREEMIUM_EXHAUSTED",
+				"reason":       "FREEMIUM_EXHAUSTED",
 			})
 			return
 		}
-		
+
 		// Text Length Limit (100 chars)
 		if len(req.Content) > 100 {
 			respondError(c, http.StatusForbidden, "Text limit (100 chars) reached. Purchase membership to expand bandwidth.")
@@ -378,21 +410,21 @@ func SendChatMessage(c *gin.Context) {
 			return
 		}
 
-        // Block Emojis for Normal Users (Check for non-ASCII or common emoji ranges)
-        for _, r := range req.Content {
-            if r > 127 { // Simple catch-all for non-standard ASCII (emojis etc)
-                respondError(c, http.StatusForbidden, "Emotional payloads (emojis) require Pro Membership protocol.")
-                return
-            }
-        }
+		// Block Emojis for Normal Users (Check for non-ASCII or common emoji ranges)
+		for _, r := range req.Content {
+			if r > 127 { // Simple catch-all for non-standard ASCII (emojis etc)
+				respondError(c, http.StatusForbidden, "Emotional payloads (emojis) require Pro Membership protocol.")
+				return
+			}
+		}
 	}
 
-    // --- AI BOT ASSISTANCE FOR PRO USERS ---
-    isBotRequest := strings.HasPrefix(strings.ToLower(strings.TrimSpace(req.Content)), "@bot")
-    if isBotRequest && !isPro {
-        respondError(c, http.StatusForbidden, "Technical Consultant @bot is available only for Pro Membership nodes.")
-        return
-    }
+	// --- AI BOT ASSISTANCE FOR PRO USERS ---
+	isBotRequest := strings.HasPrefix(strings.ToLower(strings.TrimSpace(req.Content)), "@bot")
+	if isBotRequest && !isPro {
+		respondError(c, http.StatusForbidden, "Technical Consultant @bot is available only for Pro Membership nodes.")
+		return
+	}
 
 	// Sanitization
 	content := strings.TrimSpace(req.Content)
@@ -402,21 +434,25 @@ func SendChatMessage(c *gin.Context) {
 	}
 
 	dbMsg := models.ChatMessage{
-		UserID:         user.ID,
-		UserName:       user.Name,
-		UserAvatar:     user.AvatarURL,
-		UserHandle:     func() string {
+		UserID:     user.ID,
+		UserName:   user.Name,
+		UserAvatar: user.AvatarURL,
+		UserHandle: func() string {
 			if user.Username != nil {
 				return *user.Username
 			}
 			return fmt.Sprintf("%d", user.ID)
 		}(),
-		Content:        content,
-		IsPro:          isPro,
-		Role:           string(user.Role),
-		Type:           func() string {
-			if req.IsImage { return "image" }
-			if len(content) > 3 && content[:3] == "```" { return "code" }
+		Content: content,
+		IsPro:   isPro,
+		Role:    string(user.Role),
+		Type: func() string {
+			if req.IsImage {
+				return "image"
+			}
+			if len(content) > 3 && content[:3] == "```" {
+				return "code"
+			}
 			return "text"
 		}(),
 		AttachmentURL:  req.AttachmentURL,
@@ -426,9 +462,6 @@ func SendChatMessage(c *gin.Context) {
 		ReplyToContent: req.ReplyToContent,
 		CreatedAt:      time.Now(),
 	}
-
-	// Force migrate just in case
-	config.DB.AutoMigrate(&models.ChatMessage{})
 
 	if err := config.DB.Create(&dbMsg).Error; err != nil {
 		respondError(c, http.StatusInternalServerError, "Failed to persist message")
@@ -489,16 +522,16 @@ func SendChatMessage(c *gin.Context) {
 			config.DB.Create(&botMsg)
 
 			botPayload, _ := json.Marshal(gin.H{
-				"id":         botMsg.ID,
-				"userId":     0,
-				"userName":   botMsg.UserName,
-				"username":   botMsg.UserHandle,
-				"content":    botMsg.Content,
-				"type":       "text",
-				"isPro":      true,
-				"role":       "admin",
-				"createdAt":  botMsg.CreatedAt,
-				"isBot":      true,
+				"id":        botMsg.ID,
+				"userId":    0,
+				"userName":  botMsg.UserName,
+				"username":  botMsg.UserHandle,
+				"content":   botMsg.Content,
+				"type":      "text",
+				"isPro":     true,
+				"role":      "admin",
+				"createdAt": botMsg.CreatedAt,
+				"isBot":     true,
 			})
 			GlobalHub.Broadcast <- botPayload
 		}()

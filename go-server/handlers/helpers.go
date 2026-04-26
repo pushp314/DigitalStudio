@@ -138,8 +138,6 @@ func requestIDFromContext(c *gin.Context) string {
 	return ""
 }
 
-
-
 func aiEnabled() bool {
 	var siteConfig models.SiteConfig
 	if config.DB != nil && config.DB.First(&siteConfig).Error == nil {
@@ -157,17 +155,20 @@ func aiEnabled() bool {
 func getFrontendURL() string {
 	var siteConfig models.SiteConfig
 	if config.DB != nil {
-		// Ensure schema is up to date for this struct to avoid 500 errors on missing columns
-		_ = config.DB.AutoMigrate(&models.SiteConfig{}, &models.RefreshToken{})
 		if config.DB.First(&siteConfig).Error == nil {
 			if url := strings.TrimRight(strings.TrimSpace(siteConfig.FrontendURL), "/"); url != "" {
 				return url
 			}
 		}
 	}
-	return getEnv("FRONTEND_URL", "http://localhost:5173")
+	if frontendURL := strings.TrimRight(strings.TrimSpace(getEnv("FRONTEND_URL", "")), "/"); frontendURL != "" {
+		return frontendURL
+	}
+	if config.AppConfig.AppEnv == "production" {
+		return ""
+	}
+	return "http://localhost:5173"
 }
-
 
 func aiModel() string {
 	var siteConfig models.SiteConfig

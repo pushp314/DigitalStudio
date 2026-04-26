@@ -22,6 +22,15 @@ func ConnectDB() {
 	if err != nil {
 		log.Fatal("Failed to connect to database:", err)
 	}
+
+	if AppConfig.AppEnv == "production" {
+		if os.Getenv("ENABLE_AUTOMIGRATE") == "true" {
+			log.Fatal("ENABLE_AUTOMIGRATE must remain disabled in production")
+		}
+		log.Println("Production schema migration is disabled at runtime. Apply versioned SQL migrations before starting the API.")
+		return
+	}
+
 	criticalModels := []interface{}{
 		&models.User{},
 		&models.RefreshToken{},

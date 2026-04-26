@@ -10,34 +10,35 @@ import (
 )
 
 func CreateContactInquiry(c *gin.Context) {
-	var raw map[string]interface{}
-	if err := c.ShouldBindJSON(&raw); err != nil {
+	var req struct {
+		Name            string `json:"name" binding:"required"`
+		Email           string `json:"email" binding:"required,email"`
+		Subject         string `json:"subject"`
+		Message         string `json:"message" binding:"required"`
+		ServiceIntentID *uint  `json:"serviceIntentId"`
+		ExpertIntentID  *uint  `json:"expertIntentId"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
 		respondError(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	// Decision logic to route to correct handler/logic
-	if _, ok := raw["expertIntentId"]; ok {
-		// Expert Help Path
-		// Manually bind from raw map or use a re-binding trick
-		// For simplicity, I'll use gorm's ability to create from map with Table name specified
-		// But structs are better for hooks. I'll just manually call the logic here.
-		
+	if req.ExpertIntentID != nil {
 		user, _ := optionalAuthenticatedUser(c)
 		newReq := models.ExpertHelpRequest{
 			SharedInquiryFields: models.SharedInquiryFields{
-				Name: raw["name"].(string),
-				Email: raw["email"].(string),
-				Message: raw["message"].(string),
+				Name:    req.Name,
+				Email:   req.Email,
+				Subject: req.Subject,
+				Message: req.Message,
 			},
+			ExpertIntentID: req.ExpertIntentID,
 		}
-		if s, ok := raw["subject"].(string); ok { newReq.Subject = s }
-		if eid, ok := raw["expertIntentId"].(float64); ok { 
-			val := uint(eid)
-			newReq.ExpertIntentID = &val 
+		if user != nil {
+			newReq.UserID = &user.ID
 		}
-		if user != nil { newReq.UserID = &user.ID }
-		
+
 		if err := config.DB.Create(&newReq).Error; err != nil {
 			respondError(c, http.StatusInternalServerError, "Failed to save expert request")
 			return
@@ -50,18 +51,17 @@ func CreateContactInquiry(c *gin.Context) {
 	// Assume Hire Developer Path or general inquiry
 	newReq := models.HireDeveloperRequest{
 		SharedInquiryFields: models.SharedInquiryFields{
-			Name: raw["name"].(string),
-			Email: raw["email"].(string),
-			Message: raw["message"].(string),
+			Name:    req.Name,
+			Email:   req.Email,
+			Subject: req.Subject,
+			Message: req.Message,
 		},
-	}
-	if s, ok := raw["subject"].(string); ok { newReq.Subject = s }
-	if sid, ok := raw["serviceIntentId"].(float64); ok { 
-		val := uint(sid)
-		newReq.ServiceIntentID = &val 
+		ServiceIntentID: req.ServiceIntentID,
 	}
 	user, _ := optionalAuthenticatedUser(c)
-	if user != nil { newReq.UserID = &user.ID }
+	if user != nil {
+		newReq.UserID = &user.ID
+	}
 
 	if err := config.DB.Create(&newReq).Error; err != nil {
 		respondError(c, http.StatusInternalServerError, "Failed to save hire request")
@@ -85,7 +85,7 @@ func CreateHireDeveloperRequest(c *gin.Context) {
 		respondError(c, http.StatusInternalServerError, "Failed to save request")
 		return
 	}
-	
+
 	backgroundAnalyzeInquiry("hire", req.ID, req.Message)
 	c.JSON(http.StatusOK, gin.H{"message": "Request received"})
 }
@@ -104,7 +104,7 @@ func CreateExpertHelpRequest(c *gin.Context) {
 		respondError(c, http.StatusInternalServerError, "Failed to save request")
 		return
 	}
-	
+
 	backgroundAnalyzeInquiry("expert", req.ID, req.Message)
 	c.JSON(http.StatusOK, gin.H{"message": "Request received"})
 }
@@ -127,15 +127,15 @@ func AdminListInquiries(c *gin.Context) {
 	// For admin, we might want to list both. Combined view or separate?
 	// The user asked for "Verify database tables actually exist: ... hire_developer_requests ... expert_help_requests"
 	// I'll provide separate list endpoints or one that combines them.
-	
+
 	var hireReqs []models.HireDeveloperRequest
 	var expertReqs []models.ExpertHelpRequest
-	
+
 	config.DB.Preload("ServiceIntent").Find(&hireReqs)
 	config.DB.Preload("ExpertIntent").Find(&expertReqs)
-	
+
 	c.JSON(http.StatusOK, gin.H{
-		"hireRequests": hireReqs,
+		"hireRequests":   hireReqs,
 		"expertRequests": expertReqs,
 	})
 }

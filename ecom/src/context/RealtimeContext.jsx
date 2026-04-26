@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import AuthContext from './AuthContext';
-import { WS_URL } from '../services/api';
+import { API_URL, WS_URL } from '../services/api';
 
 const RealtimeContext = createContext();
 
@@ -33,7 +33,7 @@ export const RealtimeProvider = ({ children }) => {
 
         try {
             // 1. Exchange Session for a One-Time Ticket (Secure 10/10 Architecture)
-            const response = await fetch(`${window.location.origin}/api/chat/ticket`, {
+            const response = await fetch(`${API_URL}/chat/ticket`, {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${token}` }
             });

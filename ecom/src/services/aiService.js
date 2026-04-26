@@ -1,4 +1,4 @@
-import api from './api';
+import api, { API_URL } from './api';
 
 const aiService = {
     generateDescription: (title, techStack) => 
@@ -15,7 +15,7 @@ const aiService = {
 
     askDocAIStream: async (markdown, question, docId) => {
         const token = localStorage.getItem('token');
-        const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
+        const baseUrl = API_URL;
         
         let apiUrl;
         if (baseUrl.startsWith('http')) {

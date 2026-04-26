@@ -168,7 +168,19 @@ func (s *emailService) SendCartRecovery(email string, stage int, cartTotal float
 	return s.SendEmail([]string{email}, subject, s.wrapHTML(content))
 }
 
-var Mailer EmailService
+type noopEmailService struct{}
+
+func (noopEmailService) SendEmail([]string, string, string) error          { return nil }
+func (noopEmailService) SendOrderConfirmation(string, uint, float64) error { return nil }
+func (noopEmailService) SendLicenseDelivery(string, uint, []string) error  { return nil }
+func (noopEmailService) SendWelcomeEmail(string, string) error             { return nil }
+func (noopEmailService) SendCombinedOrderFulfillment(string, uint, float64, []string) error {
+	return nil
+}
+func (noopEmailService) SendSupportReply(string, string, string) error { return nil }
+func (noopEmailService) SendCartRecovery(string, int, float64) error   { return nil }
+
+var Mailer EmailService = noopEmailService{}
 
 func InitMailer() {
 	Mailer = NewEmailService(config.AppConfig)
