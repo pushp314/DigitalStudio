@@ -5,16 +5,8 @@ import path from 'path';
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
-  resolve: {
-    alias: {
-      // Force all dependencies to use the same React instance
-      'react': path.resolve(__dirname, 'node_modules/react'),
-      'react-dom': path.resolve(__dirname, 'node_modules/react-dom'),
-    },
-  },
   optimizeDeps: {
-    // Ensuring core dependencies are pre-bundled together
-    include: ['react', 'react-dom', 'react-router-dom'],
+    include: ['react', 'react-dom', 'react-router-dom', 'framer-motion'],
   },
   server: {
     proxy: {
@@ -30,10 +22,12 @@ export default defineConfig({
       output: {
         manualChunks(id) {
           if (!id.includes('node_modules')) return undefined;
-          if (id.includes('react') || id.includes('scheduler')) return 'react-vendor';
-          if (id.includes('framer-motion') || id.includes('@studio-freight') || id.includes('lenis')) return 'motion-vendor';
-          if (id.includes('recharts')) return 'charts-vendor';
-          if (id.includes('react-markdown') || id.includes('remark') || id.includes('rehype')) return 'markdown-vendor';
+          if (id.includes('react') || id.includes('react-dom') || id.includes('scheduler')) {
+            return 'react-core';
+          }
+          if (id.includes('framer-motion') || id.includes('gsap') || id.includes('lenis')) {
+            return 'motion-vendor';
+          }
           return 'vendor';
         },
       },
