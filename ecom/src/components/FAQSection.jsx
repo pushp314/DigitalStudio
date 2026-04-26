@@ -3,12 +3,20 @@ import { Link } from 'react-router-dom';
 import ConfigContext from '../context/ConfigContext';
 
 const FAQItem = ({ answer, isOpen, onClick, question }) => (
-    <article className="ds-card p-6">
+    <article className={`ds-card p-5 sm:p-6 transition-all duration-300 ${isOpen ? 'ring-1 ring-slate-200 shadow-lg' : 'hover:border-slate-300'}`}>
         <button type="button" onClick={onClick} className="flex w-full items-start justify-between gap-4 text-left">
-            <h3 className="text-lg font-semibold tracking-tight text-slate-900">{question}</h3>
-            <span className="text-xl font-medium text-slate-400">{isOpen ? '−' : '+'}</span>
+            <h3 className="text-base sm:text-lg font-black tracking-tight text-slate-900 leading-tight">{question}</h3>
+            <span className={`text-xl font-bold transition-transform duration-300 ${isOpen ? 'text-slate-900 rotate-0' : 'text-slate-400'}`}>
+                {isOpen ? '−' : '+'}
+            </span>
         </button>
-        {isOpen && <p className="mt-4 border-t border-slate-200 pt-4 text-sm leading-6 text-slate-600">{answer}</p>}
+        {isOpen && (
+            <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+                <p className="mt-4 border-t border-slate-100 pt-4 text-xs sm:text-sm leading-relaxed text-slate-600 font-medium">
+                    {answer}
+                </p>
+            </div>
+        )}
     </article>
 );
 
@@ -29,19 +37,19 @@ const FAQSection = () => {
     }
 
     return (
-        <section className="ds-page px-6 py-16">
-            <div className="ds-shell space-y-8">
-                <div className="space-y-3">
-                    <p className="ds-eyebrow">FAQ</p>
-                    <h2 className="text-3xl font-bold tracking-tight text-slate-900 md:text-4xl">
+        <section className="ds-page px-4 sm:px-6 py-12 sm:py-16">
+            <div className="ds-shell space-y-8 sm:space-y-12">
+                <div className="space-y-3 sm:space-y-4">
+                    <p className="ds-eyebrow">Details</p>
+                    <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900 leading-tight">
                         Common questions about products, access, and support
                     </h2>
-                    <p className="max-w-3xl text-base leading-7 text-slate-600">
+                    <p className="max-w-3xl text-sm sm:text-base leading-relaxed text-slate-600 font-medium">
                         These answers cover the most common questions customers ask before and after purchase.
                     </p>
                 </div>
 
-                <div className="grid gap-4 lg:grid-cols-2">
+                <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
                     {faqData.map((item, index) => (
                         <FAQItem
                             key={`${item.question}-${index}`}
@@ -53,9 +61,9 @@ const FAQSection = () => {
                     ))}
                 </div>
 
-                <div className="ds-card p-6 text-center">
-                    <p className="text-sm text-slate-600">Need help with a specific order, account issue, or product question?</p>
-                    <Link to="/contact" className="ds-button-primary mt-4">
+                <div className="ds-card p-6 sm:p-10 text-center border-slate-100 shadow-xl shadow-slate-100/50">
+                    <p className="text-xs sm:text-sm text-slate-600 font-medium mb-6">Need help with a specific order, account issue, or product question?</p>
+                    <Link to="/contact" className="ds-button-primary px-8 py-3.5 text-xs font-black uppercase tracking-widest inline-flex">
                         Contact support
                     </Link>
                 </div>

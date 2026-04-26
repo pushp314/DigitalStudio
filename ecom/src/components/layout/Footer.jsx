@@ -21,13 +21,13 @@ const Footer = () => {
     ];
 
     return (
-        <footer className="ds-page border-t border-slate-200 px-6 py-12">
+        <footer className="ds-page border-t border-slate-200 px-4 sm:px-6 py-12">
             <div className="ds-shell grid gap-8 md:grid-cols-[1.2fr,0.8fr,0.8fr]">
-                <div className="space-y-4">
+                <div className="space-y-6">
                     <Link to="/" className="inline-block">
-                        <img src="/logo.png" alt="BizCode" className="h-28 w-auto" />
+                        <img src="/logo.png" alt="BizCode" className="h-16 md:h-28 w-auto object-contain" />
                     </Link>
-                    <p className="text-sm text-slate-600 max-w-xs">SaaS templates, dashboard templates, fullstack projects, developer assets, and expert implementation support.</p>
+                    <p className="text-sm leading-relaxed text-slate-600 max-w-xs">SaaS templates, dashboard templates, fullstack projects, developer assets, and expert implementation support.</p>
                     
                     <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
                         <p className="ds-eyebrow mb-2">Support</p>

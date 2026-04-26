@@ -57,40 +57,40 @@ const ProductReviews = ({ productId }) => {
     };
 
     return (
-        <section className="w-full bg-[#F5F5F7] px-6 pb-20 font-sans">
-            <div className="max-w-[1400px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-10">
-                <div className="lg:col-span-8 bg-white rounded-2xl p-8 border border-gray-100 shadow-sm">
-                    <div className="flex items-center justify-between mb-6 gap-4">
+        <section className="w-full bg-[#F5F5F7] px-4 sm:px-6 pb-20 font-sans">
+            <div className="max-w-[1400px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10">
+                <div className="lg:col-span-8 bg-white rounded-2xl p-6 sm:p-8 border border-gray-100 shadow-sm">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
                         <div>
-                            <h2 className="text-3xl font-black text-black">Reviews</h2>
-                            <p className="text-gray-500 mt-2">What buyers are saying about this product.</p>
+                            <h2 className="text-2xl sm:text-3xl font-black text-black">Reviews</h2>
+                            <p className="text-sm text-gray-500 mt-1">What buyers are saying about this product.</p>
                         </div>
-                        <div className="text-sm font-bold text-gray-500">
+                        <div className="text-xs sm:text-sm font-bold text-gray-500 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100 w-fit">
                             {reviews.length} {reviews.length === 1 ? 'review' : 'reviews'}
                         </div>
                     </div>
 
                     {loading ? (
-                        <p className="text-gray-500">Loading reviews...</p>
+                        <p className="text-gray-500 text-sm">Loading reviews...</p>
                     ) : reviews.length === 0 ? (
-                        <div className="rounded-2xl border border-dashed border-gray-200 p-8 text-center text-gray-500">
+                        <div className="rounded-2xl border border-dashed border-gray-200 p-8 text-center text-gray-500 text-sm">
                             No reviews yet. Be the first to share feedback.
                         </div>
                     ) : (
                         <div className="space-y-4">
                             {reviews.map((review) => (
-                                <div key={review.id} className="rounded-2xl border border-gray-100 p-5">
+                                <div key={review.id} className="rounded-2xl border border-gray-100 p-4 sm:p-5">
                                     <div className="flex items-start justify-between gap-4">
                                         <div>
-                                            <h3 className="font-bold text-black">{review.user?.name || 'Verified buyer'}</h3>
-                                            <p className="text-xs text-gray-400 mt-1">
+                                            <h3 className="text-sm sm:text-base font-bold text-black">{review.user?.name || 'Verified buyer'}</h3>
+                                            <p className="text-[10px] sm:text-xs text-gray-400 mt-1">
                                                 {review.createdAt ? new Date(review.createdAt).toLocaleDateString() : 'Recently'}
                                             </p>
                                         </div>
-                                        <div className="text-primary font-bold">{'★'.repeat(review.rating)}</div>
+                                        <div className="text-primary font-bold text-sm sm:text-base tracking-widest">{'★'.repeat(review.rating)}</div>
                                     </div>
                                     {review.comment && (
-                                        <p className="text-gray-600 leading-relaxed mt-4">{review.comment}</p>
+                                        <p className="text-gray-600 text-sm leading-relaxed mt-4">{review.comment}</p>
                                     )}
                                 </div>
                             ))}
@@ -98,9 +98,9 @@ const ProductReviews = ({ productId }) => {
                     )}
                 </div>
 
-                <div className="lg:col-span-4 bg-white rounded-2xl p-8 border border-gray-100 shadow-sm h-fit">
-                    <h3 className="text-xl font-black text-black mb-2">Leave a review</h3>
-                    <p className="text-gray-500 text-sm mb-6">Share a quick rating and note for other buyers.</p>
+                <div className="lg:col-span-4 bg-white rounded-2xl p-6 sm:p-8 border border-gray-100 shadow-sm h-fit">
+                    <h3 className="text-lg sm:text-xl font-black text-black mb-1">Leave a review</h3>
+                    <p className="text-gray-500 text-xs sm:text-sm mb-6">Share a quick rating and note for other buyers.</p>
 
                     {!user ? (
                         <div className="rounded-2xl bg-gray-50 p-6 text-sm text-gray-600 border border-gray-100">

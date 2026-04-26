@@ -12,32 +12,41 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../../context/ToastContext';
 
-const ChatSidebar = ({ user, onlineCount, onlineUsers }) => {
+const ChatSidebar = ({ user, onlineCount, onlineUsers, isOpen, onClose }) => {
     const navigate = useNavigate();
     const { info } = useToast();
     const isPro = user?.subscriptionPlan === 'pro' || user?.role === 'admin';
 
     return (
-        <div className="hidden lg:flex w-72 bg-white border-l border-slate-100 flex-col overflow-hidden">
+        <div className={`
+            fixed inset-y-0 right-0 z-[100] w-72 bg-white border-l border-slate-100 flex flex-col overflow-hidden transition-transform duration-500 ease-in-out
+            lg:relative lg:translate-x-0 lg:z-0
+            ${isOpen ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'}
+        `}>
             {/* Identity Module */}
-            <div className="p-8 border-b border-slate-100 bg-slate-50/20">
-                <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-slate-400 mb-8 flex justify-between items-center">
+            <div className="p-6 sm:p-8 border-b border-slate-100 bg-slate-50/20">
+                <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-slate-400 mb-6 sm:mb-8 flex justify-between items-center">
                     Profile
-                    <Bell 
-                        size={12} 
-                        className="cursor-pointer hover:text-slate-900 transition-colors" 
-                        onClick={() => {
-                            if ('Notification' in window && Notification.permission !== 'granted') {
-                                Notification.requestPermission().then(permission => {
-                                    if (permission === 'granted') info("Desktop notifications enabled.");
-                                });
-                            } else if ('Notification' in window && Notification.permission === 'granted') {
-                                info("Desktop notifications are active.");
-                            } else {
-                                info("Desktop notifications are not supported in this browser.");
-                            }
-                        }}
-                    />
+                    <div className="flex items-center gap-4">
+                        <Bell 
+                            size={12} 
+                            className="cursor-pointer hover:text-slate-900 transition-colors" 
+                            onClick={() => {
+                                if ('Notification' in window && Notification.permission !== 'granted') {
+                                    Notification.requestPermission().then(permission => {
+                                        if (permission === 'granted') info("Desktop notifications enabled.");
+                                    });
+                                } else if ('Notification' in window && Notification.permission === 'granted') {
+                                    info("Desktop notifications are active.");
+                                } else {
+                                    info("Desktop notifications are not supported in this browser.");
+                                }
+                            }}
+                        />
+                        <button onClick={onClose} className="lg:hidden text-slate-400 hover:text-slate-900 transition-colors">
+                            <ArrowRight size={14} />
+                        </button>
+                    </div>
                 </h3>
                 
                 <div className="space-y-6">

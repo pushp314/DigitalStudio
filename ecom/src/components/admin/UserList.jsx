@@ -68,7 +68,7 @@ const UserList = () => {
     return (
         <div className="space-y-6 animate-in fade-in duration-500 relative" style={{ fontFamily: "'Inter', sans-serif" }}>
             
-             <div className="flex flex-col md:flex-row justify-between items-center gap-6 bg-white p-6 rounded-xl border border-slate-200">
+             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-4 sm:p-6 rounded-xl border border-slate-200">
                 <div>
                     <h2 className="text-base font-bold text-slate-900 tracking-tight mb-1">User Directory</h2>
                     <p className="text-xs text-slate-500">Manage authorization levels and subscription statuses across the matrix.</p>
@@ -81,21 +81,21 @@ const UserList = () => {
             </div>
 
             <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
+                <div className="table-responsive">
+                    <table className="w-full text-left border-collapse min-w-[700px]">
                         <thead>
                             <tr className="bg-slate-50 border-b border-slate-200">
-                                <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">User</th>
-                                <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-center">Role</th>
-                                <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-center">Subscription</th>
-                                <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-center">Status</th>
-                                <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-right">Actions</th>
+                                <th className="px-4 sm:px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">User</th>
+                                <th className="px-4 sm:px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-center">Role</th>
+                                <th className="px-4 sm:px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-center">Subscription</th>
+                                <th className="px-4 sm:px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-center">Status</th>
+                                <th className="px-4 sm:px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
                             {users.map((user) => (
                                 <tr key={user.id} className="hover:bg-slate-50/50 transition-colors group">
-                                    <td className="px-6 py-4">
+                                    <td className="px-4 sm:px-6 py-4">
                                         <div className="flex items-center gap-4">
                                             <div className="w-9 h-9 rounded-lg bg-white border border-slate-200 flex items-center justify-center font-bold text-[11px] text-slate-900 uppercase shadow-sm">
                                                 {user.name?.charAt(0)}
@@ -109,7 +109,7 @@ const UserList = () => {
                                             </div>
                                         </div>
                                     </td>
-                                    <td className="px-6 py-4 text-center">
+                                    <td className="px-4 sm:px-6 py-4 text-center">
                                         <select 
                                             value={user.role} 
                                             onChange={(e) => handleUpdate(user.id, 'role', e.target.value)}
@@ -120,13 +120,13 @@ const UserList = () => {
                                             <option value="admin">Admin</option>
                                         </select>
                                     </td>
-                                    <td className="px-6 py-4 text-center">
+                                    <td className="px-4 sm:px-6 py-4 text-center">
                                          <Badge 
                                             variant={user.subscriptionPlan === 'pro' ? 'success' : user.subscriptionPlan === 'enterprise' ? 'primary' : 'neutral'}
                                             label={user.subscriptionPlan}
                                          />
                                     </td>
-                                    <td className="px-6 py-4 text-center">
+                                    <td className="px-4 sm:px-6 py-4 text-center">
                                         <button 
                                             onClick={() => handleUpdate(user.id, 'suspended', !user.suspended)}
                                             className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest transition-all ${
@@ -139,7 +139,7 @@ const UserList = () => {
                                             {user.suspended ? 'Suspended' : 'Verified'}
                                         </button>
                                     </td>
-                                    <td className="px-6 py-4 text-right">
+                                    <td className="px-4 sm:px-6 py-4 text-right">
                                         <div className="flex justify-end gap-2">
                                             <ActionButton icon={<Key size={14} />} onClick={() => handleResetPassword(user)} title="Reset Password" />
                                         </div>

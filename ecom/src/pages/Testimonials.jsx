@@ -23,17 +23,17 @@ const Testimonials = () => {
                 description="Read recent reviews from customers and share your own feedback after purchase."
             />
             <TestimonialsGrid />
-            <section className="px-6 pb-16">
+            <section className="px-4 sm:px-6 pb-16">
                 <div className="ds-shell">
-                    <div className="ds-panel p-6 md:p-8">
+                    <div className="ds-panel p-6 sm:p-10 border-slate-100 shadow-2xl shadow-slate-100/50">
                         <div className="space-y-2">
-                            <p className="ds-eyebrow">Leave a review</p>
-                            <h2 className="text-2xl font-semibold tracking-tight text-slate-900">Share your purchase experience</h2>
-                            <p className="text-sm leading-6 text-slate-600">
+                            <p className="ds-eyebrow">Review</p>
+                            <h2 className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 leading-tight">Share your purchase experience</h2>
+                            <p className="text-xs sm:text-sm leading-relaxed text-slate-600 font-medium">
                                 Reviews are tied to a purchased product so other customers can trust the feedback they see.
                             </p>
                         </div>
-                        <div className="mt-6">
+                        <div className="mt-8">
                             <TestimonialForm />
                         </div>
                     </div>

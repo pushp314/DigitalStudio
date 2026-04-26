@@ -52,7 +52,7 @@ const ConfirmationModal = ({
                 {/* Header Graphic */}
                 <div className={`h-2 ${style.bg}`} />
                 
-                <div className="p-8">
+                <div className="p-6 sm:p-8">
                     <div className="flex items-start justify-between mb-6">
                         <div className={`p-3 rounded-2xl ${style.bg} border ${style.border}`}>
                             {style.icon}
@@ -66,26 +66,26 @@ const ConfirmationModal = ({
                     </div>
 
                     <div className="space-y-2 mb-8">
-                        <h3 className="text-xl font-bold text-slate-900 tracking-tight uppercase">
+                        <h3 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight uppercase">
                             {title}
                         </h3>
-                        <p className="text-sm text-slate-500 font-medium leading-relaxed">
+                        <p className="text-xs sm:text-sm text-slate-500 font-medium leading-relaxed">
                             {message}
                         </p>
                     </div>
 
-                    <div className="flex gap-3">
+                    <div className="flex flex-col sm:flex-row gap-3">
                         <button
                             onClick={onClose}
                             disabled={isLoading}
-                            className="flex-1 py-3 bg-slate-50 text-slate-600 rounded-xl text-[11px] font-black uppercase tracking-widest border border-slate-200 hover:bg-slate-100 transition-all disabled:opacity-50"
+                            className="flex-1 py-3 bg-slate-50 text-slate-600 rounded-xl text-[10px] sm:text-[11px] font-black uppercase tracking-widest border border-slate-200 hover:bg-slate-100 transition-all disabled:opacity-50 order-2 sm:order-1"
                         >
                             {cancelText}
                         </button>
                         <button
                             onClick={onConfirm}
                             disabled={isLoading}
-                            className={`flex-1 py-3 text-white rounded-xl text-[11px] font-black uppercase tracking-widest transition-all shadow-lg flex items-center justify-center gap-2 disabled:opacity-50 ${style.button}`}
+                            className={`flex-1 py-3 text-white rounded-xl text-[10px] sm:text-[11px] font-black uppercase tracking-widest transition-all shadow-lg flex items-center justify-center gap-2 disabled:opacity-50 order-1 sm:order-2 ${style.button}`}
                         >
                             {isLoading ? (
                                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />

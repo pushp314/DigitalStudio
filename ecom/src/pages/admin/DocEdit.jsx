@@ -140,94 +140,96 @@ const DocEdit = () => {
     ];
 
     return (
+    return (
         <div className="min-h-screen bg-[#F9FAFB] flex flex-col font-sans selection:bg-black selection:text-white" style={{ fontFamily: "'Inter', sans-serif" }}>
             {/* Enterprise Header */}
-            <header className="bg-white border-b border-gray-100 px-10 py-5 flex justify-between items-center sticky top-0 z-50 shadow-sm">
-                <div className="flex items-center gap-6">
-                    <button onClick={() => navigate('/admin/docs')} className="w-10 h-10 flex items-center justify-center bg-gray-50 border border-gray-100 rounded-xl hover:bg-black hover:text-white transition-all group">
+            <header className="bg-white border-b border-gray-100 px-4 sm:px-10 py-4 sm:py-5 flex flex-col sm:flex-row justify-between items-center sticky top-0 z-50 shadow-sm gap-4">
+                <div className="flex items-center gap-4 sm:gap-6 w-full sm:w-auto">
+                    <button onClick={() => navigate('/admin/docs')} className="w-10 h-10 flex-shrink-0 flex items-center justify-center bg-gray-50 border border-gray-100 rounded-xl hover:bg-black hover:text-white transition-all group">
                         <svg className="w-5 h-5 transition-transform group-hover:-translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" /></svg>
                     </button>
-                    <div>
-                        <h1 className="text-xl font-bold text-black tracking-tight">{isCreateMode ? 'Draft Documentation' : formData.title}</h1>
-                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Document Editor</p>
+                    <div className="min-w-0">
+                        <h1 className="text-lg sm:text-xl font-bold text-black tracking-tight truncate">{isCreateMode ? 'Draft Documentation' : formData.title}</h1>
+                        <p className="text-[9px] sm:text-[10px] font-black text-gray-400 uppercase tracking-widest">Document Editor</p>
                     </div>
                 </div>
 
-                <div className="flex items-center gap-6">
-                    <div className="bg-gray-50 p-1.5 rounded-2xl border border-gray-100 flex gap-1">
+                <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-6 w-full sm:w-auto">
+                    <div className="bg-gray-50 p-1 rounded-xl sm:rounded-2xl border border-gray-100 flex gap-1">
                         {['split', 'editor', 'preview'].map(m => (
                             <button
                                 key={m}
                                 onClick={() => setPreviewMode(m)}
-                                className={`px-5 py-2 rounded-xl text-[10px] font-bold uppercase transition-all tracking-widest ${previewMode === m ? 'bg-white text-black shadow-sm ring-1 ring-gray-100' : 'text-gray-400 hover:text-black'}`}
+                                className={`px-3 sm:px-5 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-[9px] sm:text-[10px] font-bold uppercase transition-all tracking-widest ${previewMode === m ? 'bg-white text-black shadow-sm ring-1 ring-gray-100' : 'text-gray-400 hover:text-black'} ${m === 'split' ? 'hidden md:block' : ''}`}
                             >
                                 {m}
                             </button>
                         ))}
                     </div>
-                    <button onClick={handleSubmit} className="px-8 py-3.5 bg-black text-white rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-gray-800 transition-all shadow-xl shadow-black/10 active:scale-95">
-                        Save Document
+                    <button onClick={handleSubmit} className="px-5 sm:px-8 py-2.5 sm:py-3.5 bg-black text-white rounded-xl sm:rounded-2xl font-black text-[10px] sm:text-xs uppercase tracking-widest hover:bg-gray-800 transition-all shadow-xl shadow-black/10 active:scale-95">
+                        Save
                     </button>
                 </div>
             </header>
 
-            <div className="flex-grow flex overflow-hidden">
+            <div className="flex-grow flex flex-col sm:flex-row overflow-hidden relative">
                 {/* Secondary Sidebar Navigation */}
-                <aside className="w-20 bg-white border-r border-gray-100 flex flex-col items-center py-10 gap-8 shrink-0">
+                <aside className="fixed bottom-0 left-0 right-0 h-16 sm:h-auto sm:relative sm:w-20 bg-white border-t sm:border-t-0 sm:border-r border-gray-100 flex sm:flex-col flex-row items-center justify-around sm:justify-start sm:py-10 gap-0 sm:gap-8 shrink-0 z-40">
                     {tabs.map(t => (
                         <button 
                             key={t.id} 
                             onClick={() => setActiveTab(t.id)} 
-                            className={`w-12 h-12 rounded-xl flex flex-col items-center justify-center transition-all ${activeTab === t.id ? 'bg-black text-white' : 'text-gray-400 hover:text-black hover:bg-gray-50'}`}
+                            className={`flex flex-col items-center justify-center transition-all p-2 sm:w-12 sm:h-12 sm:rounded-xl ${activeTab === t.id ? 'text-black sm:bg-black sm:text-white' : 'text-gray-400 hover:text-black sm:hover:bg-gray-50'}`}
                         >
-                            <span className="text-xl">{t.icon}</span>
-                            <span className="text-[7px] font-bold uppercase mt-1">{t.label}</span>
+                            <span className="text-lg sm:text-xl">{t.icon}</span>
+                            <span className="text-[7px] sm:text-[7px] font-black uppercase mt-1 tracking-tighter">{t.label}</span>
+                            {activeTab === t.id && <div className="sm:hidden w-1 h-1 bg-black rounded-full mt-0.5"></div>}
                         </button>
                     ))}
                 </aside>
 
-                <div className={`flex-grow flex overflow-hidden ${previewMode === 'split' ? 'divide-x divide-gray-100' : ''}`}>
+                <div className={`flex-grow flex overflow-hidden pb-16 sm:pb-0 ${previewMode === 'split' ? 'divide-x divide-gray-100' : ''}`}>
                     
                     {/* Workspace Central */}
-                    {(previewMode === 'split' || previewMode === 'editor') && (
+                    {(previewMode === 'editor' || (previewMode === 'split' && window.innerWidth >= 768)) && (
                         <div className={`${previewMode === 'split' ? 'w-1/2' : 'w-full'} flex flex-col bg-white overflow-hidden`}>
-                            <div className="p-10 space-y-8 overflow-y-auto flex-grow max-w-4xl mx-auto w-full">
+                            <div className="p-4 sm:p-10 space-y-6 sm:space-y-8 overflow-y-auto flex-grow max-w-4xl mx-auto w-full">
                                 
                                 {activeTab === 'editor' && (
-                                    <div className="space-y-8 animate-in slide-in-from-right-4 duration-500">
-                                        <div className="grid grid-cols-2 gap-8">
+                                    <div className="space-y-6 sm:space-y-8 animate-in slide-in-from-right-4 duration-500">
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-8">
                                             <FormGroup label="Document Title">
-                                                <input name="title" value={formData.title} onChange={handleChange} className="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:border-black font-bold text-sm" placeholder="e.g. Setup Guide" />
+                                                <input name="title" value={formData.title} onChange={handleChange} className="w-full px-4 sm:px-5 py-3 sm:py-4 bg-gray-50 border border-gray-100 rounded-xl sm:rounded-2xl outline-none focus:border-black font-bold text-sm" placeholder="e.g. Setup Guide" />
                                             </FormGroup>
                                             <FormGroup label="Category">
-                                                <input name="category" value={formData.category} onChange={handleChange} className="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:border-black font-bold text-sm" placeholder="e.g. Technical" />
+                                                <input name="category" value={formData.category} onChange={handleChange} className="w-full px-4 sm:px-5 py-3 sm:py-4 bg-gray-50 border border-gray-100 rounded-xl sm:rounded-2xl outline-none focus:border-black font-bold text-sm" placeholder="e.g. Technical" />
                                             </FormGroup>
                                         </div>
 
-                                        <div className="grid grid-cols-3 gap-8 items-end border-b border-gray-50 pb-8">
+                                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-8 items-end border-b border-gray-50 pb-6 sm:pb-8">
                                             <FormGroup label="Price (₹)">
-                                                <input type="number" name="price" value={formData.price} onChange={handleChange} className="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:border-black font-bold text-sm" />
+                                                <input type="number" name="price" value={formData.price} onChange={handleChange} className="w-full px-4 sm:px-5 py-3 sm:py-4 bg-gray-50 border border-gray-100 rounded-xl sm:rounded-2xl outline-none focus:border-black font-bold text-sm" />
                                             </FormGroup>
                                             <FormGroup label="Index Order">
-                                                <input type="number" name="order" value={formData.order} onChange={handleChange} className="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:border-black font-bold text-sm" />
+                                                <input type="number" name="order" value={formData.order} onChange={handleChange} className="w-full px-4 sm:px-5 py-3 sm:py-4 bg-gray-50 border border-gray-100 rounded-xl sm:rounded-2xl outline-none focus:border-black font-bold text-sm" />
                                             </FormGroup>
-                                            <div className="pb-4 flex items-center justify-end h-full">
+                                            <div className="pb-2 sm:pb-4 flex items-center justify-start sm:justify-end h-full">
                                                 <label className="flex items-center gap-3 cursor-pointer">
                                                     <input type="checkbox" name="isPremium" checked={formData.isPremium} onChange={handleChange} className="w-5 h-5 accent-black" />
-                                                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Premium Document</span>
+                                                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">Premium Document</span>
                                                 </label>
                                             </div>
                                         </div>
 
-                                        <div className="space-y-4 pt-4">
-                                            <div className="flex justify-between items-center">
-                                                <div className="flex gap-2">
+                                        <div className="space-y-4 pt-2 sm:pt-4">
+                                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                                                <div className="flex gap-2 flex-wrap">
                                                     <ToolbarBtn onClick={() => insertText('## ', '')}>H2</ToolbarBtn>
                                                     <ToolbarBtn onClick={() => insertText('### ', '')}>H3</ToolbarBtn>
-                                                    <div className="w-px bg-gray-100 h-6 mx-2"></div>
+                                                    <div className="hidden sm:block w-px bg-gray-100 h-6 mx-2"></div>
                                                     <ToolbarBtn onClick={() => insertText('<a id="', '"></a>')}>Anchor</ToolbarBtn>
                                                 </div>
-                                                <button onClick={handleGenerateAI} disabled={aiGenerating} className="px-4 py-2 bg-black text-white rounded-xl text-[9px] font-bold uppercase tracking-[0.2em] flex items-center gap-2 hover:opacity-80 disabled:opacity-50">
+                                                <button onClick={handleGenerateAI} disabled={aiGenerating} className="px-4 py-2 bg-black text-white rounded-xl text-[9px] font-black uppercase tracking-[0.2em] flex items-center gap-2 hover:opacity-80 disabled:opacity-50 w-full sm:w-auto justify-center">
                                                     {aiGenerating ? 'AI ASSIST...' : '✨ Magic Write'}
                                                 </button>
                                             </div>
@@ -236,7 +238,7 @@ const DocEdit = () => {
                                                 name="content"
                                                 value={formData.content}
                                                 onChange={handleChange}
-                                                className="w-full min-h-[700px] p-10 bg-gray-50 border border-gray-100 rounded-[2.5rem] outline-none focus:bg-white focus:border-black transition-all font-mono text-sm leading-relaxed"
+                                                className="w-full min-h-[400px] sm:min-h-[700px] p-6 sm:p-10 bg-gray-50 border border-gray-100 rounded-[1.5rem] sm:rounded-[2.5rem] outline-none focus:bg-white focus:border-black transition-all font-mono text-xs sm:text-sm leading-relaxed"
                                                 placeholder="Write documentation here..."
                                             />
                                         </div>
@@ -244,36 +246,36 @@ const DocEdit = () => {
                                 )}
 
                                 {activeTab === 'seo' && (
-                                    <div className="space-y-10 animate-in slide-in-from-right-4 duration-500">
-                                        <div className="p-10 bg-gray-50 rounded-[2.5rem] border border-gray-100">
-                                            <h2 className="text-2xl font-bold text-black tracking-tight mb-2">Search Optimization</h2>
-                                            <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">Metadata settings for technical guides</p>
+                                    <div className="space-y-8 sm:space-y-10 animate-in slide-in-from-right-4 duration-500">
+                                        <div className="p-6 sm:p-10 bg-gray-50 rounded-[1.5rem] sm:rounded-[2.5rem] border border-gray-100">
+                                            <h2 className="text-xl sm:text-2xl font-bold text-black tracking-tight mb-2">Search Optimization</h2>
+                                            <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest">Metadata settings</p>
                                         </div>
                                         <FormGroup label="SEO Page Title">
-                                            <input name="seoTitle" value={formData.seoTitle} onChange={handleChange} className="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:border-black font-bold text-sm" />
+                                            <input name="seoTitle" value={formData.seoTitle} onChange={handleChange} className="w-full px-4 sm:px-5 py-3 sm:py-4 bg-gray-50 border border-gray-100 rounded-xl sm:rounded-2xl outline-none focus:border-black font-bold text-sm" />
                                         </FormGroup>
                                         <FormGroup label="Search Description">
-                                            <textarea name="seoDescription" value={formData.seoDescription} onChange={handleChange} rows={6} className="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:border-black font-medium text-sm" />
+                                            <textarea name="seoDescription" value={formData.seoDescription} onChange={handleChange} rows={6} className="w-full px-4 sm:px-5 py-3 sm:py-4 bg-gray-50 border border-gray-100 rounded-xl sm:rounded-2xl outline-none focus:border-black font-medium text-sm" />
                                         </FormGroup>
                                     </div>
                                 )}
 
                                 {activeTab === 'help' && (
-                                    <div className="space-y-10 animate-in slide-in-from-right-4 duration-500">
-                                        <div className="p-10 bg-black text-white rounded-[2.5rem] shadow-xl shadow-black/10">
-                                            <h2 className="text-2xl font-bold tracking-tight mb-4">Navigation Guide</h2>
-                                            <p className="opacity-60 leading-relaxed font-medium">Your documentation uses an automated system to generate sidebars.</p>
+                                    <div className="space-y-6 sm:space-y-10 animate-in slide-in-from-right-4 duration-500">
+                                        <div className="p-6 sm:p-10 bg-black text-white rounded-[1.5rem] sm:rounded-[2.5rem] shadow-xl shadow-black/10">
+                                            <h2 className="text-xl sm:text-2xl font-bold tracking-tight mb-3">Navigation Guide</h2>
+                                            <p className="text-xs sm:text-sm opacity-60 leading-relaxed font-medium">Your documentation uses an automated system to generate sidebars.</p>
                                         </div>
-                                        <div className="grid grid-cols-2 gap-8">
-                                            <div className="p-8 bg-gray-50 rounded-3xl border border-gray-100">
-                                                <p className="text-[10px] font-bold text-black uppercase tracking-widest mb-4">Tip 01</p>
-                                                <h3 className="font-bold mb-2">H2/H3 Headers</h3>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-8">
+                                            <div className="p-6 sm:p-8 bg-gray-50 rounded-2xl sm:rounded-3xl border border-gray-100">
+                                                <p className="text-[9px] font-black text-black uppercase tracking-widest mb-3">Tip 01</p>
+                                                <h3 className="font-bold text-sm mb-1">H2/H3 Headers</h3>
                                                 <p className="text-xs text-gray-500 leading-relaxed">Headers are automatically used as section links.</p>
                                             </div>
-                                            <div className="p-8 bg-gray-50 rounded-3xl border border-gray-100">
-                                                <p className="text-[10px] font-bold text-black uppercase tracking-widest mb-4">Tip 02</p>
-                                                <h3 className="font-bold mb-2">Manual Anchors</h3>
-                                                <p className="text-xs text-gray-500 leading-relaxed">Use the Anchor tool to insert manual section markers anywhere.</p>
+                                            <div className="p-6 sm:p-8 bg-gray-50 rounded-2xl sm:rounded-3xl border border-gray-100">
+                                                <p className="text-[9px] font-black text-black uppercase tracking-widest mb-3">Tip 02</p>
+                                                <h3 className="font-bold text-sm mb-1">Manual Anchors</h3>
+                                                <p className="text-xs text-gray-500 leading-relaxed">Use the Anchor tool to insert manual section markers.</p>
                                             </div>
                                         </div>
                                     </div>
@@ -283,9 +285,9 @@ const DocEdit = () => {
                     )}
 
                     {/* Live Preview Console */}
-                    {(previewMode === 'split' || previewMode === 'preview') && (
-                        <div className={`${previewMode === 'split' ? 'w-1/2' : 'w-full'} bg-[#F8F9FA] overflow-y-auto p-12 md:p-20`}>
-                            <div className="max-w-3xl mx-auto flex gap-12">
+                    {(previewMode === 'preview' || (previewMode === 'split' && window.innerWidth >= 768)) && (
+                        <div className={`${previewMode === 'split' ? 'w-1/2' : 'w-full'} bg-[#F8F9FA] overflow-y-auto p-4 sm:p-12 md:p-20`}>
+                            <div className="max-w-3xl mx-auto flex flex-col xl:flex-row gap-6 sm:gap-12">
                                 <div className="hidden xl:block w-52 shrink-0 space-y-6">
                                     <p className="text-[10px] font-bold text-gray-300 uppercase tracking-widest ml-4">Section List</p>
                                     <div className="space-y-4 border-l-2 border-gray-100">
@@ -296,10 +298,10 @@ const DocEdit = () => {
                                         ))}
                                     </div>
                                 </div>
-                                <div className="flex-1 bg-white p-14 md:p-20 rounded-[3rem] shadow-sm border border-gray-100 min-h-screen">
-                                    <div className="mb-14 pb-14 border-b border-gray-50">
-                                        <span className="px-3 py-1 bg-black text-white text-[9px] font-bold rounded-full uppercase tracking-widest">{formData.section}</span>
-                                        <h1 className="text-5xl font-bold text-black tracking-tighter mt-6 leading-tight">{formData.title || 'Untitled Document'}</h1>
+                                <div className="flex-1 bg-white p-6 sm:p-14 md:p-20 rounded-[1.5rem] sm:rounded-[3rem] shadow-sm border border-gray-100 min-h-screen">
+                                    <div className="mb-8 sm:mb-14 pb-8 sm:pb-14 border-b border-gray-50">
+                                        <span className="px-3 py-1 bg-black text-white text-[9px] font-bold rounded-full uppercase tracking-widest">{formData.category}</span>
+                                        <h1 className="text-3xl sm:text-5xl font-bold text-black tracking-tighter mt-4 sm:mt-6 leading-tight">{formData.title || 'Untitled Document'}</h1>
                                     </div>
                                     <article className="prose prose-sm max-w-none text-gray-600 font-sans leading-relaxed">
                                         <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeSlug]}>

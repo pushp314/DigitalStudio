@@ -103,38 +103,38 @@ const ChatInput = ({ onSend, onTyping, status, user, isPro, messageCount, replyi
     const remainingChars = charLimit - content.length;
 
     return (
-        <div className={`bg-white border-t border-slate-100 px-6 py-6 pb-10 transition-opacity ${isLimitReached ? 'opacity-80' : ''}`}>
+        <div className={`bg-white border-t border-slate-100 px-4 sm:px-6 py-4 sm:py-6 pb-6 sm:pb-10 transition-opacity ${isLimitReached ? 'opacity-80' : ''}`}>
             <div className="max-w-4xl mx-auto">
                 {isLimitReached && (
-                    <div className="mb-6 p-6 md:p-8 bg-slate-900 text-white rounded-[2rem] animate-in slide-in-from-bottom-4 duration-700 shadow-[0_20px_50px_rgba(0,0,0,0.2)]">
-                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
+                    <div className="mb-4 sm:mb-6 p-6 sm:p-8 bg-slate-900 text-white rounded-2xl sm:rounded-[2rem] animate-in slide-in-from-bottom-4 duration-700 shadow-[0_20px_50px_rgba(0,0,0,0.2)]">
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 sm:gap-8">
                             <div className="flex items-start gap-4">
-                                <div className="h-12 w-12 bg-amber-500 text-slate-900 rounded-2xl flex items-center justify-center shrink-0 shadow-lg shadow-amber-500/20">
-                                    <Zap size={24} fill="currentColor" />
+                                <div className="h-10 w-10 sm:h-12 sm:w-12 bg-amber-500 text-slate-900 rounded-xl sm:rounded-2xl flex items-center justify-center shrink-0 shadow-lg shadow-amber-500/20">
+                                    <Zap size={20} className="sm:w-6 sm:h-6" fill="currentColor" />
                                 </div>
                                 <div>
-                                    <h4 className="text-xl font-bold tracking-tight">Community limit reached</h4>
-                                    <p className="mt-2 text-sm text-slate-400 font-medium leading-relaxed max-w-md">
-                                        You have used your 2 free community messages. Upgrade to Pro for unlimited chat, or reach out to our team if you need direct technical assistance.
+                                    <h4 className="text-lg sm:text-xl font-bold tracking-tight leading-tight">Community limit reached</h4>
+                                    <p className="mt-1 sm:mt-2 text-[11px] sm:text-sm text-slate-400 font-medium leading-relaxed max-w-md">
+                                        You have used your 2 free messages. Upgrade to Pro for unlimited chat, or reach out to our team for direct assistance.
                                     </p>
                                 </div>
                             </div>
-                            <div className="flex flex-col sm:flex-row gap-3 shrink-0">
+                            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 shrink-0">
                                 <button 
                                     onClick={() => navigate('/pricing')}
-                                    className="px-8 py-3 bg-white text-slate-900 text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-white/90 transition-all shadow-xl"
+                                    className="px-6 sm:px-8 py-2.5 sm:py-3 bg-white text-slate-900 text-[9px] sm:text-[10px] font-black uppercase tracking-widest rounded-lg sm:rounded-xl hover:bg-white/90 transition-all shadow-xl"
                                 >
                                     Upgrade to Pro
                                 </button>
                                 <button 
                                     onClick={() => navigate('/contact')}
-                                    className="px-8 py-3 bg-slate-800 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-slate-700 transition-all"
+                                    className="px-6 sm:px-8 py-2.5 sm:py-3 bg-slate-800 text-white text-[9px] sm:text-[10px] font-black uppercase tracking-widest rounded-lg sm:rounded-xl hover:bg-slate-700 transition-all"
                                 >
                                     Direct Support
                                 </button>
                             </div>
                         </div>
-                        <div className="mt-8 pt-6 border-t border-slate-800 grid grid-cols-2 gap-4">
+                        <div className="hidden sm:grid mt-8 pt-6 border-t border-slate-800 grid-cols-2 gap-4">
                             <div className="flex items-center gap-2">
                                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
                                 <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500">Unlock: Image Attachments</span>
@@ -149,8 +149,8 @@ const ChatInput = ({ onSend, onTyping, status, user, isPro, messageCount, replyi
 
                 <div className={`bg-slate-50 border border-slate-200 rounded-xl overflow-hidden focus-within:border-slate-400 focus-within:bg-white transition-all shadow-sm ${isLimitReached ? 'grayscale pointer-events-none' : ''}`}>
                      {/* Header Utility Bar */}
-                    <div className="flex items-center justify-between px-4 py-2 border-b border-slate-100/50 bg-slate-50/50">
-                        <div className="flex items-center gap-4 relative">
+                    <div className="flex items-center justify-between px-3 sm:px-4 py-2 border-b border-slate-100/50 bg-slate-50/50">
+                        <div className="flex items-center gap-3 sm:gap-4 relative">
                             <input 
                                 type="file" 
                                 ref={fileInputRef} 
@@ -184,7 +184,7 @@ const ChatInput = ({ onSend, onTyping, status, user, isPro, messageCount, replyi
                                 {isEmojiOpen && (
                                     <>
                                         <div className="fixed inset-0 z-40" onClick={() => setIsEmojiOpen(false)}></div>
-                                        <div className="absolute top-full left-0 mt-2 w-64 bg-white border border-slate-200 rounded-xl shadow-2xl p-4 z-50 grid grid-cols-6 gap-2 animate-in fade-in zoom-in-95 duration-200">
+                                        <div className="absolute bottom-full left-0 mb-2 w-64 bg-white border border-slate-200 rounded-xl shadow-2xl p-4 z-50 grid grid-cols-6 gap-2 animate-in fade-in zoom-in-95 duration-200">
                                             {['⚡', '🔥', '🚀', '💻', '🛠️', '📦', '✨', '💎', '🎉', '🔒', '💡', '✅'].map(emoji => (
                                                 <button 
                                                     key={emoji}
@@ -205,23 +205,23 @@ const ChatInput = ({ onSend, onTyping, status, user, isPro, messageCount, replyi
                             <div className="w-px h-3 bg-slate-200"></div>
                             {!isPro && (
                                 <span className={`text-[9px] font-bold uppercase tracking-widest ${remainingChars < 0 ? 'text-rose-500' : 'text-slate-400'}`}>
-                                    {content.length}/{charLimit} Chars
+                                    {content.length}/{charLimit} <span className="hidden sm:inline">Chars</span>
                                 </span>
                             )}
                         </div>
                         <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full border ${isPro ? 'bg-amber-50 border-amber-100 text-amber-600' : 'bg-slate-100 border-slate-200 text-slate-400'}`}>
                             <TerminalIcon size={10} />
-                            <span className="text-[8px] font-black uppercase tracking-tight">{isPro ? 'Pro Member' : `${messageCount}/2 Free`}</span>
+                            <span className="text-[8px] font-black uppercase tracking-tight whitespace-nowrap">{isPro ? 'Pro Member' : `${messageCount}/2 Free`}</span>
                         </div>
                     </div>
 
                     {/* Reply Context Preview */}
                     {replyingTo && (
-                        <div className="px-4 py-2 bg-blue-50/50 border-b border-blue-100 flex items-center justify-between animate-in slide-in-from-bottom-2 duration-300">
+                        <div className="px-3 sm:px-4 py-2 bg-blue-50/50 border-b border-blue-100 flex items-center justify-between animate-in slide-in-from-bottom-2 duration-300">
                             <div className="flex items-center gap-3 min-w-0">
                                 <CornerDownRight size={12} className="text-blue-500 flex-shrink-0" />
                                 <div className="flex items-center gap-2 min-w-0">
-                                    <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest flex-shrink-0">Replying to @{replyingTo.username || replyingTo.userName}</span>
+                                    <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest flex-shrink-0">@{replyingTo.username || replyingTo.userName}</span>
                                     <div className="w-1 h-1 rounded-full bg-blue-200 flex-shrink-0"></div>
                                     <p className="text-[10px] text-blue-500/70 truncate italic shrink">{replyingTo.content}</p>
                                 </div>
@@ -235,7 +235,7 @@ const ChatInput = ({ onSend, onTyping, status, user, isPro, messageCount, replyi
                         </div>
                     )}
 
-                    <div className="flex items-end gap-2 p-3">
+                    <div className="flex items-end gap-2 p-2 sm:p-3">
                         <div className="flex-1 min-w-0">
                             <textarea
                                 ref={textareaRef}
@@ -245,7 +245,7 @@ const ChatInput = ({ onSend, onTyping, status, user, isPro, messageCount, replyi
                                 onKeyDown={handleKeyDown}
                                 placeholder={status === 'online' ? "Type a message..." : "Connecting..."}
                                 disabled={status !== 'online' || isLimitReached}
-                                className="w-full bg-transparent border-none text-[13px] font-medium placeholder:text-slate-300 focus:ring-0 outline-none p-1 resize-none max-h-64 custom-scrollbar leading-relaxed"
+                                className="w-full bg-transparent border-none text-sm font-medium placeholder:text-slate-300 focus:ring-0 outline-none p-1 resize-none max-h-64 custom-scrollbar leading-relaxed"
                             />
                         </div>
 
@@ -263,7 +263,7 @@ const ChatInput = ({ onSend, onTyping, status, user, isPro, messageCount, replyi
                     </div>
 
                     {/* Footer Guide */}
-                    <div className="px-4 py-1.5 bg-slate-50/30 border-t border-slate-100/30 flex items-center justify-between">
+                    <div className="hidden sm:flex px-4 py-1.5 bg-slate-50/30 border-t border-slate-100/30 items-center justify-between">
                          <div className="flex items-center gap-1 text-[8px] font-bold text-slate-300 uppercase tracking-widest">
                             <Hash size={10} /> Community Chat
                          </div>

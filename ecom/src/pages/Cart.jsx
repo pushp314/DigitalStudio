@@ -28,13 +28,13 @@ const Cart = () => {
     }
 
     return (
-        <div className="ds-page px-6 pb-16 pt-16">
+        <div className="ds-page px-4 sm:px-6 pb-12 sm:pb-16 pt-8 sm:pt-16">
             <div className="ds-shell grid gap-6 lg:grid-cols-[minmax(0,1fr),320px]">
-                <section className="space-y-4">
-                    <div className="space-y-2">
+                <section className="space-y-6">
+                    <div className="space-y-3">
                         <p className="ds-eyebrow">Cart</p>
-                        <h1 className="text-3xl font-semibold tracking-tight text-slate-900">Review your selected products</h1>
-                        <p className="text-sm leading-6 text-slate-600">After payment, eligible products unlock downloads in your account and create a support path for setup help.</p>
+                        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 leading-tight">Review your selected products</h1>
+                        <p className="text-sm leading-relaxed text-slate-600">After payment, eligible products unlock downloads in your account and create a support path for setup help.</p>
                     </div>
 
                     {cartItems.map((item) => (

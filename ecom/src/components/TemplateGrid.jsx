@@ -62,7 +62,7 @@ const TemplateGrid = ({ items, limit }) => {
     };
 
     return (
-        <section className="ds-page px-6 pb-16">
+        <section className="ds-page px-4 sm:px-6 pb-16">
             <div className="ds-shell">
                 <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
                     {templates.map((template) => {
@@ -110,21 +110,21 @@ const TemplateGrid = ({ items, limit }) => {
                                     </button>
                                 </div>
 
-                                <div className="space-y-5 p-6">
+                                <div className="space-y-5 p-5 sm:p-6">
                                     <div className="space-y-3">
                                         <div className="flex items-start justify-between gap-4">
                                             <div className="min-w-0">
                                                 <div className="flex items-center gap-1.5">
-                                                    <h3 className="text-xl font-semibold tracking-tight text-slate-900">{template.title}</h3>
+                                                    <h3 className="text-lg sm:text-xl font-bold tracking-tight text-slate-900">{template.title}</h3>
                                                     <svg className="h-4 w-4 text-emerald-500" viewBox="0 0 20 20" fill="currentColor">
                                                         <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l5-5z" clipRule="evenodd" />
                                                     </svg>
                                                 </div>
-                                                <p className="mt-1 line-clamp-2 text-sm leading-6 text-slate-600">
+                                                <p className="mt-1 line-clamp-2 text-xs sm:text-sm leading-relaxed text-slate-600">
                                                     {template.description || 'A ready product you can customize and launch faster.'}
                                                 </p>
                                             </div>
-                                            <span className="whitespace-nowrap text-lg font-semibold text-slate-900">{template.formattedPrice}</span>
+                                            <span className="whitespace-nowrap text-lg font-bold text-slate-900">{template.formattedPrice}</span>
                                         </div>
 
                                         {template.rating > 0 && (
@@ -135,19 +135,19 @@ const TemplateGrid = ({ items, limit }) => {
                                     {template.techStack?.length > 0 && (
                                         <div className="flex flex-wrap gap-2">
                                             {template.techStack.slice(0, 4).map((tech) => (
-                                                <span key={tech} className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-600">
+                                                <span key={tech} className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">
                                                     {tech}
                                                 </span>
                                             ))}
                                             {template.techStack.length > 4 && (
-                                                <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-500">
-                                                    +{template.techStack.length - 4} more
+                                                <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                                                    +{template.techStack.length - 4}
                                                 </span>
                                             )}
                                         </div>
                                     )}
 
-                                    <div className="flex flex-wrap gap-3 border-t border-slate-200 pt-5">
+                                    <div className="flex flex-wrap gap-2 sm:gap-3 border-t border-slate-200 pt-5">
                                         {purchased ? (
                                             <button
                                                 type="button"
@@ -156,17 +156,17 @@ const TemplateGrid = ({ items, limit }) => {
                                                     event.stopPropagation();
                                                     navigate('/account');
                                                 }}
-                                                className="ds-button-secondary"
+                                                className="ds-button-secondary flex-1 justify-center sm:flex-none"
                                             >
-                                                View my products
+                                                View product
                                             </button>
                                         ) : (
                                             <button
                                                 type="button"
                                                 onClick={(event) => template.productType === 'subscription' ? handleDirectBuy(event, template) : handleAddToCart(event, template)}
-                                                className="ds-button-primary"
+                                                className="ds-button-primary flex-1 justify-center sm:flex-none"
                                             >
-                                                {template.productType === 'subscription' ? 'Continue to checkout' : 'Buy Now'}
+                                                {template.productType === 'subscription' ? 'Continue' : 'Buy Now'}
                                             </button>
                                         )}
 
@@ -176,10 +176,10 @@ const TemplateGrid = ({ items, limit }) => {
                                                 target="_blank"
                                                 rel="noopener noreferrer"
                                                 onClick={(event) => event.stopPropagation()}
-                                                className="ds-button-secondary flex items-center gap-2"
+                                                className="ds-button-secondary flex-1 justify-center sm:flex-none flex items-center gap-2"
                                                 title="Visual Discovery"
                                             >
-                                                <Eye size={14} /> View Demo
+                                                <Eye size={14} /> Demo
                                             </a>
                                         )}
 
@@ -191,7 +191,7 @@ const TemplateGrid = ({ items, limit }) => {
                                                 navigator.clipboard.writeText(`${window.location.origin}${productCanonicalPath(template)}`);
                                                 success("Product link copied.");
                                             }}
-                                            className="ds-button-ghost p-2.5 flex items-center justify-center border border-slate-200"
+                                            className="ds-button-ghost p-2.5 flex items-center justify-center border border-slate-200 rounded-xl"
                                             title="Share product"
                                         >
                                             <Share2 size={16} />

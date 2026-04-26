@@ -53,7 +53,7 @@ const Register = () => {
     }
 
     return (
-        <div className="h-screen w-full flex overflow-hidden font-sans text-slate-900 antialiased bg-white">
+        <div className="min-h-screen w-full flex overflow-hidden font-sans text-slate-900 antialiased bg-white">
             
             {/* Immersive Visual Node (Left) */}
             <div className="hidden lg:block lg:w-[55%] relative overflow-hidden bg-slate-900">
@@ -78,9 +78,9 @@ const Register = () => {
             </div>
 
             {/* Authentication Pane (Right) */}
-            <main className="flex-1 flex flex-col justify-center items-center px-10 md:px-20 relative bg-white overflow-y-auto">
-                <Link to="/" className="absolute top-10 left-10 text-[10px] font-bold text-slate-400 hover:text-slate-900 uppercase tracking-widest flex items-center gap-2 transition-all group">
-                    <ChevronLeft size={14} className="group-hover:-translate-x-1 transition-transform" /> Back to Home
+            <main className="flex-1 flex flex-col justify-center items-center px-6 sm:px-10 md:px-20 relative bg-white overflow-y-auto">
+                <Link to="/" className="absolute top-6 left-6 sm:top-10 sm:left-10 text-[10px] font-bold text-slate-400 hover:text-slate-900 uppercase tracking-widest flex items-center gap-2 transition-all group">
+                    <ChevronLeft size={14} className="group-hover:-translate-x-1 transition-transform" /> <span className="hidden sm:inline">Back to Home</span>
                 </Link>
 
                 <div className="w-full max-w-[400px] py-20 animate-in fade-in slide-in-from-right-8 duration-700">
@@ -103,7 +103,7 @@ const Register = () => {
                                 type="text"
                                 value={name}
                                 onChange={(e) => setName(e.target.value)}
-                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3.5 text-xs font-bold text-slate-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-slate-900 transition-all"
+                                className="ds-input"
                                 placeholder="Your full name"
                                 required
                             />
@@ -115,7 +115,7 @@ const Register = () => {
                                 type="email"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
-                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3.5 text-xs font-bold text-slate-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-slate-900 transition-all"
+                                className="ds-input"
                                 placeholder="you@company.com"
                                 required
                             />
@@ -127,13 +127,13 @@ const Register = () => {
                                 type="password"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
-                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3.5 text-xs font-bold text-slate-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-slate-900 transition-all"
+                                className="ds-input"
                                 placeholder="Create a password"
                                 required
                             />
                         </div>
 
-                        <button type="submit" className="w-full py-4 bg-slate-900 text-white rounded-2xl text-[11px] font-bold uppercase tracking-[0.2em] hover:bg-blue-600 transition-all shadow-xl shadow-slate-900/10">
+                        <button type="submit" className="w-full py-4 bg-slate-900 text-white rounded-2xl text-[11px] font-bold uppercase tracking-[0.2em] hover:bg-blue-600 transition-all shadow-xl shadow-slate-900/10 active:scale-95">
                             Sign Up
                         </button>
                     </form>

@@ -13,7 +13,7 @@ import {
     Download, ShoppingBag, Share2, Eye, Trash2,
     Settings2, AtSign, Lock, AlertCircle, Send, RefreshCw,
     Wallet, Users, QrCode, Link as LinkIcon, X,
-    Key, Copy, Monitor, Activity
+    Key, Copy, Monitor, Activity, Menu
 } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import OAuthButton from '../components/ui/OAuthButton';
@@ -26,6 +26,7 @@ const Profile = () => {
     const location = useLocation();
     const queryClient = useQueryClient();
     const { success, error: toastError, info } = useToast();
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const fileInputRef = useRef(null);
 
     const [cropModal, setCropModal] = useState({ isOpen: false, image: null });
@@ -225,22 +226,22 @@ const Profile = () => {
     const EliteBenefitsCard = () => {
         if (user?.subscriptionPlan !== 'elite') return null;
         return (
-            <div className="bg-gradient-to-br from-indigo-900 to-slate-900 p-8 rounded-3xl text-white relative overflow-hidden group shadow-2xl shadow-indigo-900/40">
+            <div className="bg-gradient-to-br from-indigo-900 to-slate-900 p-6 sm:p-8 rounded-3xl text-white relative overflow-hidden group shadow-2xl shadow-indigo-900/40">
                 <div className="absolute -top-10 -right-10 p-6 opacity-10 group-hover:scale-110 transition-transform duration-700">
                     <Crown size={180} />
                 </div>
                 <div className="relative z-10">
                     <div className="flex items-center gap-2 mb-4">
                         <Crown size={16} className="text-amber-400" fill="currentColor" />
-                        <p className="text-[10px] font-bold text-amber-400 uppercase tracking-widest">Elite Member Benefits</p>
+                        <p className="text-[10px] font-black text-amber-400 uppercase tracking-widest">Elite Member Benefits</p>
                     </div>
-                    <h4 className="text-xl font-bold tracking-tight mb-6 leading-tight">Exclusive access to high-priority channels and custom builds.</h4>
+                    <h4 className="text-lg sm:text-xl font-black tracking-tight mb-6 leading-tight">Exclusive access to high-priority channels and custom builds.</h4>
                     <div className="space-y-3 mb-8">
                         <BenefitItem icon={<MessageSquare size={14} />} text="Private Developer Channel" action={() => window.open('https://discord.gg/your-link', '_blank')} />
                         <BenefitItem icon={<Send size={14} />} text="1 Free Custom Build Request" action={() => setTab('messages')} />
                         <BenefitItem icon={<ShieldCheck size={14} />} text="Commercial License Active" action={() => setTab('assets')} />
                     </div>
-                    <Link to="/pricing" className="block w-full py-4 bg-white/10 backdrop-blur-md text-white border border-white/20 rounded-2xl text-[10px] font-bold text-center uppercase tracking-widest hover:bg-white hover:text-slate-900 transition-all">Manage Subscription</Link>
+                    <Link to="/pricing" className="block w-full py-4 bg-white/10 backdrop-blur-md text-white border border-white/20 rounded-2xl text-[10px] font-black text-center uppercase tracking-widest hover:bg-white hover:text-slate-900 transition-all">Manage Subscription</Link>
                 </div>
             </div>
         );
@@ -256,16 +257,16 @@ const Profile = () => {
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-2 space-y-8">
-                    <div className="bg-white p-10 rounded-3xl border border-slate-200 shadow-sm relative overflow-hidden group">
-                        <div className="flex items-center justify-between mb-8">
-                            <div className="flex items-center gap-6">
+                    <div className="bg-white p-6 sm:p-10 rounded-3xl border border-slate-100 shadow-sm relative overflow-hidden group">
+                        <div className="flex flex-col sm:flex-row items-center justify-between mb-8 gap-6">
+                            <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 text-center sm:text-left">
                                 <div className="w-20 h-20 rounded-2xl bg-slate-50 border-2 border-white ring-1 ring-slate-100 shadow-xl overflow-hidden flex-shrink-0">
                                      {user?.avatarUrl ? <img src={user.avatarUrl} alt="User" className="w-full h-full object-cover" /> : <User className="w-full h-full p-4 text-slate-200" />}
                                 </div>
                                 <div className="min-w-0">
-                                    <h3 className="text-2xl font-bold text-slate-900 tracking-tight mb-2">{user?.name}</h3>
-                                    <div className="flex items-center gap-2">
-                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest bg-slate-50 border border-slate-100 px-3 py-1 rounded-lg inline-block">@{user?.username}</p>
+                                    <h3 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tighter mb-2">{user?.name}</h3>
+                                    <div className="flex items-center justify-center sm:justify-start gap-2">
+                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest bg-slate-50 border border-slate-100 px-3 py-1 rounded-lg inline-block">@{user?.username}</p>
                                         {user?.isPro && (
                                             <span className="text-[8px] font-black text-amber-600 bg-amber-50 border border-amber-100 px-2 py-0.5 rounded-md uppercase tracking-widest">Pro</span>
                                         )}
@@ -276,7 +277,7 @@ const Profile = () => {
                                 <Settings2 size={20} />
                             </button>
                         </div>
-                        <p className="text-sm font-medium text-slate-500 leading-relaxed max-w-xl">
+                        <p className="text-xs sm:text-sm font-medium text-slate-500 leading-relaxed max-w-xl text-center sm:text-left">
                             {user?.bio || "No bio established yet. Update your profile settings to share more about yourself."}
                         </p>
                     </div>
@@ -371,15 +372,15 @@ const Profile = () => {
     );
 
     const AssetsTab = () => (
-        <div className="space-y-8 animate-in fade-in duration-500 pb-20">
-            <div className="flex items-center justify-between mb-8">
+        <div className="space-y-6 sm:space-y-8 animate-in fade-in duration-500 pb-20">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
                 <div>
-                    <h3 className="text-xl font-bold text-slate-900 uppercase tracking-tight">My Products</h3>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Apps, kits, dashboards, and assets you have purchased.</p>
+                    <h3 className="text-lg sm:text-xl font-black text-slate-900 uppercase tracking-tight">My Products</h3>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Apps, kits, dashboards, and assets you have purchased.</p>
                 </div>
-                <div className="px-6 py-3 bg-white border border-slate-200 rounded-2xl flex items-center gap-3">
+                <div className="px-4 py-2 sm:px-6 sm:py-3 bg-white border border-slate-200 rounded-2xl flex items-center gap-3 w-fit">
                     <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
-                    <span className="text-[10px] font-bold text-slate-900 uppercase tracking-widest">{ownedAssets?.length || 0} Items</span>
+                    <span className="text-[10px] font-black text-slate-900 uppercase tracking-widest">{ownedAssets?.length || 0} Items</span>
                 </div>
             </div>
 
@@ -487,15 +488,15 @@ const Profile = () => {
     const LicensesTab = () => {
         const licenses = licensesData?.licenses || [];
         return (
-            <div className="space-y-8 animate-in fade-in duration-500 pb-20">
-                <div className="flex items-center justify-between mb-8">
+            <div className="space-y-6 sm:space-y-8 animate-in fade-in duration-500 pb-20">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
                     <div>
-                        <h3 className="text-xl font-bold text-slate-900 uppercase tracking-tight">License Keys</h3>
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Signed licenses for your purchased products.</p>
+                        <h3 className="text-lg sm:text-xl font-black text-slate-900 uppercase tracking-tight">License Keys</h3>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Signed licenses for your purchased products.</p>
                     </div>
-                    <div className="px-6 py-3 bg-white border border-slate-200 rounded-2xl flex items-center gap-3">
+                    <div className="px-4 py-2 sm:px-6 sm:py-3 bg-white border border-slate-200 rounded-2xl flex items-center gap-3 w-fit">
                         <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
-                        <span className="text-[10px] font-bold text-slate-900 uppercase tracking-widest">{licenses.length} Licenses</span>
+                        <span className="text-[10px] font-black text-slate-900 uppercase tracking-widest">{licenses.length} Licenses</span>
                     </div>
                 </div>
 
@@ -658,27 +659,29 @@ const Profile = () => {
 
                 {convs.length > 0 && (
                     <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden">
-                        <div className="px-8 py-6 border-b border-slate-100">
-                            <h4 className="text-xs font-bold text-slate-900 uppercase tracking-widest">Recent Conversions</h4>
+                        <div className="px-6 sm:px-8 py-6 border-b border-slate-100">
+                            <h4 className="text-[10px] font-black text-slate-900 uppercase tracking-widest">Recent Conversions</h4>
                         </div>
-                        <table className="w-full">
-                            <thead><tr className="bg-slate-50">
-                                <th className="px-8 py-4 text-left text-[9px] font-bold text-slate-400 uppercase">Order</th>
-                                <th className="px-8 py-4 text-left text-[9px] font-bold text-slate-400 uppercase">Commission</th>
-                                <th className="px-8 py-4 text-left text-[9px] font-bold text-slate-400 uppercase">Status</th>
-                                <th className="px-8 py-4 text-left text-[9px] font-bold text-slate-400 uppercase">Date</th>
-                            </tr></thead>
-                            <tbody>
-                                {convs.map(c => (
-                                    <tr key={c.id} className="hover:bg-slate-50 transition">
-                                        <td className="px-8 py-4 text-xs font-bold text-slate-900">#{c.orderId}</td>
-                                        <td className="px-8 py-4 text-xs font-bold text-emerald-600">₹{c.commissionAmount}</td>
-                                        <td className="px-8 py-4"><span className="text-[8px] font-bold uppercase tracking-widest px-3 py-1 rounded-full bg-slate-100 text-slate-600">{c.commissionStatus}</span></td>
-                                        <td className="px-8 py-4 text-xs text-slate-500">{new Date(c.createdAt).toLocaleDateString()}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                        <div className="overflow-x-auto custom-scrollbar">
+                            <table className="w-full min-w-[600px]">
+                                <thead><tr className="bg-slate-50">
+                                    <th className="px-6 sm:px-8 py-4 text-left text-[9px] font-black text-slate-400 uppercase">Order</th>
+                                    <th className="px-6 sm:px-8 py-4 text-left text-[9px] font-black text-slate-400 uppercase">Commission</th>
+                                    <th className="px-6 sm:px-8 py-4 text-left text-[9px] font-black text-slate-400 uppercase">Status</th>
+                                    <th className="px-6 sm:px-8 py-4 text-left text-[9px] font-black text-slate-400 uppercase">Date</th>
+                                </tr></thead>
+                                <tbody>
+                                    {convs.map(c => (
+                                        <tr key={c.id} className="hover:bg-slate-50 transition border-b border-slate-50 last:border-0">
+                                            <td className="px-6 sm:px-8 py-4 text-xs font-black text-slate-900">#{c.orderId}</td>
+                                            <td className="px-6 sm:px-8 py-4 text-xs font-black text-emerald-600">₹{c.commissionAmount}</td>
+                                            <td className="px-6 sm:px-8 py-4"><span className="text-[8px] font-black uppercase tracking-widest px-3 py-1 rounded-full bg-slate-100 text-slate-600">{c.commissionStatus}</span></td>
+                                            <td className="px-6 sm:px-8 py-4 text-xs text-slate-500">{new Date(c.createdAt).toLocaleDateString()}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 )}
             </div>
@@ -1355,81 +1358,93 @@ const Profile = () => {
     );
 
     return (
-        <div className="min-h-screen bg-[#fafafa] flex font-sans text-slate-900 antialiased h-screen overflow-hidden">
-            <input type="file" hidden ref={fileInputRef} accept="image/*" onChange={handleAvatarUpload} />
+        <div className="h-screen bg-white flex overflow-hidden font-sans text-slate-900 antialiased">
+            {/* Mobile Sidebar Backdrop */}
+            {isSidebarOpen && (
+                <div 
+                    className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] lg:hidden animate-in fade-in duration-300"
+                    onClick={() => setIsSidebarOpen(false)}
+                />
+            )}
 
-            <aside className="w-64 bg-white border-r border-slate-200 flex flex-col pt-8 flex-shrink-0">
-                <Link to="/account?tab=overview" className="flex items-center gap-3 px-6 mb-10 group/brand hover:opacity-80 transition-opacity">
-                    <div className="w-9 h-9 bg-slate-900 rounded-xl flex items-center justify-center font-bold text-white text-base group-hover/brand:scale-110 transition-transform shadow-xl shadow-slate-900/20">B</div>
-                    <div>
-                        <h1 className="text-[11px] font-bold text-slate-900 uppercase tracking-[0.2em] leading-none mb-1">BizCode Account</h1>
-                        <p className="text-[8px] text-slate-400 font-bold uppercase tracking-widest">Products, support, billing</p>
-                    </div>
-                </Link>
+            {/* Responsive Sidebar */}
+            <aside className={`fixed inset-y-0 left-0 w-72 bg-white border-r border-slate-100 flex flex-col pt-10 z-[101] transition-transform duration-300 lg:relative lg:translate-x-0 lg:z-auto lg:w-64 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+                <div className="px-8 mb-12 flex items-center justify-between">
+                    <Link to="/" className="flex items-center gap-3 group/brand">
+                        <div className="w-8 h-8 bg-slate-900 rounded-lg flex items-center justify-center font-bold text-white text-sm group-hover/brand:scale-110 transition-transform shadow-lg shadow-slate-900/10">B</div>
+                        <h1 className="text-xs font-black text-slate-900 uppercase tracking-widest">BizCode Studio</h1>
+                    </Link>
+                    <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden p-2 text-slate-400 hover:text-slate-900">
+                        <X size={20} />
+                    </button>
+                </div>
 
-                <nav className="flex-1 px-4 space-y-1 overflow-y-auto custom-scrollbar">
-                    <NavLink active={activeTab === 'overview'} onClick={() => setTab('overview')} icon={<LayoutDashboard size={18} />} label="Account Overview" />
-                    <NavLink active={activeTab === 'assets'} onClick={() => setTab('assets')} icon={<Package size={18} />} label="My Products" />
-                    <NavLink active={activeTab === 'licenses'} onClick={() => setTab('licenses')} icon={<Key size={18} />} label="License Keys" />
-                    <NavLink active={activeTab === 'billing'} onClick={() => setTab('billing')} icon={<CreditCard size={18} />} label="Billing & Invoices" />
-                    <NavLink active={activeTab === 'studio'} onClick={() => setTab('studio')} icon={<Zap size={18} />} label="Sell Your Project" />
-                    <NavLink active={activeTab === 'messages'} onClick={() => setTab('messages')} icon={<MessageSquare size={18} />} label="Support Inbox" />
-                    <div className="h-4"></div>
-                    <p className="text-[8px] font-bold text-slate-300 uppercase tracking-widest ml-4 mb-2">Growth</p>
-                    <NavLink active={activeTab === 'affiliate'} onClick={() => setTab('affiliate')} icon={<Activity size={18} />} label="Partner Portal" />
-                    <NavLink active={activeTab === 'referral'} onClick={() => setTab('referral')} icon={<Share2 size={18} />} label="Referral Program" />
-                    <div className="h-4"></div>
-                    <p className="text-[8px] font-bold text-slate-300 uppercase tracking-widest ml-4 mb-2">Account Settings</p>
-                    <NavLink active={activeTab === 'settings'} onClick={() => setTab('settings')} icon={<Settings size={18} />} label="Profile Settings" />
-                    <NavLink active={activeTab === 'security'} onClick={() => setTab('security')} icon={<Shield size={18} />} label="Security" />
-                    <NavLink active={activeTab === 'notifications'} onClick={() => setTab('notifications')} icon={<Bell size={18} />} label="Notifications" />
+                <nav className="flex-1 px-4 space-y-1.5 overflow-y-auto custom-scrollbar">
+                    <p className="text-[9px] font-black text-slate-300 uppercase tracking-[0.2em] px-4 mb-4">Core Management</p>
+                    <NavLink active={activeTab === 'overview'} onClick={() => { setTab('overview'); setIsSidebarOpen(false); }} icon={<LayoutDashboard size={18} />} label="Overview" />
+                    <NavLink active={activeTab === 'assets'} onClick={() => { setTab('assets'); setIsSidebarOpen(false); }} icon={<Package size={18} />} label="My Products" />
+                    <NavLink active={activeTab === 'licenses'} onClick={() => { setTab('licenses'); setIsSidebarOpen(false); }} icon={<Key size={18} />} label="Licenses" />
+                    <NavLink active={activeTab === 'billing'} onClick={() => { setTab('billing'); setIsSidebarOpen(false); }} icon={<CreditCard size={18} />} label="Billing" />
+                    <NavLink active={activeTab === 'studio'} onClick={() => { setTab('studio'); setIsSidebarOpen(false); }} icon={<Zap size={18} />} label="Studio Seller" />
+                    <NavLink active={activeTab === 'messages'} onClick={() => { setTab('messages'); setIsSidebarOpen(false); }} icon={<MessageSquare size={18} />} label="Inbox" />
+                    
+                    <div className="h-4" />
+                    <p className="text-[9px] font-black text-slate-300 uppercase tracking-[0.2em] px-4 mb-4">Partnership</p>
+                    <NavLink active={activeTab === 'affiliate'} onClick={() => { setTab('affiliate'); setIsSidebarOpen(false); }} icon={<Activity size={18} />} label="Partner Portal" />
+                    <NavLink active={activeTab === 'referral'} onClick={() => { setTab('referral'); setIsSidebarOpen(false); }} icon={<Share2 size={18} />} label="Referrals" />
+                    
+                    <div className="h-4" />
+                    <p className="text-[9px] font-black text-slate-300 uppercase tracking-[0.2em] px-4 mb-4">Preference</p>
+                    <NavLink active={activeTab === 'settings'} onClick={() => { setTab('settings'); setIsSidebarOpen(false); }} icon={<Settings size={18} />} label="Profile Settings" />
+                    <NavLink active={activeTab === 'security'} onClick={() => { setTab('security'); setIsSidebarOpen(false); }} icon={<Shield size={18} />} label="Security" />
+                    <NavLink active={activeTab === 'notifications'} onClick={() => { setTab('notifications'); setIsSidebarOpen(false); }} icon={<Bell size={18} />} label="Notifications" />
                 </nav>
 
-                <div className="p-5 border-t border-slate-100 bg-slate-50/50 mt-auto">
-                    <div className="flex items-center gap-4 px-3 mb-6 group/pfp cursor-pointer relative" onClick={() => fileInputRef.current.click()}>
-                        <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center font-bold text-slate-200 text-sm border-2 border-slate-100 relative overflow-hidden shadow-sm shadow-slate-200/50 transition-all">
-                            {user?.avatarUrl ? <img src={user.avatarUrl} alt="User" className="w-full h-full object-cover" /> : <User />}
-                            <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover/pfp:opacity-100 flex items-center justify-center transition-opacity">
-                                <Camera size={14} className="text-white" />
-                            </div>
+                <div className="p-6 mt-auto border-t border-slate-50">
+                    <div className="flex items-center gap-4 mb-6 px-2">
+                        <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center overflow-hidden">
+                            {user?.avatarUrl ? <img src={user.avatarUrl} alt="Me" className="w-full h-full object-cover" /> : <User size={20} className="text-slate-200" />}
                         </div>
-                        <div className="min-w-0 flex-1">
-                            <p className="text-[11px] font-bold text-slate-900 truncate uppercase tracking-tight">{user?.name}</p>
-                            <Link to={`/@${user?.username}`} className="text-[9px] text-blue-600 font-bold uppercase tracking-widest flex items-center gap-1 hover:underline">View Profile <ArrowUpRight size={8} /></Link>
+                        <div className="min-w-0">
+                            <p className="text-xs font-black text-slate-900 truncate">@{user?.username}</p>
+                            <p className="text-[8px] font-black text-emerald-500 uppercase tracking-widest">Session Verified</p>
                         </div>
                     </div>
 
-                    <button onClick={handleLogout} className="w-full flex items-center justify-center gap-3 px-4 py-3 text-[10px] font-bold text-rose-500 uppercase tracking-widest hover:bg-rose-50 border border-rose-100 rounded-xl transition-all">
+                    <button onClick={handleLogout} className="w-full flex items-center justify-center gap-3 px-4 py-3 text-[10px] font-black text-rose-500 uppercase tracking-widest hover:bg-rose-50 border border-rose-100 rounded-xl transition-all">
                         <LogOut size={16} /> Logout
                     </button>
                 </div>
             </aside>
 
-            <main className="flex-1 bg-[#fafafa] overflow-y-auto custom-scrollbar flex flex-col pt-10">
-                <header className="fixed top-0 right-0 left-64 z-40 h-20 bg-white/40 backdrop-blur-3xl border-b border-slate-100 px-10 flex items-center justify-between">
-                    <div className="flex items-center gap-8">
+            <main className="flex-1 bg-[#fafafa] overflow-y-auto custom-scrollbar flex flex-col pt-16 sm:pt-20 lg:pt-0">
+                <header className="fixed top-0 right-0 left-0 lg:left-64 z-40 h-16 sm:h-20 bg-white/80 backdrop-blur-md border-b border-slate-100 px-4 sm:px-10 flex items-center justify-between">
+                    <div className="flex items-center gap-4 sm:gap-8">
+                        <button onClick={() => setIsSidebarOpen(true)} className="lg:hidden p-2 text-slate-400 hover:text-slate-900">
+                            <Menu size={20} />
+                        </button>
                         <div className="flex flex-col">
-                            <h2 className="text-xs font-bold text-slate-900 uppercase tracking-[0.2em]">{tabNames[activeTab] || activeTab}</h2>
-                            <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-1">Status: Online</p>
+                            <h2 className="text-[10px] sm:text-xs font-black text-slate-900 uppercase tracking-[0.2em]">{tabNames[activeTab] || activeTab}</h2>
+                            <p className="text-[8px] sm:text-[9px] text-emerald-500 font-bold uppercase tracking-widest mt-1 hidden sm:block">Status: Online & Secure</p>
                         </div>
-                        <div className="h-6 w-px bg-slate-200"></div>
-                        <Link to="/" className="text-[10px] font-bold text-slate-400 hover:text-slate-900 uppercase tracking-widest flex items-center gap-2 group">
-                             <Home size={14} className="group-hover:-translate-y-0.5 transition-transform" /> Back to BizCode
+                        <div className="hidden sm:block h-6 w-px bg-slate-100"></div>
+                        <Link to="/" className="hidden sm:flex text-[10px] font-black text-slate-400 hover:text-slate-900 uppercase tracking-widest items-center gap-2 group">
+                             <Home size={14} className="group-hover:-translate-y-0.5 transition-transform" /> <span className="hidden md:inline">Back to BizCode</span>
                         </Link>
                     </div>
 
-                    <div className="flex items-center gap-6">
-                         <Link to={`/@${user?.username || user?.id}`} className="px-4 py-2 bg-slate-50 border border-slate-100 rounded-xl text-[9px] font-bold text-slate-400 hover:text-slate-900 hover:border-slate-300 transition-all uppercase tracking-widest flex items-center gap-2">
-                             <ExternalLink size={12} /> View Profile
+                    <div className="flex items-center gap-3 sm:gap-6">
+                         <Link to={`/@${user?.username || user?.id}`} className="p-2 sm:px-4 sm:py-2 bg-slate-50 border border-slate-100 rounded-xl text-[9px] font-black text-slate-400 hover:text-slate-900 hover:border-slate-300 transition-all uppercase tracking-widest flex items-center gap-2">
+                             <ExternalLink size={14} /> <span className="hidden sm:inline">Public Profile</span>
                          </Link>
-                         <div className="flex items-center gap-2 px-4 py-2 bg-emerald-50 border border-emerald-100 rounded-xl">
-                              <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-                              <span className="text-[9px] font-bold text-emerald-700 uppercase tracking-widest">Secure Session</span>
+                         <div className="flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 bg-emerald-50 border border-emerald-100 rounded-xl">
+                              <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                              <span className="text-[8px] sm:text-[9px] font-black text-emerald-700 uppercase tracking-widest">Secure</span>
                          </div>
                     </div>
                 </header>
 
-                <div className="p-12 max-w-7xl mx-auto w-full pt-16">
+                <div className="p-4 sm:p-8 md:p-12 max-w-7xl mx-auto w-full pt-20 sm:pt-24 lg:pt-28">
                     {activeTab === 'overview' && <OverviewTab />}
                     {activeTab === 'settings' && <SettingsTab />}
                     {activeTab === 'assets' && <AssetsTab />}
@@ -1477,28 +1492,28 @@ const NavLink = ({ active, onClick, icon, label }) => (
 );
 
 const StatCard = ({ label, value, change, sub, icon, color }) => (
-    <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm hover:shadow-xl transition-all group overflow-hidden relative">
+    <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-sm hover:shadow-xl transition-all group overflow-hidden relative">
         <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:scale-110 transition-transform">{icon}</div>
-        <div className="flex items-center justify-between mb-6">
-            <div className={`p-4 rounded-2xl bg-slate-50 border border-slate-100 ${color} shadow-sm`}>{icon}</div>
-            <span className="text-[10px] font-bold px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-600 uppercase tracking-widest border border-emerald-100">{change}</span>
+        <div className="flex items-center justify-between mb-4 sm:mb-6">
+            <div className={`p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-slate-50 border border-slate-100 ${color} shadow-sm`}>{icon}</div>
+            <span className="text-[8px] sm:text-[10px] font-black px-2 py-1 sm:px-3 sm:py-1.5 rounded-lg sm:rounded-xl bg-emerald-50 text-emerald-600 uppercase tracking-widest border border-emerald-100">{change}</span>
         </div>
-        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">{label}</p>
-        <h3 className="text-3xl font-bold text-slate-900 tracking-tighter mt-2 mb-2">{value}</h3>
-        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{sub}</p>
+        <p className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">{label}</p>
+        <h3 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tighter mt-1 sm:mt-2 mb-1 sm:mb-2">{value}</h3>
+        <p className="text-[9px] sm:text-[10px] text-slate-400 font-black uppercase tracking-widest truncate">{sub}</p>
     </div>
 );
 
 const Field = ({ label, icon, value, onChange, disabled, placeholder }) => (
-    <div className="space-y-3">
-        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-2">{label}</label>
+    <div className="space-y-2 sm:space-y-3">
+        <label className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">{label}</label>
         <div className="relative">
-            <div className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300">{icon}</div>
+            <div className="absolute left-5 sm:left-6 top-1/2 -translate-y-1/2 text-slate-300">{icon}</div>
             <input 
                 disabled={disabled}
                 value={value}
                 onChange={(e) => onChange(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-100 rounded-2xl pl-14 pr-6 py-4 text-xs font-bold text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/5 transition-all disabled:opacity-40 placeholder:text-slate-300 shadow-sm"
+                className="w-full bg-slate-50 border border-slate-100 rounded-2xl pl-12 sm:pl-14 pr-4 sm:pr-6 py-3 sm:py-4 text-xs font-black text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/5 transition-all disabled:opacity-40 placeholder:text-slate-300 shadow-sm"
                 placeholder={placeholder}
             />
         </div>

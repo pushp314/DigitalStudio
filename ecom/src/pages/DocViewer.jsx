@@ -285,7 +285,7 @@ const DocViewer = () => {
     const estimatedRead = Math.max(1, Math.ceil((doc.content?.length || 0) / 1000));
 
     return (
-        <div className="ds-page px-6 pb-16 pt-32">
+        <div className="ds-page px-4 sm:px-6 pb-16 pt-24 sm:pt-32">
             <Meta
                 title={doc.title}
                 description={doc.description || doc.previewContent || 'BizCode technical guide for setup, deployment, and implementation support.'}
@@ -301,36 +301,38 @@ const DocViewer = () => {
                 <div className="h-full bg-slate-900 transition-all" style={{ width: `${readingProgress}%` }} />
             </div>
 
-            <div className="ds-shell space-y-8">
+            <div className="ds-shell space-y-6 sm:space-y-8">
                 <div className="space-y-4">
-                    <Link to="/docs" className="ds-button-ghost px-0">
-                        Back to docs
+                    <Link to="/docs" className="ds-button-ghost px-0 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                        Back to manuals
                     </Link>
                     <div className="flex flex-wrap gap-2">
-                        {doc.category && <span className="ds-chip">{doc.category}</span>}
-                        <span className="ds-chip">{estimatedRead} min read</span>
-                        <span className="ds-chip">{showLockCta ? 'Preview only' : 'Full access'}</span>
+                        {doc.category && <span className="px-3 py-1 bg-slate-100 text-slate-600 rounded-full text-[9px] font-black uppercase tracking-widest">{doc.category}</span>}
+                        <span className="px-3 py-1 bg-slate-100 text-slate-400 rounded-full text-[9px] font-black uppercase tracking-widest">{estimatedRead}m read</span>
+                        <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${showLockCta ? 'bg-amber-50 text-amber-600' : 'bg-emerald-50 text-emerald-600'}`}>
+                            {showLockCta ? 'Preview only' : 'Full access'}
+                        </span>
                     </div>
                     <div className="space-y-3">
-                        <h1 className="text-4xl font-bold tracking-tight text-slate-900 md:text-5xl">{doc.title}</h1>
-                        {doc.description && <p className="max-w-3xl text-base leading-7 text-slate-600">{doc.description}</p>}
+                        <h1 className="text-clamp-6xl font-black tracking-tighter text-slate-900 leading-[0.95] sm:leading-[0.9]">{doc.title}</h1>
+                        {doc.description && <p className="max-w-3xl text-sm sm:text-base leading-relaxed text-slate-500 font-medium">{doc.description}</p>}
                     </div>
                 </div>
 
-                <div className={`grid gap-10 ${hasToc ? 'lg:grid-cols-[220px,minmax(0,1fr),240px]' : 'lg:grid-cols-[minmax(0,1fr),240px]'}`}>
+                <div className={`grid gap-8 sm:gap-10 ${hasToc ? 'lg:grid-cols-[220px,minmax(0,1fr),240px]' : 'lg:grid-cols-[minmax(0,1fr),240px]'}`}>
                     {hasToc && (
                         <aside className="hidden lg:block">
-                            <div className="ds-card sticky top-32 z-20 p-5">
-                                <h2 className="text-sm font-semibold text-slate-900">On this page</h2>
-                                <nav className="mt-4 space-y-2">
+                            <div className="ds-card sticky top-32 z-20 p-5 border-slate-100 shadow-sm">
+                                <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">On this page</h2>
+                                <nav className="space-y-1">
                                     {toc.map((item) => (
                                         <a
                                             key={item.id}
                                             href={`#${item.id}`}
                                             onClick={(event) => scrollToSection(event, item.id)}
-                                            className={`block rounded-lg px-3 py-2 text-sm ${activeId === item.id ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                                            className={`block rounded-xl px-3 py-2 text-[11px] font-black uppercase tracking-tighter transition-all ${activeId === item.id ? 'bg-slate-900 text-white' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
                                                 }`}
-                                            style={{ marginLeft: `${Math.max(0, (item.level || 1) - 1) * 12}px` }}
+                                            style={{ marginLeft: `${Math.max(0, (item.level || 1) - 1) * 8}px` }}
                                         >
                                             {item.title}
                                         </a>
@@ -341,18 +343,18 @@ const DocViewer = () => {
                     )}
 
                     <main className="min-w-0">
-                        <article className="ds-card p-6 md:p-8">
-                            <div className={`markdown-content prose prose-slate max-w-none ${showLockCta ? 'max-h-[560px] overflow-hidden' : ''}`}>
+                        <article className="ds-card p-5 sm:p-8 md:p-12 border-slate-100 shadow-sm">
+                            <div className={`markdown-content prose prose-slate prose-sm sm:prose-base max-w-none ${showLockCta ? 'max-h-[560px] overflow-hidden' : ''}`}>
                                 <ReactMarkdown
                                     remarkPlugins={[remarkGfm]}
                                     rehypePlugins={[rehypeSlug]}
                                     components={{
-                                        h1: ({ node, ...props }) => <h1 className="mt-10 text-3xl font-semibold tracking-tight text-slate-900 first:mt-0" {...props} />,
-                                        h2: ({ node, ...props }) => <h2 className="mt-10 border-b border-slate-200 pb-3 text-2xl font-semibold tracking-tight text-slate-900" {...props} />,
-                                        h3: ({ node, ...props }) => <h3 className="mt-8 text-xl font-semibold tracking-tight text-slate-900" {...props} />,
-                                        p: ({ node, ...props }) => <p className="text-base leading-7 text-slate-600" {...props} />,
-                                        ul: ({ node, ...props }) => <ul className="space-y-2 text-base leading-7 text-slate-600" {...props} />,
-                                        ol: ({ node, ...props }) => <ol className="space-y-2 text-base leading-7 text-slate-600" {...props} />,
+                                        h1: ({ node, ...props }) => <h1 className="mt-12 text-2xl sm:text-3xl font-black tracking-tighter text-slate-900 first:mt-0" {...props} />,
+                                        h2: ({ node, ...props }) => <h2 className="mt-10 border-b border-slate-100 pb-4 text-xl sm:text-2xl font-black tracking-tighter text-slate-900" {...props} />,
+                                        h3: ({ node, ...props }) => <h3 className="mt-8 text-lg sm:text-xl font-black tracking-tight text-slate-900" {...props} />,
+                                        p: ({ node, ...props }) => <p className="text-sm sm:text-base leading-relaxed text-slate-600 font-medium" {...props} />,
+                                        ul: ({ node, ...props }) => <ul className="space-y-2 text-sm sm:text-base leading-relaxed text-slate-600 font-medium" {...props} />,
+                                        ol: ({ node, ...props }) => <ol className="space-y-2 text-sm sm:text-base leading-relaxed text-slate-600 font-medium" {...props} />,
                                         code: CodeBlock,
                                     }}
                                 >
@@ -361,23 +363,24 @@ const DocViewer = () => {
                             </div>
 
                             {showLockCta && (
-                                <div className="mt-8 rounded-2xl border border-slate-200 bg-slate-50 p-6 md:p-8">
-                                    <h2 className="text-2xl font-semibold tracking-tight text-slate-900">Unlock the full guide</h2>
-                                    <p className="mt-3 text-sm leading-6 text-slate-600">
-                                        Get the complete deployment guide, configuration scripts, and direct technical help by upgrading your membership.
-                                    </p>
-                                    <div className="mt-8 flex flex-col gap-4">
-                                        <div className="flex flex-wrap gap-3">
-                                            <button type="button" onClick={handleProtectedAccess} className="ds-button-primary">
+                                <div className="mt-8 rounded-[2rem] border border-slate-200 bg-slate-900 p-6 sm:p-10 relative overflow-hidden">
+                                    <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full blur-[100px]"></div>
+                                    <div className="relative z-10">
+                                        <h2 className="text-xl sm:text-2xl font-black tracking-tight text-white leading-tight">Unlock the full guide</h2>
+                                        <p className="mt-4 text-xs sm:text-sm leading-relaxed text-slate-400 font-medium max-w-lg">
+                                            Get the complete deployment guide, configuration scripts, and direct technical help by upgrading your membership.
+                                        </p>
+                                        <div className="mt-8 flex flex-col sm:flex-row gap-4">
+                                            <button type="button" onClick={handleProtectedAccess} className="bg-blue-600 text-white px-8 py-3.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-700 transition-all shadow-xl shadow-blue-500/20 text-center">
                                                 Upgrade Now
                                             </button>
-                                            <Link to="/pricing" className="ds-button-secondary bg-white">
+                                            <Link to="/pricing" className="bg-white/10 text-white px-8 py-3.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-white/20 transition-all backdrop-blur-md text-center">
                                                 View pricing
                                             </Link>
                                         </div>
-                                        <div className="pt-4 border-t border-slate-200">
-                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Unsure what plan you need?</p>
-                                            <Link to="/contact" className="text-sm font-bold text-blue-600 hover:underline">Talk to support for guidance</Link>
+                                        <div className="mt-8 pt-6 border-t border-white/10">
+                                            <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2 text-center sm:text-left">Unsure what plan you need?</p>
+                                            <Link to="/contact" className="block text-xs font-black text-blue-400 hover:underline text-center sm:text-left">Talk to support for guidance</Link>
                                         </div>
                                     </div>
                                 </div>
@@ -386,7 +389,7 @@ const DocViewer = () => {
                     </main>
 
                     <aside className="hidden lg:block">
-                        <div className="ds-card sticky top-32 z-20 p-5 space-y-5">
+                        <div className="ds-card sticky top-32 z-20 p-5 space-y-5 border-slate-100 shadow-sm">
                             <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Guide details</h2>
                             <dl className="space-y-4">
                                 <div className="flex items-center justify-between">
@@ -402,27 +405,27 @@ const DocViewer = () => {
                                 </div>
                                 <div className="flex items-center justify-between">
                                     <dt className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Read time</dt>
-                                    <dd className="text-[10px] font-bold text-slate-900 font-mono">{estimatedRead} min</dd>
+                                    <dd className="text-[10px] font-black text-slate-900 font-mono">{estimatedRead}m</dd>
                                 </div>
                             </dl>
                             <div className="pt-4 border-t border-slate-100">
-                                <button onClick={handlePrint} className="w-full py-2.5 bg-slate-900 text-white rounded-xl text-[9px] font-black uppercase tracking-[0.2em] hover:bg-slate-800 transition-all">
+                                <button onClick={handlePrint} className="w-full py-3 bg-slate-900 text-white rounded-xl text-[9px] font-black uppercase tracking-[0.2em] hover:bg-slate-800 transition-all">
                                     Print / Save PDF
                                 </button>
                             </div>
                             {config?.aiSettings?.enableDocsAi !== false && (
                                 <div className="pt-4 border-t border-slate-100">
-                                    <button onClick={() => setIsAssistantOpen(true)} className="w-full py-2.5 bg-indigo-50 text-indigo-700 rounded-xl text-[9px] font-black uppercase tracking-[0.2em] hover:bg-indigo-100 transition-all flex items-center justify-center gap-2">
-                                        <Terminal size={12} /> Ask AI Assistant
+                                    <button onClick={() => setIsAssistantOpen(true)} className="w-full py-3 bg-indigo-50 text-indigo-700 rounded-xl text-[9px] font-black uppercase tracking-[0.2em] hover:bg-indigo-100 transition-all flex items-center justify-center gap-2">
+                                        <Terminal size={12} /> Ask Assistant
                                     </button>
                                 </div>
                             )}
                         </div>
                     </aside>
+                </div>
             </div>
-        </div>
 
-        {/* Guide Assistant FAB - hidden when drawer is open */}
+            {/* Guide Assistant FAB */}
             {config?.aiSettings?.enableDocsAi !== false && !isAssistantOpen && (
                 <motion.button
                     initial={{ scale: 0.8, opacity: 0 }}
@@ -431,15 +434,15 @@ const DocViewer = () => {
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={() => setIsAssistantOpen(true)}
-                    className="fixed bottom-28 right-8 z-[101] flex items-center gap-3 rounded-full border border-slate-200 bg-white/95 backdrop-blur-sm p-3.5 pr-5 shadow-xl transition-all hover:shadow-2xl hover:bg-white"
+                    className="fixed bottom-6 right-6 sm:bottom-12 sm:right-12 z-[101] flex items-center gap-3 rounded-2xl sm:rounded-3xl border border-slate-200 bg-white/95 backdrop-blur-md p-3 sm:p-3.5 sm:pr-6 shadow-2xl transition-all hover:bg-white"
                 >
-                    <div className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-slate-900 text-white">
+                    <div className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-slate-900 text-white shadow-lg shadow-slate-900/20">
                         <Terminal size={16} />
                         {isPro && (
                             <span className="absolute -right-1 -top-1 h-2.5 w-2.5 animate-pulse rounded-full border-2 border-white bg-emerald-500" />
                         )}
                     </div>
-                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-900">Guide Assistant</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-900 hidden sm:block">Guide Assistant</span>
                 </motion.button>
             )}
 
@@ -459,7 +462,7 @@ const DocViewer = () => {
                             animate={{ x: 0 }}
                             exit={{ x: '100%' }}
                             transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-                            className="fixed top-0 bottom-0 right-0 z-[1000] flex w-full max-w-md flex-col border-l border-slate-200 bg-white shadow-[-20px_0_60px_rgba(0,0,0,0.08)]"
+                            className="fixed top-0 bottom-0 right-0 z-[1000] flex w-full sm:max-w-md flex-col border-l border-slate-200 bg-white shadow-[-20px_0_60px_rgba(0,0,0,0.08)]"
                         >
                             {/* Header */}
                             <div className="flex items-center justify-between border-b border-slate-100 bg-white px-5 py-4 shrink-0">
@@ -468,10 +471,10 @@ const DocViewer = () => {
                                         <Cpu size={18} />
                                     </div>
                                     <div>
-                                        <h3 className="text-sm font-bold tracking-tight text-slate-900">Guide Assistant</h3>
+                                        <h3 className="text-sm font-black tracking-tight text-slate-900">Guide Assistant</h3>
                                         <div className="flex items-center gap-1.5 mt-0.5">
                                             <div className={`h-1.5 w-1.5 rounded-full ${isPro ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300'}`} />
-                                            <span className="text-[9px] font-bold uppercase tracking-widest text-slate-400">
+                                            <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">
                                                 {isPro ? 'Active' : 'Pro required'}
                                             </span>
                                         </div>
@@ -481,7 +484,7 @@ const DocViewer = () => {
                                     {isPro && chatHistory.length > 0 && (
                                         <button
                                             onClick={handleClearChat}
-                                            className="rounded-lg p-2 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-500"
+                                            className="rounded-xl p-2 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-500"
                                             title="Clear conversation"
                                         >
                                             <Trash2 size={16} />
@@ -489,7 +492,7 @@ const DocViewer = () => {
                                     )}
                                     <button
                                         onClick={() => setIsAssistantOpen(false)}
-                                        className="rounded-lg p-2 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-900"
+                                        className="rounded-xl p-2 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-900"
                                     >
                                         <X size={18} />
                                     </button>
@@ -497,52 +500,52 @@ const DocViewer = () => {
                             </div>
 
                             {/* Conversation Domain */}
-                            <div className="flex-1 overflow-y-auto p-6 space-y-8">
+                            <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-8">
                                 {!isPro ? (
-                                    <div className="flex h-full flex-col items-center justify-center px-6 text-center space-y-5">
+                                    <div className="flex h-full flex-col items-center justify-center px-6 text-center space-y-6">
                                         <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-50 border border-slate-100 text-slate-300">
                                             <Lock size={28} />
                                         </div>
                                         <div className="space-y-2">
-                                            <h4 className="text-lg font-bold text-slate-900 tracking-tight">Pro Access Required</h4>
-                                            <p className="text-xs leading-relaxed text-slate-500 max-w-xs">
+                                            <h4 className="text-lg font-black text-slate-900 tracking-tight">Pro Access Required</h4>
+                                            <p className="text-xs leading-relaxed text-slate-500 max-w-xs font-medium">
                                                 Ask questions about this guide, get deployment help, and implementation advice.
                                             </p>
                                         </div>
-                                        <Link to="/pricing" onClick={() => setIsAssistantOpen(false)} className="px-8 py-3 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-800 transition-all shadow-lg">
+                                        <Link to="/pricing" onClick={() => setIsAssistantOpen(false)} className="w-full sm:w-auto px-10 py-3.5 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-800 transition-all shadow-xl shadow-slate-900/20 text-center">
                                             Upgrade to Pro
                                         </Link>
-                                        <p className="text-[10px] text-slate-400">Starts at ₹29/month</p>
+                                        <p className="text-[9px] font-black uppercase tracking-widest text-slate-300">Starts at ₹29/month</p>
                                     </div>
                                 ) : (
                                     <>
                                         {chatHistory.length === 0 && !isLoadingHistory && (
-                                            <div className="flex h-40 flex-col items-center justify-center rounded-3xl border border-dashed border-slate-100 bg-slate-50/50">
-                                                <Sparkles size={28} className="mb-3 text-slate-300" />
-                                                <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Ask a question about this guide</p>
+                                            <div className="flex h-48 flex-col items-center justify-center rounded-[2rem] border border-dashed border-slate-100 bg-slate-50/50 p-6 text-center">
+                                                <Sparkles size={32} className="mb-4 text-slate-200" />
+                                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Ask a question about this guide</p>
                                             </div>
                                         )}
 
                                         {isLoadingHistory && (
                                             <div className="flex h-40 items-center justify-center">
-                                                <div className="h-8 w-8 animate-spin rounded-full border-2 border-slate-200 border-t-slate-900" />
+                                                <div className="h-8 w-8 animate-spin rounded-full border-2 border-slate-100 border-t-slate-900" />
                                             </div>
                                         )}
 
                                         {chatHistory.map((msg, i) => (
                                             <div key={i} className="space-y-2">
                                                 <div className="flex items-center justify-between px-1">
-                                                     <span className="text-[9px] font-bold uppercase tracking-widest text-slate-400">
+                                                     <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">
                                                         {msg.role === 'user' ? 'You' : 'Assistant'}
                                                      </span>
-                                                     <span className="text-[8px] font-mono text-slate-300 uppercase">SYN_{i}</span>
+                                                     <span className="text-[8px] font-mono text-slate-200 uppercase">MSG_{i.toString().padStart(2, '0')}</span>
                                                 </div>
                                                 <div className={`p-5 rounded-2xl text-[13px] leading-relaxed tracking-tight ${
                                                     msg.role === 'user'
                                                         ? 'bg-slate-900 text-white shadow-xl shadow-slate-900/10'
-                                                        : 'bg-slate-50 border border-slate-100 text-slate-700'
+                                                        : 'bg-slate-50 border border-slate-100 text-slate-700 font-medium'
                                                 }`}>
-                                                    <div className="prose prose-sm prose-slate max-w-none">
+                                                    <div className="prose prose-sm prose-slate max-w-none prose-p:leading-relaxed prose-p:m-0">
                                                         <ReactMarkdown remarkPlugins={[remarkGfm]}>
                                                             {msg.content}
                                                         </ReactMarkdown>
@@ -566,15 +569,15 @@ const DocViewer = () => {
 
                             {/* Transmission Interface */}
                             {isPro && (
-                                <div className="border-t border-slate-100 bg-white p-6">
+                                <div className="border-t border-slate-100 bg-white p-5 sm:p-6">
                                     <form onSubmit={handleChatSubmit} className="relative group">
                                         <textarea
                                             value={chatInput}
                                             onChange={(e) => setChatInput(e.target.value)}
-                                            placeholder="Ask this guide..."
+                                            placeholder="Ask something..."
                                             disabled={isChatLoading}
                                             rows="2"
-                                            className="w-full resize-none rounded-2xl border border-slate-200 bg-slate-50 p-5 pr-14 text-sm font-medium transition-all group-hover:border-slate-300 focus:border-slate-900 focus:bg-white focus:outline-none focus:ring-0"
+                                            className="w-full resize-none rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:p-5 pr-14 text-sm font-medium transition-all group-hover:border-slate-300 focus:border-slate-900 focus:bg-white focus:outline-none focus:ring-0"
                                         />
                                         <button
                                             type="submit"
@@ -586,7 +589,7 @@ const DocViewer = () => {
                                     </form>
                                     <div className="mt-4 flex items-center justify-center gap-4">
                                         <div className="h-px flex-1 bg-slate-100" />
-                                        <span className="text-[10px] font-bold uppercase tracking-tighter text-slate-300">BizCode guide assistant</span>
+                                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-200">BizCode Intelligence</span>
                                         <div className="h-px flex-1 bg-slate-100" />
                                     </div>
                                 </div>
@@ -599,4 +602,4 @@ const DocViewer = () => {
     );
 };
 
-export default DocViewer;
+export default DocViewer;r;

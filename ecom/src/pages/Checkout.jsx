@@ -143,13 +143,13 @@ const Checkout = () => {
     };
 
     return (
-        <div className="ds-page px-6 pb-16 pt-16">
+        <div className="ds-page px-4 sm:px-6 pb-12 sm:pb-16 pt-8 sm:pt-16">
             <div className="ds-shell grid gap-6 lg:grid-cols-[minmax(0,1fr),360px]">
                 <section className="space-y-6">
-                    <div className="space-y-2">
+                    <div className="space-y-3">
                         <p className="ds-eyebrow">Checkout</p>
-                        <h1 className="text-3xl font-semibold tracking-tight text-slate-900">Review your order</h1>
-                        <p className="text-sm leading-6 text-slate-600">Verified payment unlocks your products, licenses, and eligible support access.</p>
+                        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 leading-tight">Review your order</h1>
+                        <p className="text-sm leading-relaxed text-slate-600">Verified payment unlocks your products, licenses, and eligible support access.</p>
                     </div>
 
                     <div className="space-y-4">

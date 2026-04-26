@@ -11,18 +11,19 @@ import {
     Layout
 } from 'lucide-react';
 
-const ChatHeader = ({ status, onlineCount, searchQuery, onSearchChange, isSelectionMode, onToggleSelection, user }) => {
-    const [isMenuOpen, setIsMenuOpen] = useState(false);
-    const [isMuted, setIsMuted] = useState(false);
-    const isAdmin = user?.role === 'admin';
-
-    return (
-        <header className="h-16 border-b border-slate-100 flex items-center justify-between px-8 bg-white/80 backdrop-blur-md sticky top-0 z-40">
-            <div className="flex items-center gap-4">
+        <header className="h-16 border-b border-slate-100 flex items-center justify-between px-4 sm:px-8 bg-white/80 backdrop-blur-md sticky top-0 z-40">
+            <div className="flex items-center gap-3">
+                <button 
+                    onClick={onOpenSidebar}
+                    className="lg:hidden p-2 text-slate-400 hover:text-slate-900 transition-all rounded-lg hover:bg-slate-100"
+                    title="View Online Users"
+                >
+                    <Globe size={18} />
+                </button>
                 <div className="flex flex-col">
-                    <div className="flex items-center gap-3">
-                        <h2 className="text-xs font-bold text-slate-900 uppercase tracking-widest">Community Chat</h2>
-                        <div className="flex items-center gap-1.5 px-2 py-0.5 bg-slate-50 border border-slate-100 rounded-full">
+                    <div className="flex items-center gap-2 sm:gap-3">
+                        <h2 className="text-[10px] sm:text-xs font-bold text-slate-900 uppercase tracking-widest whitespace-nowrap">Community Chat</h2>
+                        <div className="flex items-center gap-1.5 px-2 py-0.5 bg-slate-50 border border-slate-100 rounded-full shrink-0">
                             <Circle 
                                 size={6} 
                                 fill="currentColor" 
@@ -31,7 +32,7 @@ const ChatHeader = ({ status, onlineCount, searchQuery, onSearchChange, isSelect
                                     status === 'connecting' ? 'text-amber-400 animate-pulse' : 'text-rose-500'
                                 }`} 
                             />
-                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">
+                            <span className="text-[8px] sm:text-[9px] font-bold text-slate-400 uppercase tracking-tighter">
                                 {status === 'online' ? 'Online' : status === 'connecting' ? 'Connecting' : 'Offline'}
                             </span>
                         </div>
@@ -39,26 +40,28 @@ const ChatHeader = ({ status, onlineCount, searchQuery, onSearchChange, isSelect
                 </div>
             </div>
 
-            <div className="flex items-center gap-6">
+            <div className="flex items-center gap-2 sm:gap-6">
                 {/* Enterprise Search Interface */}
-                <div className="relative group flex items-center">
+                <div className="relative group hidden sm:flex items-center">
                     <Search className="absolute left-3 text-slate-300 group-focus-within:text-slate-900 transition-colors" size={12} />
                     <input 
                         type="text" 
-                        placeholder="Search messages..."
+                        placeholder="Search..."
                         value={searchQuery}
                         onChange={(e) => onSearchChange(e.target.value)}
-                        className="bg-slate-50 border border-slate-100 rounded-lg py-1.5 pl-9 pr-4 text-[11px] font-medium placeholder:text-slate-400 focus:outline-none focus:bg-white focus:border-slate-300 transition-all w-48 md:w-64"
+                        className="bg-slate-50 border border-slate-100 rounded-lg py-1.5 pl-9 pr-4 text-[11px] font-medium placeholder:text-slate-400 focus:outline-none focus:bg-white focus:border-slate-300 transition-all w-32 md:w-64"
                     />
                 </div>
                 
+                {/* Mobile Search Icon (optional, let's keep it simple for now) */}
+                
                 {/* Subject Visibility Counter */}
-                <div className="hidden md:flex items-center gap-2 px-3 py-1 bg-slate-50 text-slate-600 rounded-lg border border-slate-200">
+                <div className="hidden lg:flex items-center gap-2 px-3 py-1 bg-slate-50 text-slate-600 rounded-lg border border-slate-200">
                     <Globe size={12} className="text-slate-400" />
                     <span className="text-[10px] font-bold tracking-tight">{onlineCount}</span>
                 </div>
 
-                <div className="w-px h-4 bg-slate-200"></div>
+                <div className="hidden sm:block w-px h-4 bg-slate-200"></div>
 
                 <div className="flex items-center gap-1 relative">
                     {isAdmin && (
@@ -71,7 +74,7 @@ const ChatHeader = ({ status, onlineCount, searchQuery, onSearchChange, isSelect
                         </button>
                     )}
 
-                    <button className="p-2 text-slate-400 hover:text-slate-900 transition-colors" title="Guidelines">
+                    <button className="p-2 text-slate-400 hover:text-slate-900 transition-colors hidden sm:block" title="Guidelines">
                         <Shield size={16} strokeWidth={2.5} />
                     </button>
                     

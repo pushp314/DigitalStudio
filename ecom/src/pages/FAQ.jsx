@@ -15,11 +15,11 @@ const FAQ = () => {
                     { name: 'FAQ', path: '/faq' },
                 ])]}
             />
-            <section className="ds-page px-6 pt-16">
+            <section className="ds-page px-4 sm:px-6 pt-12 sm:pt-16">
                 <div className="ds-shell max-w-4xl">
                     <p className="ds-eyebrow">FAQ</p>
-                    <h1 className="mt-3 text-4xl font-bold tracking-tight text-slate-900 md:text-5xl">
-                        Questions about SaaS templates, ready-made apps, and custom builds
+                    <h1 className="mt-3 text-clamp-5xl font-black tracking-tighter text-slate-900 leading-[0.95] sm:leading-[0.9]">
+                        Questions about templates, apps, and <span className="text-slate-400">custom builds.</span>
                     </h1>
                 </div>
             </section>

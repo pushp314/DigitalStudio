@@ -253,12 +253,12 @@ const Navbar = ({ onSearchClick }) => {
             {/* Header / Navbar Container */}
             <header className="fixed left-0 right-0 top-0 z-[100] w-full border-b border-slate-200 bg-white/90 backdrop-blur-md">
                 <div className="mx-auto max-w-[1440px]">
-                    <div className="flex h-16 items-center justify-between px-6">
+                    <div className="flex h-16 items-center justify-between px-4 sm:px-6">
                         
                         {/* LEFT: Branding Block */}
                         <div className="flex items-center gap-6">
                             <Link to="/" className="flex items-center shrink-0">
-                                <img src="/logo.png" alt="BizCode" className="h-28 w-auto" />
+                                <img src="/logo.png" alt="BizCode" className="h-16 sm:h-20 md:h-28 w-auto" />
                             </Link>
 
                             {/* CENTER: Navigation (Desktop) */}
@@ -336,9 +336,9 @@ const Navbar = ({ onSearchClick }) => {
 
                             <Link 
                                 to="/custom-request" 
-                                className="hidden md:flex h-10 items-center px-5 bg-slate-900 text-white rounded-xl text-[12px] font-bold transition-all hover:bg-slate-800 active:scale-95 shadow-sm shadow-slate-900/10"
+                                className="hidden lg:flex h-10 items-center px-5 bg-slate-900 text-white rounded-xl text-[12px] font-bold transition-all hover:bg-slate-800 active:scale-95 shadow-sm shadow-slate-900/10"
                             >
-                                Request Custom Build
+                                Custom Build
                             </Link>
 
                             {/* User Profile / Login */}

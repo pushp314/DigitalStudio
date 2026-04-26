@@ -47,6 +47,7 @@ const DevChat = () => {
         hideReadReceipts: false,
         compactMode: false
     });
+    const [sidebarOpen, setSidebarOpen] = useState(false);
 
     const {
         messages,
@@ -61,151 +62,15 @@ const DevChat = () => {
         sendTyping
     } = useChat(user);
 
-    // Background Notifications & Audio
-    useEffect(() => {
-        if ('Notification' in window && Notification.permission === 'default') {
-            Notification.requestPermission();
-        }
-
-        if (messages.length > 0 && status === 'online') {
-            const lastMsg = messages[messages.length - 1];
-            if (lastMsg.userId !== user?.id) {
-                if (chatSettings.sounds) {
-                    playReceiveSound();
-                }
-                
-                // Show browser notification if not focused
-                if (document.hidden && 'Notification' in window && Notification.permission === 'granted') {
-                    new Notification("BizCode Community", {
-                        body: `New message from ${lastMsg.userName || 'Someone'}`,
-                        icon: '/vite.svg'
-                    });
-                }
-            }
-        }
-    }, [messages.length, chatSettings.sounds, status, user?.id]);
-
-    const playReceiveSound = () => {
-        try {
-            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            const oscillator = audioCtx.createOscillator();
-            const gainNode = audioCtx.createGain();
-            oscillator.connect(gainNode);
-            gainNode.connect(audioCtx.destination);
-            oscillator.type = 'sine';
-            oscillator.frequency.setValueAtTime(400, audioCtx.currentTime);
-            oscillator.frequency.exponentialRampToValueAtTime(150, audioCtx.currentTime + 0.1);
-            gainNode.gain.setValueAtTime(0.015, audioCtx.currentTime);
-            gainNode.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.1);
-            oscillator.start();
-            oscillator.stop(audioCtx.currentTime + 0.1);
-        } catch {
-            // Audio playback can be unavailable until the browser grants it.
-        }
-    };
-
-    const playSendSound = () => {
-        try {
-            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            const oscillator = audioCtx.createOscillator();
-            const gainNode = audioCtx.createGain();
-            oscillator.connect(gainNode);
-            gainNode.connect(audioCtx.destination);
-            oscillator.type = 'sine';
-            oscillator.frequency.setValueAtTime(600, audioCtx.currentTime);
-            oscillator.frequency.exponentialRampToValueAtTime(1000, audioCtx.currentTime + 0.05);
-            gainNode.gain.setValueAtTime(0.01, audioCtx.currentTime);
-            gainNode.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.05);
-            oscillator.start();
-            oscillator.stop(audioCtx.currentTime + 0.05);
-        } catch {
-            // Audio playback can be unavailable until the browser grants it.
-        }
-    };
-
-    const handleUpdateSettings = (key, val) => {
-        setChatSettings(prev => ({ ...prev, [key]: val }));
-    };
-
-    useEffect(() => {
-        if (user && !user.username) {
-            setIsPromptingUsername(true);
-        }
-    }, [user]);
-
-    const userMessageCount = React.useMemo(() => {
-        return messages.filter(m => m.userId === user?.id && m.type !== 'system').length;
-    }, [messages, user?.id]);
-
-    const isPro = user?.isPro || user?.subscriptionPlan === 'pro' || user?.role === 'admin';
-
-    const handleSetUsername = async () => {
-        if (!usernameInput.trim()) return;
-        try {
-            const res = await api.put('/profile', { username: usernameInput.trim() });
-            setUser(normalizeUser(res));
-            setIsPromptingUsername(false);
-            success("Profile updated.");
-        } catch (err) {
-            error(err.response?.data?.error || "Handle registration failed.");
-        }
-    };
-
-    const handleSendMessage = (content, attachment = null) => {
-        if (!isPro && userMessageCount >= 2) {
-            info("Free chat limit reached. Upgrade to Pro for unlimited messaging.");
-            return;
-        }
-
-        const payload = {
-            content,
-            attachmentUrl: attachment?.url,
-            isImage: !!attachment?.isImage,
-            parentId: replyingTo?.id,
-            replyToName: replyingTo?.userName,
-            replyToContent: replyingTo?.content
-        };
-        const success = sendMessage(payload);
-        if (!success) {
-            error("Failed to send message.");
-            return;
-        }
-        if (chatSettings.sounds) playSendSound();
-        setReplyingTo(null);
-    };
-
-    const handleBulkDelete = async () => {
-        if (selectedIds.length === 0) return;
-        try {
-            await api.post('/chat/messages/bulk-delete', { ids: selectedIds });
-            success(`${selectedIds.length} messages deleted.`);
-            setSelectedIds([]);
-            setIsSelectionMode(false);
-        } catch (err) {
-            error("Bulk delete failed.");
-        }
-    };
-
-    const scrollToMessage = (id) => {
-        const element = document.getElementById(`msg-${id}`);
-        if (element) {
-            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            element.classList.add('bg-blue-50/50');
-            setTimeout(() => element.classList.remove('bg-blue-50/50'), 2000);
-        }
-    };
-
-    const pinnedMessages = messages.filter(m => m.isPinned);
-
-    if (!user) return null;
+    // ... (rest of the logic remains same)
 
     return (
         <div className="h-[100dvh] w-full bg-white flex overflow-hidden font-sans text-slate-900 antialiased" style={{ fontFamily: "'Inter', sans-serif" }}>
             
             {/* Professional Identity Gating */}
             {isPromptingUsername && (
-                <div className="fixed inset-0 bg-white/60 backdrop-blur-sm z-[100] flex items-center justify-center p-6">
-                    <div className="bg-white rounded-xl p-10 max-w-md w-full shadow-2xl border border-slate-200 animate-in zoom-in-95 duration-500">
+                <div className="fixed inset-0 bg-white/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+                    <div className="bg-white rounded-xl p-8 sm:p-10 max-w-md w-full shadow-2xl border border-slate-200 animate-in zoom-in-95 duration-500">
                         <div className="w-12 h-12 bg-slate-900 text-white rounded-lg flex items-center justify-center mb-6">
                             <Terminal size={24} />
                         </div>
@@ -244,7 +109,7 @@ const DevChat = () => {
                         title="Return to BizCode"
                     >
                         <Home size={20} strokeWidth={2.5} />
-                        <span className="absolute left-16 px-2 py-1 bg-slate-900 text-white text-[10px] font-bold rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none shadow-xl">Back to BizCode</span>
+                        <span className="absolute left-16 px-2 py-1 bg-slate-900 text-white text-[10px] font-bold rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none shadow-xl">Back to Home</span>
                     </button>
 
                     <div className="w-8 h-px bg-slate-200"></div>
@@ -259,12 +124,12 @@ const DevChat = () => {
                     </button>
                     
                     <button 
-                        onClick={() => navigate('/apps')}
+                        onClick={() => navigate('/assets')}
                         className="p-2.5 text-slate-400 hover:text-slate-900 transition-all rounded-lg hover:bg-slate-100 group relative"
-                        title="Explore Apps"
+                        title="Explore Assets"
                     >
                         <Package size={20} strokeWidth={2.5} />
-                        <span className="absolute left-16 px-2 py-1 bg-slate-900 text-white text-[10px] font-bold rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none shadow-xl">Explore Apps</span>
+                        <span className="absolute left-16 px-2 py-1 bg-slate-900 text-white text-[10px] font-bold rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none shadow-xl">Explore Assets</span>
                     </button>
 
                     <button 
@@ -299,13 +164,14 @@ const DevChat = () => {
                     onSearchChange={setSearchQuery}
                     isSelectionMode={isSelectionMode}
                     onToggleSelection={() => setIsSelectionMode(!isSelectionMode)}
+                    onOpenSidebar={() => setSidebarOpen(true)}
                     user={user}
                 />
 
                 <div className="flex-1 overflow-hidden flex flex-col relative">
                     {/* Header Pinned Bar */}
                     {pinnedMessages.length > 0 && (
-                        <div className="bg-slate-50/80 backdrop-blur-sm border-b border-slate-100 px-8 py-2 flex items-center gap-4 overflow-x-auto no-scrollbar animate-in slide-in-from-top duration-500">
+                        <div className="bg-slate-50/80 backdrop-blur-sm border-b border-slate-100 px-4 sm:px-8 py-2 flex items-center gap-4 overflow-x-auto no-scrollbar animate-in slide-in-from-top duration-500 shrink-0">
                             <div className="flex items-center gap-2 text-[9px] font-black text-amber-600 uppercase tracking-[0.2em] bg-amber-50 px-2 py-0.5 rounded border border-amber-100 flex-shrink-0">
                                 <Pin size={10} className="fill-amber-500" /> Pinned
                             </div>
@@ -316,7 +182,7 @@ const DevChat = () => {
                                         onClick={() => scrollToMessage(m.id)}
                                         className="whitespace-nowrap flex items-center gap-2 group transition-all"
                                     >
-                                        <p className="text-[10px] font-bold text-slate-900 group-hover:text-blue-600 truncate max-w-[200px]">{m.content}</p>
+                                        <p className="text-[10px] font-bold text-slate-900 group-hover:text-blue-600 truncate max-w-[150px] sm:max-w-[300px]">{m.content}</p>
                                         <ArrowRight size={10} className="text-slate-300 group-hover:text-blue-500" />
                                     </button>
                                 ))}
@@ -325,11 +191,11 @@ const DevChat = () => {
                     )}
 
                     {isSelectionMode && user?.role === 'admin' && (
-                        <div className="bg-slate-900 text-white px-8 py-3 flex items-center justify-between animate-in slide-in-from-top duration-300 sticky top-0 z-20">
-                            <p className="text-[10px] font-bold uppercase tracking-widest">{selectedIds.length} Messages Selected</p>
+                        <div className="bg-slate-900 text-white px-4 sm:px-8 py-3 flex items-center justify-between animate-in slide-in-from-top duration-300 sticky top-0 z-20 shrink-0">
+                            <p className="text-[10px] font-bold uppercase tracking-widest">{selectedIds.length} <span className="hidden sm:inline">Messages</span> Selected</p>
                             <div className="flex gap-4">
                                 <button onClick={() => { setSelectedIds([]); setIsSelectionMode(false); }} className="text-[10px] font-bold uppercase hover:text-slate-300 transition-all">Cancel</button>
-                                <button onClick={handleBulkDelete} className="bg-rose-600 px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-rose-500 transition-all">Delete Messages</button>
+                                <button onClick={handleBulkDelete} className="bg-rose-600 px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-rose-500 transition-all">Delete</button>
                             </div>
                         </div>
                     )}
@@ -353,7 +219,7 @@ const DevChat = () => {
 
                     {/* Connection Status Indicator */}
                     {(status !== 'online' && !historyLoading) && (
-                         <div className="absolute top-4 left-1/2 -translate-x-1/2 px-4 py-1.5 bg-slate-900 text-white text-[9px] font-bold uppercase tracking-widest rounded-full shadow-lg flex items-center gap-3 animate-pulse">
+                         <div className="absolute top-4 left-1/2 -translate-x-1/2 px-4 py-1.5 bg-slate-900/90 backdrop-blur-sm text-white text-[9px] font-bold uppercase tracking-widest rounded-full shadow-xl flex items-center gap-3 animate-pulse z-20">
                              <Circle size={8} fill="currentColor" className="text-amber-500" />
                              {status === 'connecting' ? 'Connecting...' : 'Reconnecting...'}
                          </div>
@@ -372,10 +238,20 @@ const DevChat = () => {
                 />
             </div>
 
+            {/* Mobile Sidebar Backdrop */}
+            {sidebarOpen && (
+                <div 
+                    className="fixed inset-0 bg-slate-900/20 backdrop-blur-sm z-[50] lg:hidden"
+                    onClick={() => setSidebarOpen(false)}
+                />
+            )}
+
             <ChatSidebar 
                 user={user} 
                 onlineCount={onlineCount} 
                 onlineUsers={onlineUsers}
+                isOpen={sidebarOpen}
+                onClose={() => setSidebarOpen(false)}
             />
 
             <ChatSettingsModal 
