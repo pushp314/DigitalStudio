@@ -28,6 +28,7 @@ func ConnectDB() {
 		&models.Product{},
 		&models.Tag{},
 		&models.ProductCategory{},
+		&models.Post{},
 	}
 	for _, m := range criticalModels {
 		_ = DB.AutoMigrate(m)
