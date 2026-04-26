@@ -29,9 +29,16 @@ func ConnectDB() {
 		&models.Tag{},
 		&models.ProductCategory{},
 		&models.Post{},
+		&models.EliteChatSession{},
+		&models.EliteChatMessage{},
+		&models.SiteConfig{},
+		&models.Order{},
+		&models.OrderItem{},
 	}
 	for _, m := range criticalModels {
-		_ = DB.AutoMigrate(m)
+		if err := DB.AutoMigrate(m); err != nil {
+			log.Printf("FATAL: Failed to auto-migrate critical model %T: %v", m, err)
+		}
 	}
 
 	if os.Getenv("ENABLE_AUTOMIGRATE") == "true" {

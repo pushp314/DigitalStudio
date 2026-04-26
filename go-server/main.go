@@ -56,7 +56,8 @@ func main() {
 	services.BackfillLegacyLicenses(config.DB)
 
 	r := gin.New()
-	r.RedirectTrailingSlash = true // Enable it back but ensure CORS runs first
+	r.RedirectTrailingSlash = false
+	r.RedirectFixedPath = false
 
 	// CORS must be the very first middleware to handle preflights and redirects properly
 	allowOrigins := allowedOriginsFromEnv()
