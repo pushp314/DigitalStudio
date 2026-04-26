@@ -84,19 +84,20 @@ rollback() {
 trap 'rollback $LINENO' ERR
 
 # --- Step 1: Update Source ---
-echo -e "${YELLOW}Step 1: Fetching latest changes...${NC}"
-echo "=> Clearing tracked build artifacts..."
-git checkout ecom/dist/ || true
+echo -e "${YELLOW}Step 1: Synchronizing with repository...${NC}"
 
-echo "=> Pulling from origin/main..."
-git fetch origin
-git pull origin main
+# Fetch latest from remote
+git fetch origin main
+
+# Force local to match remote exactly
+# This clears any local changes to tracked files (like the script itself or dist files)
+git reset --hard origin/main
 
 NEW_COMMIT=$(git rev-parse HEAD)
 if [ "$PREVIOUS_COMMIT" = "$NEW_COMMIT" ]; then
-    echo -e "${YELLOW}ℹ️  No new commits found, but proceeding with fresh build...${NC}"
+    echo -e "${YELLOW}ℹ️  No new commits found, but proceeding with fresh build as requested...${NC}"
 else
-    echo -e "${GREEN}✨ New code detected: $NEW_COMMIT${NC}"
+    echo -e "${GREEN}✨ Successfully synchronized to commit: $NEW_COMMIT${NC}"
 fi
 
 # --- Step 2: Environment & Database ---
