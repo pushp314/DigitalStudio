@@ -25,6 +25,7 @@ const normalizeParams = (input) => {
 const productService = {
     getAll: (params = {}) => api.get(`/products${buildQueryString(normalizeParams(params))}`),
     getById: (id, params = {}) => api.get(`/products/${id}${buildQueryString(normalizeParams(params))}`),
+    getBySlug: (slug, params = {}) => api.get(`/products/slug/${slug}${buildQueryString(normalizeParams(params))}`),
     getDownloadUrl: (id) => api.get(`/products/${id}/download`),
     create: (data) => api.post('/products', data),
     update: (id, data) => api.put(`/products/${id}`, data),

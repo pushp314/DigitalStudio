@@ -1,16 +1,16 @@
 package handlers
 
 import (
-	"net/http"
-	"strconv"
-	"strings"
-	"time"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/gosimple/slug"
 	"github.com/pushp314/bizcode/go-server/config"
 	"github.com/pushp314/bizcode/go-server/models"
 	"github.com/pushp314/bizcode/go-server/services"
+	"net/http"
+	"strconv"
+	"strings"
+	"time"
 )
 
 // ... (other handlers)
@@ -98,6 +98,9 @@ type CreateProductReq struct {
 	Slug                 string                  `json:"slug"`
 	Description          string                  `json:"description"`
 	LongDescription      string                  `json:"longDescription"`
+	SEOTitle             string                  `json:"seoTitle"`
+	SEODescription       string                  `json:"seoDescription"`
+	OGImage              string                  `json:"ogImage"`
 	Price                float64                 `json:"price"`
 	Category             string                  `json:"category"`
 	CategoryID           *uint                   `json:"categoryId"`
@@ -121,12 +124,12 @@ type CreateProductReq struct {
 	Features             []string                `json:"features"`
 	Pages                []string                `json:"pages"`
 	ModerationStatus     models.ModerationStatus `json:"moderationStatus"`
-	
+
 	// Storage Fields
-	StorageProvider      string                  `json:"storageProvider"`
-	StorageKey           string                  `json:"storageKey"`
-	OriginalFilename     string                  `json:"originalFilename"`
-	IsPrivateAsset       *bool                   `json:"isPrivateAsset"`
+	StorageProvider  string `json:"storageProvider"`
+	StorageKey       string `json:"storageKey"`
+	OriginalFilename string `json:"originalFilename"`
+	IsPrivateAsset   *bool  `json:"isPrivateAsset"`
 }
 
 type reviewMetric struct {
@@ -144,7 +147,7 @@ type salesMetric struct {
 func ListProducts(c *gin.Context) {
 	// Generate cache key from query params
 	cacheKey := "products:list:" + c.Request.URL.RawQuery
-	
+
 	var cachedProducts []models.Product
 	if err := services.Cache.Get(c.Request.Context(), cacheKey, &cachedProducts); err == nil {
 		c.JSON(http.StatusOK, cachedProducts)
@@ -229,10 +232,10 @@ func ListProducts(c *gin.Context) {
 	}
 
 	enrichProducts(&products)
-	
+
 	// Cache result (TTL 5 minutes for lists as they are more dynamic)
 	_ = services.Cache.Set(c.Request.Context(), cacheKey, products, 5*time.Minute)
-	
+
 	c.JSON(http.StatusOK, products)
 }
 
@@ -278,10 +281,39 @@ func GetProduct(c *gin.Context) {
 	}
 
 	enrichProduct(&product)
-	
+
 	// Save to cache (TTL 30 minutes)
 	_ = services.Cache.Set(c.Request.Context(), cacheKey, product, 30*time.Minute)
-	
+
+	c.JSON(http.StatusOK, product)
+}
+
+func GetProductBySlug(c *gin.Context) {
+	productSlug := strings.TrimSpace(c.Param("slug"))
+	if productSlug == "" {
+		respondError(c, http.StatusBadRequest, "Product slug is required")
+		return
+	}
+
+	cacheKey := "product:slug:" + productSlug
+	var product models.Product
+	if err := services.Cache.Get(c.Request.Context(), cacheKey, &product); err == nil {
+		c.JSON(http.StatusOK, product)
+		return
+	}
+
+	query := config.DB.Preload("Tags").Preload("CategoryRel")
+	if !canViewAllProducts(c, strings.EqualFold(c.Query("includeAll"), "true")) {
+		query = query.Where("moderation_status = ? AND status_flags NOT ILIKE ?", models.ModStatusApproved, "%archived%")
+	}
+	if err := query.Where("slug = ?", productSlug).First(&product).Error; err != nil {
+		respondError(c, http.StatusNotFound, "Product not found")
+		return
+	}
+
+	enrichProduct(&product)
+	_ = services.Cache.Set(c.Request.Context(), cacheKey, product, 30*time.Minute)
+
 	c.JSON(http.StatusOK, product)
 }
 
@@ -307,6 +339,9 @@ func CreateProduct(c *gin.Context) {
 		Slug:                 productSlug,
 		Description:          req.Description,
 		LongDescription:      req.LongDescription,
+		SEOTitle:             req.SEOTitle,
+		SEODescription:       req.SEODescription,
+		OGImage:              req.OGImage,
 		Price:                req.Price,
 		Category:             req.Category,
 		CategoryID:           req.CategoryID,
@@ -341,12 +376,12 @@ func CreateProduct(c *gin.Context) {
 	if product.Type == "" {
 		product.Type = models.ProductTypeTemplate
 	}
-	
+
 	// Governance: Non-admins are forced into Pending status
 	if !isAdmin {
 		product.ModerationStatus = models.ModStatusPending
 		product.StatusFlags = "active" // Default start
-		product.RevenueShare = 0      // Must be set by admin
+		product.RevenueShare = 0       // Must be set by admin
 	} else {
 		product.ModerationStatus = models.ModStatusApproved // Admins bypass
 		if strings.TrimSpace(product.StatusFlags) == "" {
@@ -360,7 +395,7 @@ func CreateProduct(c *gin.Context) {
 		respondError(c, http.StatusInternalServerError, err.Error())
 		return
 	}
-	
+
 	if len(product.Tags) > 0 {
 		if err := config.DB.Model(&product).Association("Tags").Replace(product.Tags); err != nil {
 			respondError(c, http.StatusInternalServerError, err.Error())
@@ -369,10 +404,10 @@ func CreateProduct(c *gin.Context) {
 	}
 
 	enrichProduct(&product)
-	
+
 	// Invalidate caches
 	_ = services.Cache.InvalidateByPrefix(c.Request.Context(), "products:list")
-	
+
 	c.JSON(http.StatusCreated, product)
 }
 
@@ -393,6 +428,7 @@ func UpdateProduct(c *gin.Context) {
 		respondError(c, http.StatusForbidden, "You do not have authorization to modify this digital asset.")
 		return
 	}
+	oldSlug := product.Slug
 
 	var req CreateProductReq
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -412,6 +448,9 @@ func UpdateProduct(c *gin.Context) {
 	if req.LongDescription != "" {
 		product.LongDescription = req.LongDescription
 	}
+	product.SEOTitle = req.SEOTitle
+	product.SEODescription = req.SEODescription
+	product.OGImage = req.OGImage
 	if req.Price != 0 {
 		product.Price = req.Price
 	}
@@ -454,7 +493,7 @@ func UpdateProduct(c *gin.Context) {
 	if req.IsPrivateAsset != nil {
 		product.IsPrivateAsset = *req.IsPrivateAsset
 	}
-	
+
 	// Governance: Authors can unpublish (set to pending), but only admins can approve
 	if req.ModerationStatus != "" {
 		if isAdmin {
@@ -495,6 +534,8 @@ func UpdateProduct(c *gin.Context) {
 
 	// Invalidate caches
 	_ = services.Cache.Delete(c.Request.Context(), "product:"+id)
+	_ = services.Cache.Delete(c.Request.Context(), "product:slug:"+oldSlug)
+	_ = services.Cache.Delete(c.Request.Context(), "product:slug:"+product.Slug)
 	_ = services.Cache.InvalidateByPrefix(c.Request.Context(), "products:list")
 
 	c.JSON(http.StatusOK, product)
@@ -525,6 +566,7 @@ func DeleteProduct(c *gin.Context) {
 
 	// Invalidate caches
 	_ = services.Cache.Delete(c.Request.Context(), "product:"+id)
+	_ = services.Cache.Delete(c.Request.Context(), "product:slug:"+product.Slug)
 	_ = services.Cache.InvalidateByPrefix(c.Request.Context(), "products:list")
 
 	c.JSON(http.StatusOK, gin.H{"message": "Product record purged successfully"})

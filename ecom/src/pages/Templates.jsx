@@ -1,5 +1,5 @@
 import React, { useContext, useMemo, useState, useEffect } from 'react';
-import { Link, useSearchParams, useParams } from 'react-router-dom';
+import { Link, useLocation, useSearchParams, useParams } from 'react-router-dom';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { useInView } from 'react-intersection-observer';
 import productService from '../services/productService';
@@ -12,6 +12,10 @@ import { FEATURES } from '../config/features';
 import { normalizeProduct } from '../utils/normalizers';
 import ConfigContext from '../context/ConfigContext';
 import { Search, ArrowRight } from 'lucide-react';
+import Meta from '../components/common/Meta';
+import { BLOG_POSTS } from '../data/blogPosts';
+import { CATEGORY_SEO } from '../data/seoContent';
+import { absoluteUrl, breadcrumbSchema, categoryCanonicalPath, faqSchema } from '../utils/seo';
 
 const PRODUCT_TYPES = [
     { value: 'all', label: 'All products' },
@@ -26,7 +30,11 @@ const PRODUCT_TYPES = [
 
 const Templates = () => {
     const { config } = useContext(ConfigContext);
+    const location = useLocation();
     const { slug } = useParams();
+    const seoCategory = slug ? CATEGORY_SEO[slug] : null;
+    const apiCategorySlug = seoCategory?.apiCategorySlug || slug;
+    const baseProductType = seoCategory?.apiProductType;
     const [searchParams, setSearchParams] = useSearchParams();
     const keyword = searchParams.get('search') || '';
     const [isAIModalOpen, setIsAIModalOpen] = useState(false);
@@ -38,12 +46,12 @@ const Templates = () => {
 
     // Fetch category metadata if we are on a category page
     useEffect(() => {
-        if (slug) {
-            api.get(`/categories/${slug}`).then(setCategoryData).catch(() => setCategoryData(null));
+        if (apiCategorySlug && !baseProductType) {
+            api.get(`/categories/${apiCategorySlug}`).then(setCategoryData).catch(() => setCategoryData(null));
         } else {
             setCategoryData(null);
         }
-    }, [slug]);
+    }, [apiCategorySlug, baseProductType]);
 
     const { ref: loadMoreRef, inView } = useInView();
     const PAGE_SIZE = 12;
@@ -60,12 +68,12 @@ const Templates = () => {
         queryKey: ['templates', keyword, slug, sortBy, selectedCategory, selectedProductType, showMembersOnly, searchParams.get('techStack'), searchParams.get('priceMin'), searchParams.get('priceMax')],
         queryFn: ({ pageParam = 1 }) => productService.getAll({ 
             keyword, 
-            categorySlug: slug, 
+            categorySlug: baseProductType ? undefined : apiCategorySlug,
             page: pageParam, 
             pageSize: PAGE_SIZE,
             sortBy,
             category: selectedCategory === 'all' ? undefined : selectedCategory,
-            productType: selectedProductType === 'all' ? undefined : selectedProductType,
+            productType: selectedProductType === 'all' ? baseProductType : selectedProductType,
             requiresSubscription: showMembersOnly ? true : undefined,
             techStack: searchParams.get('techStack') || undefined,
             priceMin: searchParams.get('priceMin') || undefined,
@@ -132,13 +140,67 @@ const Templates = () => {
         setSearchParams({});
     };
 
+    const isAssetsRoute = location.pathname.startsWith('/assets');
+    const canonicalPath = slug ? categoryCanonicalPath(slug) : '/assets';
+    const pageTitle = seoCategory?.metaTitle || (categoryData ? categoryData.name : 'Developer Assets, SaaS Templates and Ready-Made Apps');
+    const pageDescription = seoCategory?.metaDescription || 'Browse deployment-ready SaaS templates, dashboard templates, fullstack projects, UI kits, website templates, and developer assets.';
+    const relatedBlogs = seoCategory
+        ? BLOG_POSTS.filter((post) => post.relatedCategories.includes(seoCategory.slug)).slice(0, 3)
+        : BLOG_POSTS.slice(0, 3);
+
     return (
         <>
-            <BuildSitesHeader
-                title={categoryData ? categoryData.name : "Explore ready"}
-                highlight={categoryData ? "" : "apps and kits"}
-                description={categoryData ? categoryData.description : "Find production-ready apps, dashboards, APIs, UI kits, and technical assets with clear pricing, previews, documentation, and support options."}
+            <Meta
+                title={pageTitle}
+                description={pageDescription}
+                canonical={absoluteUrl(isAssetsRoute ? canonicalPath : (slug ? categoryCanonicalPath(slug) : '/assets'))}
+                jsonLd={[
+                    breadcrumbSchema([
+                        { name: 'Home', path: '/' },
+                        { name: 'Assets', path: '/assets' },
+                        ...(slug ? [{ name: seoCategory?.title || categoryData?.name || slug, path: canonicalPath }] : []),
+                    ]),
+                    ...(seoCategory ? [faqSchema(seoCategory.faq)] : []),
+                ]}
             />
+            <BuildSitesHeader
+                title={seoCategory?.h1 || (categoryData ? categoryData.name : "Explore ready")}
+                highlight={seoCategory || categoryData ? "" : "apps and kits"}
+                description={seoCategory?.intro || (categoryData ? categoryData.description : "Find production-ready apps, dashboards, APIs, UI kits, and technical assets with clear pricing, previews, documentation, and support options.")}
+            />
+
+            {seoCategory && (
+                <section className="px-6 pb-8">
+                    <div className="ds-shell grid gap-6 lg:grid-cols-[minmax(0,1fr),320px]">
+                        <article className="ds-card p-6 md:p-8">
+                            <div className="space-y-5 text-sm leading-7 text-slate-600">
+                                <p>{seoCategory.intro}</p>
+                                <p>{seoCategory.body}</p>
+                            </div>
+                            <div className="mt-8 grid gap-4 md:grid-cols-3">
+                                {seoCategory.h2s.map((heading) => (
+                                    <div key={heading} className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+                                        <h2 className="text-base font-semibold tracking-tight text-slate-900">{heading}</h2>
+                                    </div>
+                                ))}
+                            </div>
+                        </article>
+                        <aside className="ds-card p-6">
+                            <h2 className="text-lg font-semibold tracking-tight text-slate-900">Related guides</h2>
+                            <div className="mt-4 space-y-3">
+                                {relatedBlogs.map((post) => (
+                                    <Link key={post.slug} to={`/blog/${post.slug}`} className="block rounded-xl border border-slate-200 bg-white p-4 text-sm font-medium text-slate-700 hover:text-slate-900">
+                                        {post.title}
+                                    </Link>
+                                ))}
+                            </div>
+                            <Link to="/custom-request" className="ds-button-primary mt-5 w-full justify-center">
+                                Request Custom Build
+                            </Link>
+                        </aside>
+                    </div>
+                </section>
+            )}
 
             <section className="px-6 pb-8">
                 <div className="ds-shell grid gap-4 md:grid-cols-3">
@@ -150,14 +212,14 @@ const Templates = () => {
                         <p className="ds-eyebrow mb-2 text-indigo-600">Not sure yet?</p>
                         <p className="text-[11px] leading-relaxed text-slate-500 font-medium tracking-tight">Talk to an expert about your goals, stack, and timeline. We'll help you pick the right product or guide your strategy.</p>
                         <Link to="/support" className="inline-flex items-center gap-2 mt-5 text-[10px] font-black uppercase tracking-widest text-indigo-600 hover:text-indigo-800 transition-colors">
-                            Talk to an Expert <ArrowRight size={14} />
+                            Get Expert Help <ArrowRight size={14} />
                         </Link>
                     </div>
                     <div className="ds-card p-6 border-slate-200">
                         <p className="ds-eyebrow mb-2">Need a custom build?</p>
                         <p className="text-[11px] leading-relaxed text-slate-500 font-medium tracking-tight">If you need a specialized solution built from scratch or high-value customization, hire our core developers to lead the project.</p>
                         <Link to="/hire-developer" className="inline-flex items-center gap-2 mt-5 text-[10px] font-black uppercase tracking-widest text-slate-900 hover:opacity-70 transition-all">
-                            Hire Developer <ArrowRight size={14} />
+                            Request Custom Build <ArrowRight size={14} />
                         </Link>
                     </div>
                 </div>
@@ -314,7 +376,7 @@ const Templates = () => {
                                     <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600">Option 2</span>
                                     <span className="text-xs font-bold text-slate-900">Get expert advice</span>
                                 </Link>
-                                <Link to="/contact" className="ds-button-secondary py-6 flex flex-col items-center gap-3 bg-slate-50 border-slate-100 h-full">
+                                <Link to="/custom-request" className="ds-button-secondary py-6 flex flex-col items-center gap-3 bg-slate-50 border-slate-100 h-full">
                                     <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600">Option 3</span>
                                     <span className="text-xs font-bold text-slate-900">Request custom build</span>
                                 </Link>
@@ -351,6 +413,21 @@ const Templates = () => {
                     onClose={() => setIsAIModalOpen(false)}
                     selectedTechStack={selectedCategory}
                 />
+            )}
+
+            {seoCategory && (
+                <section className="px-6 pb-16">
+                    <div className="ds-shell">
+                        <div className="grid gap-4 md:grid-cols-3">
+                            {seoCategory.faq.map((item) => (
+                                <article key={item.question} className="ds-card p-6">
+                                    <h2 className="text-lg font-semibold tracking-tight text-slate-900">{item.question}</h2>
+                                    <p className="mt-3 text-sm leading-6 text-slate-600">{item.answer}</p>
+                                </article>
+                            ))}
+                        </div>
+                    </div>
+                </section>
             )}
         </>
     );

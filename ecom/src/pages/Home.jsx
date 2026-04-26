@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import HeroSection from '../components/HeroSection';
 import FeaturedHeader from '../components/FeaturedHeader';
@@ -15,6 +16,8 @@ import Meta from '../components/common/Meta';
 import CarouselStack from '../components/CarouselStack';
 import ConfigContext from '../context/ConfigContext';
 import { useContext } from 'react';
+import { absoluteUrl, faqSchema, organizationSchema, websiteSchema } from '../utils/seo';
+import { CATEGORY_ROUTES } from '../data/seoContent';
 
 const Home = () => {
     const { config } = useContext(ConfigContext);
@@ -27,14 +30,30 @@ const Home = () => {
         () => (Array.isArray(data) ? data.map(normalizeProduct) : []),
         [data],
     );
+    const homepageFaqs = Array.isArray(config?.faqs) ? config.faqs : [];
 
     return (
         <>
             <Meta 
-                title="Buy Ready Apps, Get Expert Help, or Hire Developers"
-                description="BizCode helps founders, teams, agencies, and builders buy ready apps, customize them, or hire developers to build for them."
+                title="SaaS Templates, Dashboards & Fullstack Projects"
+                description="Buy SaaS templates, dashboards, fullstack projects, website kits, and ready-made apps. Hire developers or request custom builds."
+                canonical={absoluteUrl('/')}
+                jsonLd={[organizationSchema(), websiteSchema(), ...(homepageFaqs.length ? [faqSchema(homepageFaqs)] : [])]}
             />
             <HeroSection />
+
+            <section className="ds-page px-6 pb-12">
+                <div className="ds-shell">
+                    <div className="grid gap-4 md:grid-cols-5">
+                        {CATEGORY_ROUTES.map((category) => (
+                            <Link key={category.slug} to={`/assets/${category.slug}`} className="ds-card p-5 hover:border-slate-300">
+                                <h2 className="text-base font-semibold tracking-tight text-slate-900">{category.title}</h2>
+                                <p className="mt-2 text-xs leading-5 text-slate-500">{category.metaDescription}</p>
+                            </Link>
+                        ))}
+                    </div>
+                </div>
+            </section>
             
             {config?.carouselStack?.length > 0 && (
                 <div className="bg-[#f5f5f7]">

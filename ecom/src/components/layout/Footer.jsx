@@ -7,8 +7,13 @@ const Footer = () => {
     const supportEmail = config?.contact?.email || config?.supportEmail || 'support@bizcode.appnity.co.in';
 
     const links = [
-        { label: 'Explore Apps', to: '/apps' },
+        { label: 'Explore Assets', to: '/assets' },
+        { label: 'SaaS Templates', to: '/assets/saas-templates' },
+        { label: 'Dashboard Templates', to: '/assets/dashboard-templates' },
+        { label: 'Fullstack Projects', to: '/assets/fullstack-projects' },
+        { label: 'Blog', to: '/blog' },
         { label: 'Hire Developer', to: '/hire-developer' },
+        { label: 'Request Custom Build', to: '/custom-request' },
         { label: 'Sell Your Project', to: '/sell-your-project' },
         ...(config?.features?.docs ? [{ label: 'Docs', to: '/docs' }] : []),
         { label: 'Pricing', to: '/pricing' },
@@ -22,7 +27,7 @@ const Footer = () => {
                     <Link to="/" className="inline-block">
                         <img src="/logo.png" alt="BizCode" className="h-28 w-auto" />
                     </Link>
-                    <p className="text-sm text-slate-600 max-w-xs">Premium ready apps, technical guides, and expert implementation support.</p>
+                    <p className="text-sm text-slate-600 max-w-xs">SaaS templates, dashboard templates, fullstack projects, developer assets, and expert implementation support.</p>
                     
                     <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
                         <p className="ds-eyebrow mb-2">Support</p>
@@ -50,7 +55,7 @@ const Footer = () => {
                     </p>
                     <div className="mt-4">
                         <Link to="/contact" className="ds-button-primary">
-                            Talk to an Expert
+                            Get Expert Help
                         </Link>
                     </div>
                 </div>

@@ -2,6 +2,8 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import BuildSitesHeader from '../components/BuildSitesHeader';
 import FeaturesGrid from '../components/FeaturesGrid';
+import Meta from '../components/common/Meta';
+import { absoluteUrl, breadcrumbSchema } from '../utils/seo';
 
 const valueCards = [
     {
@@ -21,6 +23,15 @@ const valueCards = [
 const Features = () => {
     return (
         <div className="ds-page">
+            <Meta
+                title="Developer Marketplace Features"
+                description="See how BizCode helps buyers compare SaaS templates, dashboards, fullstack projects, support, custom builds, and product access."
+                canonical={absoluteUrl('/features')}
+                jsonLd={[breadcrumbSchema([
+                    { name: 'Home', path: '/' },
+                    { name: 'Features', path: '/features' },
+                ])]}
+            />
             <BuildSitesHeader
                 title="What the platform"
                 highlight="includes"
@@ -53,8 +64,8 @@ const Features = () => {
                             </p>
                         </div>
                         <div className="flex flex-wrap gap-3">
-                            <Link to="/apps" className="ds-button-primary">
-                                Explore apps
+                            <Link to="/assets" className="ds-button-primary">
+                                Browse Assets
                             </Link>
                             <Link to="/pricing" className="ds-button-secondary">
                                 View pricing

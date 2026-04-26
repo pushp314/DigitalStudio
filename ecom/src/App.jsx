@@ -45,6 +45,10 @@ const FAQ = lazy(() => import("./pages/FAQ"));
 const Contact = lazy(() => import("./pages/Contact"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const TemplatesDetails = lazy(() => import("./pages/TemplatesDetails"));
+const ProductRedirect = lazy(() => import("./pages/ProductRedirect"));
+const Blog = lazy(() => import("./pages/Blog"));
+const BlogPost = lazy(() => import("./pages/BlogPost"));
+const AIRequirementsGenerator = lazy(() => import("./pages/AIRequirementsGenerator"));
 const Login = lazy(() => import("./pages/Auth/Login"));
 const Register = lazy(() => import("./pages/Auth/Register"));
 const OAuthCallback = lazy(() => import("./pages/Auth/OAuthCallback"));
@@ -191,7 +195,7 @@ const AppShell = () => {
   const isChatPath = location.pathname.startsWith('/chat');
   const isSupportPath = location.pathname.startsWith('/support');
   const isAccountPath = location.pathname.startsWith('/account');
-  const excludedRoutes = ['apps', 'templates', 'features', 'faq', 'contact', 'hire-developer', 'sell-your-project', 'chat', 'docs', 'pricing', 'cart', 'checkout', 'login', 'register', 'account', 'wishlist', 'admin', 'support'];
+  const excludedRoutes = ['apps', 'assets', 'templates', 'features', 'faq', 'contact', 'custom-request', 'ai-requirements-generator', 'blog', 'hire-developer', 'sell-your-project', 'chat', 'docs', 'pricing', 'cart', 'checkout', 'login', 'register', 'account', 'wishlist', 'admin', 'support'];
   const isProfilePath = location.pathname.startsWith('/@') || location.pathname.startsWith('/profile') || (location.pathname.split('/').length === 2 && location.pathname !== '/' && !excludedRoutes.includes(location.pathname.substring(1)));
   const hideLayout = isAdminPath || isSupportPath || isChatPath || isProfilePath || isAccountPath || isAuthPath;
   const hideFooter = hideLayout || location.pathname.startsWith('/cart') || location.pathname.startsWith('/checkout');
@@ -218,16 +222,23 @@ const AppShell = () => {
               <main className={`flex-grow transition-all duration-300 ${!hideLayout ? 'pb-32 md:pb-0' : ''} ${mainPadding}`}>
                 <Routes>
                   <Route path="/" element={<Home />} />
+                  <Route path="/assets" element={<Templates />} />
+                  <Route path="/assets/:slug" element={<Templates />} />
+                  <Route path="/assets/:categorySlug/:productSlug" element={<TemplatesDetails />} />
                   <Route path="/apps" element={<Templates />} />
                   <Route path="/apps/category/:slug" element={<Templates />} />
-                  <Route path="/apps/:id" element={<TemplatesDetails />} />
+                  <Route path="/apps/:id" element={<ProductRedirect />} />
                   <Route path="/templates" element={<Templates />} />
-                  <Route path="/templates/:id" element={<TemplatesDetails />} />
+                  <Route path="/templates/:id" element={<ProductRedirect />} />
                   <Route path="/features" element={<Features />} />
                   {features.testimonials && <Route path="/testimonials" element={<Testimonials />} />}
                   <Route path="/faq" element={<FAQ />} />
                   <Route path="/help" element={<Navigate to="/support" replace />} />
                   <Route path="/contact" element={<Contact />} />
+                  <Route path="/custom-request" element={<Contact />} />
+                  <Route path="/ai-requirements-generator" element={<AIRequirementsGenerator />} />
+                  <Route path="/blog" element={<Blog />} />
+                  <Route path="/blog/:slug" element={<BlogPost />} />
                   <Route path="/hire-developer" element={<Contact />} />
                   <Route path="/hire-developer/:serviceType" element={<Contact />} />
                   <Route path="/terms" element={<Legal type="terms" />} />

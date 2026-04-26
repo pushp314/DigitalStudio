@@ -2,11 +2,13 @@ import React, { useContext, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import ProBanner from '../components/ProBanner';
 import CarouselStack from '../components/CarouselStack';
+import Meta from '../components/common/Meta';
 import docService from '../services/docService';
 import { useToast } from '../context/ToastContext';
 import { normalizeDoc } from '../utils/normalizers';
 import ConfigContext from '../context/ConfigContext';
 import { LayoutGrid, List, Search as SearchIcon, FileText, Lock, Crown, Zap, ShieldCheck, Download, Users } from 'lucide-react';
+import { absoluteUrl, breadcrumbSchema } from '../utils/seo';
 
 const Docs = () => {
     const { config } = useContext(ConfigContext);
@@ -73,6 +75,15 @@ const Docs = () => {
 
     return (
         <div className="min-h-screen bg-[#F5F5F7] px-6 pb-40 pt-16 antialiased font-sans transition-colors duration-500">
+            <Meta
+                title="Technical Guides for SaaS Templates and Deployment"
+                description="Read technical guides for setup, deployment, SaaS templates, dashboard builds, fullstack projects, and implementation support."
+                canonical={absoluteUrl('/docs')}
+                jsonLd={[breadcrumbSchema([
+                    { name: 'Home', path: '/' },
+                    { name: 'Docs', path: '/docs' },
+                ])]}
+            />
             {/* 3D Visual Asset Highlights - THE HOOK */}
             {config?.carouselStack?.length > 0 && (
                 <div className="mb-24">

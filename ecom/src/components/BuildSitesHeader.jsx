@@ -18,7 +18,7 @@ const BuildSitesHeader = ({
                     </div>
                     <div className="shrink-0 flex items-center gap-2 px-4 py-2 bg-slate-50 border border-slate-100 rounded-xl">
                         <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Not sure?</span>
-                        <a href="/contact" className="text-[10px] font-bold text-emerald-600 hover:underline uppercase tracking-widest">Get Help Choosing</a>
+                        <a href="/custom-request" className="text-[10px] font-bold text-emerald-600 hover:underline uppercase tracking-widest">Request Custom Build</a>
                     </div>
                 </div>
             </div>

@@ -6,16 +6,7 @@ import api from '../services/api';
 import { useToast } from '../context/ToastContext';
 import { formatCurrency, normalizeProduct } from '../utils/normalizers';
 import { Tag, Ticket, X, Loader2, Zap, ShieldCheck } from 'lucide-react';
-
-const loadRazorpayScript = () => {
-    return new Promise((resolve) => {
-        const script = document.createElement('script');
-        script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-        script.onload = () => resolve(true);
-        script.onerror = () => resolve(false);
-        document.body.appendChild(script);
-    });
-};
+import { loadRazorpayScript } from '../utils/loadRazorpay';
 
 const SubscriptionCheckout = () => {
     const { config } = useContext(ConfigContext);

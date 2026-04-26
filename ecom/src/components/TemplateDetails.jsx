@@ -73,7 +73,7 @@ const TemplateDetails = ({ product }) => {
                             <div className="mt-6 flex flex-wrap gap-3">
                                 {liveDemo && (
                                     <a href={liveDemo} target="_blank" rel="noopener noreferrer" className="ds-button-primary">
-                                        Open live demo
+                                        View Demo
                                     </a>
                                 )}
                                 {githubRepo && (
@@ -104,7 +104,7 @@ const TemplateDetails = ({ product }) => {
                                 Verified payment unlocks the product in your account. Every software asset includes established implementation paths. If you need deployment help or strategic technical guidance, you can initiate a support request immediately after purchase.
                             </p>
                             <Link to="/support" className="inline-flex items-center gap-2 mt-8 text-[10px] font-black uppercase tracking-[0.2em] text-indigo-600 hover:text-indigo-800 transition-all">
-                                Open Support Inbox <ArrowRight size={14} />
+                                Get Expert Help <ArrowRight size={14} />
                             </Link>
                         </div>
                         <div className="ds-card p-8 border-indigo-100 bg-indigo-50/20">
@@ -113,11 +113,11 @@ const TemplateDetails = ({ product }) => {
                                 If this product fits your vision but requires custom branding, specific feature development, or a dedicated deployment team, we are ready to assist. Our developers can forked this product and build exactly what you need.
                             </p>
                             <div className="mt-8 flex flex-wrap gap-6">
-                                <Link to="/hire-developer" className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-900 hover:opacity-70 transition-all flex items-center gap-2">
-                                    Hire a Developer <ArrowRight size={12} />
+                                <Link to="/custom-request" className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-900 hover:opacity-70 transition-all flex items-center gap-2">
+                                    Request Custom Build <ArrowRight size={12} />
                                 </Link>
                                 <Link to="/support" className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-600 hover:text-indigo-800 transition-all flex items-center gap-2">
-                                    Talk to Expert <ArrowRight size={12} />
+                                    Get Expert Help <ArrowRight size={12} />
                                 </Link>
                             </div>
                         </div>
@@ -214,7 +214,7 @@ const TemplateDetails = ({ product }) => {
                             </div>
                         </div>
                         <Link to="/support" className="w-full ds-button-secondary py-4 flex items-center justify-center bg-slate-50 border-slate-200 text-slate-900 hover:bg-slate-100">
-                           <Sparkles size={14} className="mr-2 text-indigo-500" /> Talk to an Expert
+                           <Sparkles size={14} className="mr-2 text-indigo-500" /> Get Expert Help
                         </Link>
                     </section>
                 </div>

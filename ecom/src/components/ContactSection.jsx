@@ -13,6 +13,7 @@ const ContactSection = () => {
     const [fetching, setFetching] = useState(!!serviceType);
     const [activeIntent, setActiveIntent] = useState(null);
     const isHireFlow = location.pathname.includes('hire-developer');
+    const isCustomRequest = location.pathname.includes('custom-request');
     
     React.useEffect(() => {
         if (serviceType) {
@@ -55,7 +56,7 @@ const ContactSection = () => {
             await api.post('/contact', {
                 name: form.name,
                 email: form.email,
-                subject: form.subject || activeIntent?.headline || (isHireFlow ? 'Custom work or developer help request' : 'Product or account question'),
+                subject: form.subject || activeIntent?.headline || (isHireFlow || isCustomRequest ? 'Custom SaaS development request' : 'Product or account question'),
                 message: form.message,
                 serviceIntentId: activeIntent?.id || null
             });
@@ -72,13 +73,15 @@ const ContactSection = () => {
         <section className="ds-page px-6 py-16">
             <div className="ds-shell grid gap-8 lg:grid-cols-[320px,minmax(0,1fr)]">
                 <div className="space-y-4">
-                    <p className="ds-eyebrow">{isHireFlow ? 'Hire Developer' : 'Contact'}</p>
+                    <p className="ds-eyebrow">{isHireFlow ? 'Hire Developer' : isCustomRequest ? 'Custom SaaS Development' : 'Contact'}</p>
                     <h1 className="text-3xl font-bold tracking-tight text-slate-900 md:text-4xl">
-                        {activeIntent?.headline || activeIntent?.name || (isHireFlow ? 'Hire a developer or get expert help' : (contact.heading || 'Contact BizCode'))}
+                        {activeIntent?.headline || activeIntent?.name || (isHireFlow ? 'Hire a developer or get expert help' : isCustomRequest ? 'Request a custom SaaS build or dashboard' : (contact.heading || 'Contact BizCode'))}
                     </h1>
                     <p className="text-base leading-7 text-slate-600">
                         {activeIntent?.subheadline || (isHireFlow
                             ? 'Tell us what you want to launch, customize, deploy, or fix. We will help you choose a ready product or scope custom work.'
+                            : isCustomRequest
+                                ? 'Share your product idea, target users, must-have features, integrations, and launch timeline. We will help scope a custom SaaS app, dashboard, website, or fullstack project.'
                             : (contact.subheading || 'Questions about a product, your account, deployment, or an order? Send us a message and we will reply as soon as possible.'))}
                     </p>
 
@@ -133,7 +136,7 @@ const ContactSection = () => {
                                 type="text"
                                 value={form.subject}
                                 onChange={(event) => setForm((prev) => ({ ...prev, subject: event.target.value }))}
-                                placeholder={isHireFlow ? 'Custom build, deployment, or product advice' : 'How can we help?'}
+                                placeholder={isHireFlow || isCustomRequest ? 'Custom build, deployment, or product advice' : 'How can we help?'}
                                 className="ds-input"
                             />
                         </Field>
@@ -143,13 +146,13 @@ const ContactSection = () => {
                                 rows="5"
                                 value={form.message}
                                 onChange={(event) => setForm((prev) => ({ ...prev, message: event.target.value }))}
-                                placeholder={isHireFlow ? 'Tell us your goal, timeline, budget range, existing product link, or what you need customized.' : 'Tell us what you need.'}
+                                placeholder={isHireFlow || isCustomRequest ? 'Tell us your goal, timeline, budget range, existing product link, or what you need customized.' : 'Tell us what you need.'}
                                 className="ds-input resize-none"
                             />
                         </Field>
 
                         <button type="submit" disabled={loading} className="ds-button-primary w-full">
-                            {loading ? 'Sending...' : (activeIntent?.cta || (isHireFlow ? 'Send request' : 'Send message'))}
+                            {loading ? 'Sending...' : (activeIntent?.cta || (isHireFlow || isCustomRequest ? 'Request Custom Build' : 'Send message'))}
                         </button>
                     </form>
                 </div>

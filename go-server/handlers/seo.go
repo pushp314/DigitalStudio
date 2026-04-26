@@ -1,8 +1,11 @@
 package handlers
 
 import (
+	"encoding/json"
 	"fmt"
+	"html"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/pushp314/bizcode/go-server/config"
@@ -18,24 +21,55 @@ func ServeProductSEO(c *gin.Context) {
 	}
 
 	// Dynamic Metadata Payload
-	title := fmt.Sprintf("%s | BizCode", product.Title)
-	description := product.Description
+	title := strings.TrimSpace(product.SEOTitle)
+	if title == "" {
+		title = fmt.Sprintf("%s | BizCode", product.Title)
+	}
+	description := strings.TrimSpace(product.SEODescription)
+	if description == "" {
+		description = product.Description
+	}
 	if len(description) > 160 {
 		description = description[:157] + "..."
 	}
-	image := product.Image
+	image := strings.TrimSpace(product.OGImage)
+	if image == "" {
+		image = product.Image
+	}
 	price := fmt.Sprintf("₹%.2f", product.Price)
 	siteURL := getFrontendURL()
+	canonicalPath := canonicalProductPath(product)
+	canonicalURL := strings.TrimRight(siteURL, "/") + canonicalPath
+	productSchema, _ := json.Marshal(map[string]interface{}{
+		"@context":    "https://schema.org",
+		"@type":       "Product",
+		"name":        product.Title,
+		"description": description,
+		"image":       image,
+		"brand":       map[string]string{"@type": "Brand", "name": "BizCode"},
+		"sku":         fmt.Sprintf("%d", product.ID),
+		"category":    product.Category,
+		"offers": map[string]interface{}{
+			"@type":         "Offer",
+			"url":           canonicalURL,
+			"priceCurrency": "INR",
+			"price":         product.Price,
+			"availability":  "https://schema.org/InStock",
+		},
+	})
 
 	html := fmt.Sprintf(`<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <title>%s</title>
+    <meta name="description" content="%s">
+    <link rel="canonical" href="%s">
+    <meta name="robots" content="index,follow">
     
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="product">
-    <meta property="og:url" content="%s/apps/%s">
+    <meta property="og:url" content="%s">
     <meta property="og:title" content="%s">
     <meta property="og:description" content="%s">
     <meta property="og:image" content="%s">
@@ -44,15 +78,16 @@ func ServeProductSEO(c *gin.Context) {
 
     <!-- Twitter -->
     <meta property="twitter:card" content="summary_large_image">
-    <meta property="twitter:url" content="%s/apps/%s">
+    <meta property="twitter:url" content="%s">
     <meta property="twitter:title" content="%s">
     <meta property="twitter:description" content="%s">
     <meta property="twitter:image" content="%s">
+    <script type="application/ld+json">%s</script>
 
     <!-- Client Redirect -->
     <script>
         setTimeout(function() {
-            window.location.href = "%s/apps/%s";
+            window.location.href = "%s";
         }, 150);
     </script>
 </head>
@@ -62,9 +97,11 @@ func ServeProductSEO(c *gin.Context) {
     <p>Price: %s</p>
     <img src="%s" alt="%s">
 </body>
-</html>`, 
-	title, siteURL, id, title, description, image, product.Price, 
-	siteURL, id, title, description, image, siteURL, id, title, description, price, image, title)
+</html>`,
+		html.EscapeString(title), html.EscapeString(description), canonicalURL,
+		canonicalURL, html.EscapeString(title), html.EscapeString(description), image, product.Price,
+		canonicalURL, html.EscapeString(title), html.EscapeString(description), image, string(productSchema), canonicalURL,
+		html.EscapeString(title), html.EscapeString(description), price, image, html.EscapeString(title))
 
 	c.Data(http.StatusOK, "text/html; charset=utf-8", []byte(html))
 }

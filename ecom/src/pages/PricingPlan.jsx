@@ -7,6 +7,8 @@ import { useCart } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';
 import { formatCurrency, normalizeProduct } from '../utils/normalizers';
 import { ShieldCheck, Zap, Rocket, Target, Crown } from 'lucide-react';
+import Meta from '../components/common/Meta';
+import { absoluteUrl, breadcrumbSchema } from '../utils/seo';
 
 const PricingPlan = () => {
     const { user } = useContext(AuthContext);
@@ -111,7 +113,7 @@ const PricingPlan = () => {
 
     const handlePlanAction = (plan) => {
         if (plan.key === 'free') {
-            navigate('/apps');
+            navigate('/assets');
             return;
         }
 
@@ -125,6 +127,15 @@ const PricingPlan = () => {
 
     return (
         <div className="ds-page relative overflow-hidden px-6 pb-24 pt-16">
+            <Meta
+                title="BizCode Pricing for Developer Assets and Support"
+                description="Compare BizCode pricing for developer assets, premium guides, expert help, SaaS template support, and custom build paths."
+                canonical={absoluteUrl('/pricing')}
+                jsonLd={[breadcrumbSchema([
+                    { name: 'Home', path: '/' },
+                    { name: 'Pricing', path: '/pricing' },
+                ])]}
+            />
             {/* Premium Mesh Gradient Background */}
             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[600px] pointer-events-none opacity-50">
                 <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-amber-200/30 blur-[120px] rounded-full" />

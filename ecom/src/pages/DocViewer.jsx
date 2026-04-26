@@ -11,6 +11,8 @@ import docService from '../services/docService';
 import { normalizeDoc } from '../utils/normalizers';
 import aiService from '../services/aiService';
 import { motion, AnimatePresence } from 'framer-motion';
+import Meta from '../components/common/Meta';
+import { absoluteUrl, breadcrumbSchema } from '../utils/seo';
 import { 
     Cpu, X, Trash2, Loader2, Lock, Sparkles, Terminal, 
     ChevronRight, ShieldCheck, Bot, Send, MessageCircle, Minimize2 
@@ -284,6 +286,17 @@ const DocViewer = () => {
 
     return (
         <div className="ds-page px-6 pb-16 pt-32">
+            <Meta
+                title={doc.title}
+                description={doc.description || doc.previewContent || 'BizCode technical guide for setup, deployment, and implementation support.'}
+                canonical={absoluteUrl(`/docs/${doc.id}`)}
+                type="article"
+                jsonLd={[breadcrumbSchema([
+                    { name: 'Home', path: '/' },
+                    { name: 'Docs', path: '/docs' },
+                    { name: doc.title, path: `/docs/${doc.id}` },
+                ])]}
+            />
             <div className="fixed left-0 top-0 z-[1001] h-1 w-full bg-slate-200">
                 <div className="h-full bg-slate-900 transition-all" style={{ width: `${readingProgress}%` }} />
             </div>

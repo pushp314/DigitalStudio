@@ -44,16 +44,16 @@ const HeroSection = () => {
 
                     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
                         <h1 className="text-5xl font-bold tracking-tight text-slate-900 md:text-7xl leading-[1.1]">
-                            Buy ready apps. Customize them. Or let us build for you.
+                            Buy SaaS Templates, Dashboards & Fullstack Projects.
                         </h1>
                         <p className="max-w-2xl text-lg leading-relaxed text-slate-500 font-medium pt-2">
-                            Skip months of development. Get production-ready apps, expert help, and deployment support in one place.
+                            Skip months of development with deployment-ready projects, developer assets, expert help, and custom SaaS development in one place.
                         </p>
                     </div>
 
                     <div className="flex flex-wrap gap-4 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200">
-                        <button type="button" onClick={() => navigate('/apps')} className="px-8 py-4 bg-slate-900 text-white rounded-2xl text-[10px] font-bold uppercase tracking-[0.2em] hover:bg-emerald-600 transition-all shadow-xl shadow-slate-900/10">
-                            Explore Apps
+                        <button type="button" onClick={() => navigate('/assets')} className="px-8 py-4 bg-slate-900 text-white rounded-2xl text-[10px] font-bold uppercase tracking-[0.2em] hover:bg-emerald-600 transition-all shadow-xl shadow-slate-900/10">
+                            Browse Assets
                         </button>
                         <button type="button" onClick={() => navigate('/hire-developer')} className="px-8 py-4 bg-white border border-slate-200 text-slate-900 rounded-2xl text-[10px] font-bold uppercase tracking-[0.2em] hover:bg-slate-50 transition-all">
                             Hire Developer
@@ -104,13 +104,13 @@ const HeroSection = () => {
                 <div className="ds-panel p-4 animate-in fade-in zoom-in-95 duration-1000">
                     <div className="grid gap-4 sm:grid-cols-2">
                         <div className="overflow-hidden rounded-[2.5rem] border border-slate-200 bg-slate-100 sm:row-span-2 shadow-inner group">
-                            <img src={heroImages[0]} alt="Hero Primary" className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                            <img src={heroImages[0]} alt="SaaS dashboard template preview" fetchPriority="high" decoding="async" className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110" />
                         </div>
                         <div className="overflow-hidden rounded-[2rem] border border-slate-200 bg-slate-100 shadow-inner group">
-                            <img src={heroImages[1] || heroImages[0]} alt="Hero Secondary" className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                            <img src={heroImages[1] || heroImages[0]} alt="Fullstack project analytics preview" loading="lazy" decoding="async" className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110" />
                         </div>
                         <div className="overflow-hidden rounded-[2rem] border border-slate-200 bg-slate-100 shadow-inner group">
-                            <img src={heroImages[2] || heroImages[0]} alt="Hero Tertiary" className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                            <img src={heroImages[2] || heroImages[0]} alt="Developer asset workspace preview" loading="lazy" decoding="async" className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110" />
                         </div>
                     </div>
                 </div>

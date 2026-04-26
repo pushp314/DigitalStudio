@@ -11,6 +11,8 @@ const BrowseTemplatesCTA = () => {
                             <img
                                 src="https://images.unsplash.com/photo-1510915361894-db8b60106cb1?auto=format&fit=crop&q=80&w=800"
                                 alt="Portfolio kit preview"
+                                loading="lazy"
+                                decoding="async"
                                 className="aspect-[4/3] w-full object-cover"
                             />
                         </div>
@@ -18,6 +20,8 @@ const BrowseTemplatesCTA = () => {
                             <img
                                 src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&q=80&w=800"
                                 alt="Dashboard app preview"
+                                loading="lazy"
+                                decoding="async"
                                 className="aspect-[4/3] w-full object-cover"
                             />
                         </div>
@@ -32,11 +36,11 @@ const BrowseTemplatesCTA = () => {
                             Explore apps, dashboards, UI kits, APIs, and software assets with clear pricing, documentation, and support paths after purchase.
                         </p>
                         <div className="flex flex-wrap gap-3">
-                            <Link to="/apps" className="ds-button-primary">
-                                Explore apps
+                            <Link to="/assets" className="ds-button-primary">
+                                Browse Assets
                             </Link>
-                            <Link to="/hire-developer" className="ds-button-secondary">
-                                Talk to an expert
+                            <Link to="/custom-request" className="ds-button-secondary">
+                                Request Custom Build
                             </Link>
                         </div>
                     </div>

@@ -1,0 +1,19 @@
+User-agent: *
+Allow: /
+
+Disallow: /admin
+Disallow: /account
+Disallow: /checkout
+Disallow: /cart
+Disallow: /wishlist
+Disallow: /login
+Disallow: /register
+Disallow: /subscription-checkout
+Disallow: /support
+Disallow: /chat
+Disallow: /*?search=
+Disallow: /*?priceMin=
+Disallow: /*?priceMax=
+Disallow: /*?techStack=
+
+Sitemap: https://bizcode.appnity.co.in/sitemap.xml

@@ -31,6 +31,7 @@ import ConfigContext from '../../context/ConfigContext';
 import WishlistContext from '../../context/WishlistContext';
 import api from '../../services/api';
 import ConfirmModal from '../ui/ConfirmModal';
+import { categoryCanonicalPath } from '../../utils/seo';
 
 // --- Reusable Dropdown Component ---
 const NavDropdown = ({ label, items, href }) => {
@@ -194,7 +195,7 @@ const Navbar = ({ onSearchClick }) => {
     }, []);
 
     const [exploreItems, setExploreItems] = useState([
-        { label: 'All Apps', href: '/apps', icon: Package, desc: 'Full database' }
+        { label: 'All Assets', href: '/assets', icon: Package, desc: 'Full database' }
     ]);
     const [expertItems, setExpertItems] = useState([]);
     const [developerItems, setDeveloperItems] = useState([]);
@@ -210,10 +211,11 @@ const Navbar = ({ onSearchClick }) => {
 
                 if (Array.isArray(cats)) {
                     setExploreItems([
-                        { label: 'All Apps', href: '/apps', icon: Package, desc: 'Full database' },
+                        { label: 'All Assets', href: '/assets', icon: Package, desc: 'Full database' },
+                        { label: 'Fullstack Projects', href: '/assets/fullstack-projects', icon: Code, desc: 'Source code apps' },
                         ...cats.map(c => ({
                             label: c.name,
-                            href: `/apps/category/${c.slug}`,
+                            href: categoryCanonicalPath(c.slug),
                             icon: Zap, // Default icon
                             desc: c.description || 'View apps'
                         }))
@@ -260,7 +262,13 @@ const Navbar = ({ onSearchClick }) => {
                             {/* CENTER: Navigation (Desktop) */}
                             <nav className="hidden items-center gap-1 lg:flex">
                                 <div className="h-6 w-px bg-slate-200 mx-2" />
-                                <NavDropdown label="Explore Apps" items={exploreItems} href="/apps" />
+                                <NavDropdown label="Explore Assets" items={exploreItems} href="/assets" />
+                                <NavLink 
+                                    to="/blog" 
+                                    className={({isActive}) => `px-3 py-2 text-[13px] font-semibold transition-colors ${isActive ? 'text-slate-900' : 'text-slate-500 hover:text-slate-900'}`}
+                                >
+                                    Blog
+                                </NavLink>
                                 <NavLink 
                                     to="/docs" 
                                     className={({isActive}) => `px-3 py-2 text-[13px] font-semibold transition-colors ${isActive ? 'text-slate-900' : 'text-slate-500 hover:text-slate-900'}`}
@@ -325,10 +333,10 @@ const Navbar = ({ onSearchClick }) => {
                             </Link>
 
                             <Link 
-                                to="/hire-developer" 
+                                to="/custom-request" 
                                 className="hidden md:flex h-10 items-center px-5 bg-slate-900 text-white rounded-xl text-[12px] font-bold transition-all hover:bg-slate-800 active:scale-95 shadow-sm shadow-slate-900/10"
                             >
-                                Get Custom Build
+                                Request Custom Build
                             </Link>
 
                             {/* User Profile / Login */}
@@ -432,7 +440,8 @@ const Navbar = ({ onSearchClick }) => {
                             className="w-full overflow-hidden border-t border-slate-200 bg-white lg:hidden shadow-lg overflow-y-auto max-h-[calc(100vh-64px)]"
                         >
                             <div className="flex flex-col p-4 gap-1">
-                                <Link to="/apps" className="flex items-center justify-between p-4 rounded-xl hover:bg-slate-50 text-[14px] font-bold text-slate-900">Explore Apps <ArrowRight size={16} /></Link>
+                                <Link to="/assets" className="flex items-center justify-between p-4 rounded-xl hover:bg-slate-50 text-[14px] font-bold text-slate-900">Explore Assets <ArrowRight size={16} /></Link>
+                                <Link to="/blog" className="flex items-center justify-between p-4 rounded-xl hover:bg-slate-50 text-[14px] font-bold text-slate-900">Blog <ArrowRight size={16} /></Link>
                                 <Link to="/docs" className="flex items-center justify-between p-4 rounded-xl hover:bg-slate-50 text-[14px] font-bold text-slate-900">Docs <ArrowRight size={16} /></Link>
                                 <Link to="/support" className="flex items-center justify-between p-4 rounded-xl hover:bg-slate-50 text-[14px] font-bold text-slate-900">
                                     <div className="flex items-center gap-2">

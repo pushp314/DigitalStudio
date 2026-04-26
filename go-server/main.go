@@ -57,7 +57,7 @@ func main() {
 
 	r := gin.New()
 	r.RedirectTrailingSlash = true // Enable it back but ensure CORS runs first
-	
+
 	// CORS must be the very first middleware to handle preflights and redirects properly
 	allowOrigins := allowedOriginsFromEnv()
 	allowCredentials := len(allowOrigins) > 0 && !(len(allowOrigins) == 1 && allowOrigins[0] == "*")
@@ -74,9 +74,9 @@ func main() {
 	r.Use(middleware.RequestIDMiddleware())
 	r.Use(middleware.RequestLogger())
 	r.Use(middleware.MaintenanceMiddleware())
-	
+
 	// Default MaxMultipartMemory is 32MB. Increase to 100MB for faster handling of moderately large parts.
-	r.MaxMultipartMemory = 100 << 20 
+	r.MaxMultipartMemory = 100 << 20
 
 	// Global Request Body Limit (except uploads)
 	r.Use(func(c *gin.Context) {
@@ -104,10 +104,10 @@ func main() {
 	})
 	r.Use(sessions.Sessions("bizcode_session", store))
 
-
 	r.GET("/", func(c *gin.Context) {
 		c.JSON(200, gin.H{"status": "running", "service": "BizCode API", "version": "1.0.0"})
 	})
+	r.GET("/sitemap.xml", handlers.ServeSitemap)
 	r.GET("/healthz", handlers.Healthz)
 	r.GET("/readyz", handlers.Readyz)
 	r.GET("/metrics", gin.WrapH(promhttp.Handler()))
@@ -131,6 +131,7 @@ func main() {
 	products := api.Group("/products")
 	{
 		products.GET("", publicLimiter, handlers.ListProducts)
+		products.GET("/slug/:slug", publicLimiter, handlers.GetProductBySlug)
 		products.GET("/:id", publicLimiter, handlers.GetProduct)
 		products.GET("/owned", middleware.AuthMiddleware(), handlers.GetOwnedProducts)
 		products.GET("/:id/share", handlers.ServeProductSEO)
@@ -149,7 +150,7 @@ func main() {
 	orders := api.Group("/orders")
 	orders.Use(middleware.AuthMiddleware())
 	{
-		orders.POST("/", handlers.CreateOrder)
+		orders.POST("", handlers.CreateOrder)
 		orders.GET("/myorders", handlers.MyOrders)
 	}
 
@@ -159,7 +160,7 @@ func main() {
 		// Order Management
 		adminOrders := admin.Group("/orders")
 		{
-			adminOrders.GET("/", handlers.AdminListOrders)
+			adminOrders.GET("", handlers.AdminListOrders)
 			adminOrders.GET("/:id", handlers.AdminGetOrder)
 			adminOrders.PATCH("/:id", handlers.AdminUpdateOrder)
 			adminOrders.POST("/:id/refund", handlers.AdminRefundOrder)
@@ -180,8 +181,8 @@ func main() {
 
 		adminCategories := admin.Group("/categories")
 		{
-			adminCategories.GET("/", handlers.GetCategories)
-			adminCategories.POST("/", handlers.CreateCategory)
+			adminCategories.GET("", handlers.GetCategories)
+			adminCategories.POST("", handlers.CreateCategory)
 			adminCategories.PUT("/:id", handlers.UpdateCategory)
 			adminCategories.DELETE("/:id", handlers.DeleteCategory)
 		}
@@ -227,20 +228,23 @@ func main() {
 
 	docs := api.Group("/docs")
 	{
-		docs.GET("/", publicLimiter, handlers.ListDocs)
+		docs.GET("", publicLimiter, handlers.ListDocs)
 		docs.GET("/:id", publicLimiter, handlers.GetDoc)
-		docs.POST("/", middleware.AuthMiddleware(), middleware.AdminMiddleware(), handlers.CreateDoc)
+		docs.POST("", middleware.AuthMiddleware(), middleware.AdminMiddleware(), handlers.CreateDoc)
 		docs.PUT("/:id", middleware.AuthMiddleware(), middleware.AdminMiddleware(), handlers.UpdateDoc)
 		docs.DELETE("/:id", middleware.AuthMiddleware(), middleware.AdminMiddleware(), handlers.DeleteDoc)
 		docs.GET("/:id/chat", middleware.AuthMiddleware(), handlers.GetDocChatHistory)
 		docs.DELETE("/:id/chat", middleware.AuthMiddleware(), handlers.DeleteDocChat)
 	}
 
-	api.POST("/upload", 
-		uploadLimiter, 
-		func(c *gin.Context) { c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, 1024<<20); c.Next() }, // 1GB
-		middleware.AuthMiddleware(), 
-		middleware.AdminMiddleware(), 
+	api.POST("/upload",
+		uploadLimiter,
+		func(c *gin.Context) {
+			c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, 1024<<20)
+			c.Next()
+		}, // 1GB
+		middleware.AuthMiddleware(),
+		middleware.AdminMiddleware(),
 		handlers.UploadFile,
 	)
 
@@ -272,11 +276,11 @@ func main() {
 	}
 
 	handlers.RegisterEliteRoutes(api)
-	
+
 	chat := api.Group("/chat")
 	{
 		chat.GET("/ws", handlers.ServeChatWs) // Authenticated via Ticket internally
-		
+
 		chatAuth := chat.Group("", middleware.AuthMiddleware())
 		{
 			// Tight rate limit on ticket issuance to prevent flood/abuse
@@ -305,7 +309,7 @@ func main() {
 	adminReviews := api.Group("/admin/reviews")
 	adminReviews.Use(middleware.AuthMiddleware(), middleware.AdminMiddleware())
 	{
-		adminReviews.GET("/", handlers.AdminListReviews)
+		adminReviews.GET("", handlers.AdminListReviews)
 		adminReviews.PATCH("/:id", handlers.AdminUpdateReview)
 		adminReviews.DELETE("/:id", handlers.AdminDeleteReview)
 	}
@@ -335,7 +339,7 @@ func main() {
 	adminTestimonials := api.Group("/admin/testimonials")
 	adminTestimonials.Use(middleware.AuthMiddleware(), middleware.AdminMiddleware())
 	{
-		adminTestimonials.GET("/", handlers.AdminListTestimonials)
+		adminTestimonials.GET("", handlers.AdminListTestimonials)
 		adminTestimonials.PATCH("/:id/approve", handlers.AdminApproveTestimonial)
 		adminTestimonials.PATCH("/:id/reject", handlers.AdminRejectTestimonial)
 		adminTestimonials.DELETE("/:id", handlers.AdminDeleteTestimonial)
@@ -358,7 +362,7 @@ func main() {
 	adminShowcases := api.Group("/admin/showcases")
 	adminShowcases.Use(middleware.AuthMiddleware(), middleware.AdminMiddleware())
 	{
-		adminShowcases.GET("/", handlers.AdminListShowcases)
+		adminShowcases.GET("", handlers.AdminListShowcases)
 		adminShowcases.PATCH("/:id/status", handlers.AdminUpdateShowcaseStatus)
 	}
 
@@ -388,14 +392,14 @@ func main() {
 	adminContact := api.Group("/admin/contact")
 	adminContact.Use(middleware.AuthMiddleware(), middleware.AdminMiddleware())
 	{
-		adminContact.GET("/", handlers.AdminListInquiries)
+		adminContact.GET("", handlers.AdminListInquiries)
 		adminContact.PATCH("/:id/reply", handlers.AdminReplyToInquiry)
 	}
 
 	adminLicenses := api.Group("/admin/licenses")
 	adminLicenses.Use(middleware.AuthMiddleware(), middleware.AdminMiddleware())
 	{
-		adminLicenses.GET("/", handlers.AdminListLicenses)
+		adminLicenses.GET("", handlers.AdminListLicenses)
 		adminLicenses.GET("/:id", handlers.AdminGetLicense)
 		adminLicenses.GET("/:id/activations", handlers.AdminGetLicenseActivations)
 		adminLicenses.GET("/:id/events", handlers.AdminGetLicenseEvents)
@@ -411,7 +415,7 @@ func main() {
 	// Notifications
 	notifications := api.Group("/notifications")
 	{
-		notifications.GET("/", middleware.AuthMiddleware(), handlers.GetMyNotifications)
+		notifications.GET("", middleware.AuthMiddleware(), handlers.GetMyNotifications)
 		notifications.POST("/broadcast", middleware.AuthMiddleware(), middleware.AdminMiddleware(), handlers.AdminBroadcastNotification)
 	}
 
@@ -431,7 +435,7 @@ func main() {
 	adminAffiliates := api.Group("/admin/affiliates")
 	adminAffiliates.Use(middleware.AuthMiddleware(), middleware.AdminMiddleware())
 	{
-		adminAffiliates.GET("/", handlers.AdminListAffiliates)
+		adminAffiliates.GET("", handlers.AdminListAffiliates)
 		adminAffiliates.GET("/:id", handlers.AdminGetAffiliate)
 		adminAffiliates.POST("/:id/approve", handlers.AdminApproveAffiliate)
 		adminAffiliates.POST("/:id/reject", handlers.AdminRejectAffiliate)
@@ -441,7 +445,7 @@ func main() {
 	adminPayouts := api.Group("/admin/affiliate-payouts")
 	adminPayouts.Use(middleware.AuthMiddleware(), middleware.AdminMiddleware())
 	{
-		adminPayouts.GET("/", handlers.AdminListAffiliatePayouts)
+		adminPayouts.GET("", handlers.AdminListAffiliatePayouts)
 		adminPayouts.POST("/:id/approve", handlers.AdminApproveAffiliatePayout)
 		adminPayouts.POST("/:id/pay", handlers.AdminPayAffiliatePayout)
 	}
@@ -453,7 +457,7 @@ func main() {
 	adminCarts := api.Group("/admin/abandoned-carts")
 	adminCarts.Use(middleware.AuthMiddleware(), middleware.AdminMiddleware())
 	{
-		adminCarts.GET("/", handlers.AdminListAbandonedCarts)
+		adminCarts.GET("", handlers.AdminListAbandonedCarts)
 		adminCarts.GET("/stats", handlers.AdminGetCartRecoveryStats)
 		adminCarts.GET("/:id/logs", handlers.AdminGetCartRecoveryLogs)
 		adminCarts.POST("/trigger-recovery", handlers.AdminTriggerCartRecovery)
@@ -475,7 +479,7 @@ func main() {
 	}
 
 	log.Printf("Server starting on port %s", port)
-	
+
 	// Start Background Orchestrators
 	go startBackgroundPruner()
 	go handlers.RunPeriodicJobs() // Cart recovery scheduler
@@ -489,7 +493,7 @@ func startBackgroundPruner() {
 	ticker := time.NewTicker(1 * time.Hour)
 	for range ticker.C {
 		log.Println("Maintenance[Background]: Pruning expired protocol nodes...")
-		
+
 		// 1. Prune expired Chat Sessions
 		result := config.DB.Where("status = ? AND expires_at < ?", "active", time.Now()).
 			Update("status", "expired")
@@ -504,15 +508,19 @@ func startBackgroundPruner() {
 
 func allowedOriginsFromEnv() []string {
 	raw := strings.TrimSpace(os.Getenv("ALLOWED_ORIGINS"))
+	defaults := []string{
+		"http://localhost:5173",
+		"http://localhost:5174",
+		"http://127.0.0.1:5173",
+		"http://127.0.0.1:5174",
+		"http://localhost:3000",
+		"http://127.0.0.1:3000",
+		"https://bizcode.appnity.co.in",
+		"https://bizcode.app",
+	}
+
 	if raw == "" {
-		return []string{
-			"http://localhost:5173",
-			"http://localhost:5174",
-			"http://127.0.0.1:5173",
-			"http://127.0.0.1:5174",
-			"http://localhost:3000",
-			"http://127.0.0.1:3000",
-		}
+		return defaults
 	}
 
 	parts := strings.Split(raw, ",")
@@ -525,11 +533,7 @@ func allowedOriginsFromEnv() []string {
 	}
 
 	if len(origins) == 0 {
-		return []string{
-			"http://localhost:5173",
-			"https://bizcode.appnity.co.in",
-			"https://bizcode.app",
-		}
+		return defaults
 	}
 
 	return origins

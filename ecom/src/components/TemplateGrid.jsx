@@ -6,7 +6,8 @@ import AuthContext from '../context/AuthContext';
 import StarRating from './ui/StarRating';
 import { useToast } from '../context/ToastContext';
 import { normalizeProduct } from '../utils/normalizers';
-import { Share2, Eye, ExternalLink } from 'lucide-react';
+import { Share2, Eye } from 'lucide-react';
+import { productCanonicalPath } from '../utils/seo';
 
 const statusLabel = (template) => {
     if (template.isFree) return { text: 'Free', className: 'bg-emerald-50 text-emerald-700 border-emerald-100' };
@@ -71,16 +72,17 @@ const TemplateGrid = ({ items, limit }) => {
                         return (
                             <article
                                 key={template.id}
-                                onClick={() => navigate(`/apps/${template.id}`)}
+                                onClick={() => navigate(productCanonicalPath(template))}
                                 className="ds-card group cursor-pointer overflow-hidden"
                             >
                                 <div className="relative overflow-hidden border-b border-slate-200 bg-slate-100">
-                                    <img
-                                        src={template.image}
-                                        alt={template.title}
-                                        loading="lazy"
-                                        className="aspect-[4/3] w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
-                                    />
+                                        <img
+                                            src={template.image}
+                                            alt={template.title}
+                                            loading="lazy"
+                                            decoding="async"
+                                            className="aspect-[4/3] w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+                                        />
 
                                     <div className="absolute left-4 top-4 flex items-center gap-2">
                                         {badge && (
@@ -164,7 +166,7 @@ const TemplateGrid = ({ items, limit }) => {
                                                 onClick={(event) => template.productType === 'subscription' ? handleDirectBuy(event, template) : handleAddToCart(event, template)}
                                                 className="ds-button-primary"
                                             >
-                                                {template.productType === 'subscription' ? 'Continue to checkout' : 'Add to cart'}
+                                                {template.productType === 'subscription' ? 'Continue to checkout' : 'Buy Now'}
                                             </button>
                                         )}
 
@@ -177,7 +179,7 @@ const TemplateGrid = ({ items, limit }) => {
                                                 className="ds-button-secondary flex items-center gap-2"
                                                 title="Visual Discovery"
                                             >
-                                                <Eye size={14} /> Live Demo
+                                                <Eye size={14} /> View Demo
                                             </a>
                                         )}
 
@@ -186,7 +188,7 @@ const TemplateGrid = ({ items, limit }) => {
                                             onClick={(event) => {
                                                 event.preventDefault();
                                                 event.stopPropagation();
-                                                navigator.clipboard.writeText(`${window.location.origin}/apps/${template.id}`);
+                                                navigator.clipboard.writeText(`${window.location.origin}${productCanonicalPath(template)}`);
                                                 success("Product link copied.");
                                             }}
                                             className="ds-button-ghost p-2.5 flex items-center justify-center border border-slate-200"
@@ -203,8 +205,8 @@ const TemplateGrid = ({ items, limit }) => {
 
                 {limit && (
                     <div className="mt-10 flex justify-center">
-                        <Link to="/apps" className="ds-button-secondary">
-                            View all apps
+                        <Link to="/assets" className="ds-button-secondary">
+                            View all assets
                         </Link>
                     </div>
                 )}

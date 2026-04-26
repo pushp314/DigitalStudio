@@ -10,6 +10,7 @@ import productService from '../services/productService';
 import api from '../services/api';
 import { Share2, Eye, Zap, MessageSquare } from 'lucide-react';
 import ConfigContext from '../context/ConfigContext';
+import { loadRazorpayScript } from '../utils/loadRazorpay';
 
 const ProductHeader = ({ product }) => {
     const { config } = useContext(ConfigContext);
@@ -111,7 +112,7 @@ const ProductHeader = ({ product }) => {
                                     </button>
                                 )}
                                 <button type="button" onClick={() => navigate('/support')} className="ds-button-secondary">
-                                    Open support request
+                                    Get Expert Help
                                 </button>
                             </>
                         ) : user?.subscriptionPlan === 'pro' && (normalizedProduct.requiresSubscription || normalizedProduct.isFree) ? (
@@ -126,7 +127,7 @@ const ProductHeader = ({ product }) => {
                         ) : (
                             <>
                                 <button type="button" onClick={handleBuyNow} className="ds-button-primary">
-                                    {normalizedProduct.isFree ? 'Get product' : `Buy product · ${price}`}
+                                    {normalizedProduct.isFree ? 'Get Free Product' : `Buy Now · ${price}`}
                                 </button>
                                 <button type="button" onClick={handleAddToCart} className="ds-button-secondary">
                                     Add to cart
@@ -151,7 +152,7 @@ const ProductHeader = ({ product }) => {
                                 rel="noopener noreferrer"
                                 className="ds-button-ghost flex items-center gap-2"
                             >
-                                <Eye size={16} /> Live Preview
+                                <Eye size={16} /> View Demo
                             </a>
                         )}
 
@@ -171,7 +172,7 @@ const ProductHeader = ({ product }) => {
                             onClick={() => navigate('/hire-developer')}
                             className="ds-button-ghost flex items-center gap-2 border border-slate-200"
                         >
-                            <Zap size={14} className="text-emerald-500" /> Hire us to customize
+                            <Zap size={14} className="text-emerald-500" /> Request Custom Build
                         </button>
                         {!isPurchased && config?.eliteSettings?.negotiationEnabled && (
                             <button 
@@ -185,6 +186,11 @@ const ProductHeader = ({ product }) => {
                                     }
                                     setPaying(true);
                                     try {
+                                        const scriptLoaded = await loadRazorpayScript();
+                                        if (!scriptLoaded) {
+                                            throw new Error("Unable to load the payment form.");
+                                        }
+
                                         const orderData = await api.post(`/support/create-order/${id}`);
 
                                         if (orderData.alreadyActive) {
@@ -231,7 +237,7 @@ const ProductHeader = ({ product }) => {
                                 className="ds-button-ghost gap-2 border-slate-200 border text-slate-900 hover:bg-slate-50 disabled:opacity-50"
                             >
                                 <MessageSquare size={14} className="text-amber-500" /> 
-                                {paying ? 'Processing...' : `Ask an expert (₹${config?.eliteSettings?.negotiationFee || 9})`}
+                                {paying ? 'Processing...' : `Get Expert Help (₹${config?.eliteSettings?.negotiationFee || 9})`}
                             </button>
                         )}
                     </div>
@@ -256,8 +262,26 @@ const ProductHeader = ({ product }) => {
 
                 <div className="ds-card overflow-hidden">
                     <div className="aspect-[4/3] bg-slate-100">
-                        <img src={normalizedProduct.image} alt={title} className="h-full w-full object-cover" />
+                        <img src={normalizedProduct.image} alt={title} decoding="async" className="h-full w-full object-cover" />
                     </div>
+                </div>
+            </div>
+
+            <div className="fixed bottom-0 left-0 right-0 z-[90] border-t border-slate-200 bg-white/95 px-4 py-3 shadow-2xl backdrop-blur md:hidden">
+                <div className="mx-auto flex max-w-[720px] items-center gap-2">
+                    {!isPurchased && (
+                        <button type="button" onClick={handleBuyNow} className="ds-button-primary flex-1 justify-center">
+                            {normalizedProduct.isFree ? 'Get Free' : 'Buy Now'}
+                        </button>
+                    )}
+                    {normalizedProduct.previewUrl && (
+                        <a href={normalizedProduct.previewUrl} target="_blank" rel="noopener noreferrer" className="ds-button-secondary flex-1 justify-center">
+                            View Demo
+                        </a>
+                    )}
+                    <button type="button" onClick={() => navigate('/custom-request')} className="ds-button-secondary flex-1 justify-center">
+                        Custom Build
+                    </button>
                 </div>
             </div>
         </section>

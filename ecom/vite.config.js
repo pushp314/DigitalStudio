@@ -25,4 +25,18 @@ export default defineConfig({
       },
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return undefined;
+          if (id.includes('react') || id.includes('scheduler')) return 'react-vendor';
+          if (id.includes('framer-motion') || id.includes('@studio-freight') || id.includes('lenis')) return 'motion-vendor';
+          if (id.includes('recharts')) return 'charts-vendor';
+          if (id.includes('react-markdown') || id.includes('remark') || id.includes('rehype')) return 'markdown-vendor';
+          return 'vendor';
+        },
+      },
+    },
+  },
 });
