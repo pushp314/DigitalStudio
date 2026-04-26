@@ -10,7 +10,20 @@ import {
     Circle,
     Layout
 } from 'lucide-react';
+const ChatHeader = ({ 
+    onOpenSidebar, 
+    status, 
+    searchQuery, 
+    onSearchChange, 
+    onlineCount, 
+    isAdmin, 
+    onToggleSelection, 
+    isSelectionMode 
+}) => {
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [isMuted, setIsMuted] = useState(false);
 
+    return (
         <header className="h-16 border-b border-slate-100 flex items-center justify-between px-4 sm:px-8 bg-white/80 backdrop-blur-md sticky top-0 z-40">
             <div className="flex items-center gap-3">
                 <button 

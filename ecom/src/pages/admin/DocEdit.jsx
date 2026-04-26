@@ -140,7 +140,6 @@ const DocEdit = () => {
     ];
 
     return (
-    return (
         <div className="min-h-screen bg-[#F9FAFB] flex flex-col font-sans selection:bg-black selection:text-white" style={{ fontFamily: "'Inter', sans-serif" }}>
             {/* Enterprise Header */}
             <header className="bg-white border-b border-gray-100 px-4 sm:px-10 py-4 sm:py-5 flex flex-col sm:flex-row justify-between items-center sticky top-0 z-50 shadow-sm gap-4">
