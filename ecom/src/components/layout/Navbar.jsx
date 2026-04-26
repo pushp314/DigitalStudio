@@ -258,7 +258,7 @@ const Navbar = ({ onSearchClick }) => {
                         {/* LEFT: Branding Block */}
                         <div className="flex items-center gap-6">
                             <Link to="/" className="flex items-center shrink-0">
-                                <img src="/logo.png" alt="BizCode" className="h-16 sm:h-20 md:h-28 w-auto" />
+                                <img src="/logo.png" alt="BizCode" className="h-16 sm:h-20 md:h-28 w-auto mix-blend-multiply" />
                             </Link>
 
                             {/* CENTER: Navigation (Desktop) */}

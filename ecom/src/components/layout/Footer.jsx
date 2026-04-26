@@ -25,7 +25,7 @@ const Footer = () => {
             <div className="ds-shell grid gap-8 md:grid-cols-[1.2fr,0.8fr,0.8fr]">
                 <div className="space-y-6">
                     <Link to="/" className="inline-block">
-                        <img src="/logo.png" alt="BizCode" className="h-16 md:h-28 w-auto object-contain" />
+                        <img src="/logo.png" alt="BizCode" className="h-16 md:h-28 w-auto object-contain mix-blend-multiply" />
                     </Link>
                     <p className="text-sm leading-relaxed text-slate-600 max-w-xs">SaaS templates, dashboard templates, fullstack projects, developer assets, and expert implementation support.</p>
                     
