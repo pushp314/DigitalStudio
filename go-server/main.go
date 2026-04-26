@@ -61,8 +61,18 @@ func main() {
 
 	// CORS must be the very first middleware to handle preflights properly
 	allowOrigins := allowedOriginsFromEnv()
+	slog.Info("CORS: Initializing with allowed origins", "origins", allowOrigins)
+
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     allowOrigins,
+		AllowOriginFunc: func(origin string) bool {
+			for _, o := range allowOrigins {
+				if o == origin || o == "*" {
+					return true
+				}
+			}
+			slog.Warn("CORS: Rejected origin request", "origin", origin)
+			return false
+		},
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization", "X-Requested-With", "Cache-Control"},
 		ExposeHeaders:    []string{"Content-Length", "Access-Control-Allow-Origin"},
@@ -546,11 +556,17 @@ func allowedOriginsFromEnv() []string {
 		"http://localhost:3000",
 		"http://127.0.0.1:3000",
 		"https://bizcode.appnity.co.in",
-		"https://bizcode.app",
+		"https://bizapi.appnity.co.in",
+		"https://bizcode.appnity.co.in",
+		"https://bizapi.appnity.co.in",
+		"https://www.bizcode.app",
 	}
 	productionDefaults := []string{
 		"https://bizcode.appnity.co.in",
+		"https://bizapi.appnity.co.in",
 		"https://bizcode.app",
+		"https://www.bizcode.app",
+		"https://appnity.co.in",
 	}
 
 	if raw == "" {
