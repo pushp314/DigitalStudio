@@ -12,15 +12,21 @@ import {
     User,
     ArrowUpRight,
     Search,
-    BookText
+    BookText,
+    Clock
 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { normalizePost } from '../utils/normalizers';
 
 const Blog = () => {
-    const { data: posts, isLoading } = useQuery({
+    const { data: rawPosts, isLoading } = useQuery({
         queryKey: ['blogs'],
         queryFn: () => blogService.list(),
     });
+
+    const posts = React.useMemo(() => 
+        (rawPosts || []).map(normalizePost), 
+    [rawPosts]);
 
     return (
         <div className="min-h-screen bg-[#F5F5F7]">
@@ -83,27 +89,27 @@ const Blog = () => {
                                     </div>
                                     <h3 className="text-xl font-bold text-slate-900 tracking-tight">The Documentation</h3>
                                     <p className="text-sm text-slate-500 leading-relaxed">
-                                        Technical manuals, API references, and step-by-step setup guides for specific products and tools.
+                                        The <b>Technical Manual</b>. Integration guides, API references, and deployment blueprints for specific products.
                                     </p>
                                     <Link to="/docs" className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-widest text-blue-600 hover:gap-3 transition-all pt-2">
-                                        Explore Docs <ArrowRight size={14} />
+                                        Consult Manuals <ArrowRight size={14} />
                                     </Link>
                                 </div>
                             </div>
                         </div>
 
-                        <div className="bg-slate-900 p-8 rounded-[2.5rem] shadow-2xl shadow-blue-900/10 group">
+                        <div className="bg-slate-900 p-8 rounded-[2.5rem] shadow-2xl shadow-blue-900/10 border border-slate-800 group">
                             <div className="flex items-start justify-between">
                                 <div className="space-y-4">
                                     <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center text-white group-hover:bg-blue-600 transition-all duration-500">
                                         <BookOpen size={24} />
                                     </div>
-                                    <h3 className="text-xl font-bold text-white tracking-tight">The Blog</h3>
+                                    <h3 className="text-xl font-bold text-white tracking-tight">The Strategic Playbook</h3>
                                     <p className="text-sm text-slate-400 leading-relaxed">
-                                        Industry insights, building playbooks, and high-level strategy for SaaS growth and development.
+                                        The <b>Building Strategy</b>. Industry trends, high-level SaaS architecture, and growth playbooks.
                                     </p>
                                     <span className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-blue-400">
-                                        You are here <div className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-pulse"></div>
+                                        Active Section <div className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-pulse"></div>
                                     </span>
                                 </div>
                             </div>
@@ -149,9 +155,16 @@ const Blog = () => {
                                     <span className="px-3 py-1 bg-slate-50 text-slate-500 rounded-full text-[9px] font-black uppercase tracking-widest border border-slate-100 group-hover:bg-blue-50 group-hover:text-blue-600 group-hover:border-blue-100 transition-colors">
                                         {post.category || 'Guide'}
                                     </span>
-                                    <span className="flex items-center gap-1.5 text-[10px] font-bold text-slate-300">
-                                        <Calendar size={12} />
-                                        {new Date(post.createdAt).toLocaleDateString(undefined, { month: 'short', year: 'numeric' })}
+                                    <span className="flex items-center gap-3">
+                                        <span className="flex items-center gap-1.5 text-[10px] font-bold text-slate-300">
+                                            <Calendar size={12} />
+                                            {new Date(post.publishedAt).toLocaleDateString(undefined, { month: 'short', year: 'numeric' })}
+                                        </span>
+                                        <span className="w-1 h-1 bg-slate-200 rounded-full"></span>
+                                        <span className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400">
+                                            <Clock size={12} />
+                                            {post.readingTime} min read
+                                        </span>
                                     </span>
                                 </div>
 

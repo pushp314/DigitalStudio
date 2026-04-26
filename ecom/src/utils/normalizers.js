@@ -1,3 +1,5 @@
+import { calculateReadingTime } from './content';
+
 const CURRENCY_FORMATTER = new Intl.NumberFormat('en-IN', {
     style: 'currency',
     currency: 'INR',
@@ -274,3 +276,21 @@ export const normalizeLicense = (license = {}) => ({
     product: license.product ? normalizeProduct(license.product) : null,
     order: license.order ? normalizeOrder(license.order) : null,
 });
+
+export const normalizePost = (post = {}) => {
+    const readingTime = calculateReadingTime(post.content ?? '');
+    
+    return {
+        ...post,
+        id: normalizeId(post.id ?? post._id),
+        title: toString(post.title, 'Untitled Post'),
+        slug: toString(post.slug),
+        content: toString(post.content),
+        category: toString(post.category, 'Insight'),
+        readingTime,
+        author: post.author ? normalizeUser(post.author) : null,
+        publishedAt: post.publishedAt ?? post.published_at ?? post.createdAt ?? post.created_at ?? null,
+        createdAt: post.createdAt ?? post.created_at ?? null,
+        updatedAt: post.updatedAt ?? post.updated_at ?? null,
+    };
+};

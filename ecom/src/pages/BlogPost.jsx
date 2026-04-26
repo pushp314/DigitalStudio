@@ -17,14 +17,19 @@ import {
     Loader2
 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { normalizePost } from '../utils/normalizers';
 
 const BlogPost = () => {
     const { slug } = useParams();
     
-    const { data: post, isLoading, error } = useQuery({
+    const { data: rawPost, isLoading, error } = useQuery({
         queryKey: ['blog', slug],
         queryFn: () => blogService.get(slug),
     });
+
+    const post = React.useMemo(() => 
+        rawPost ? normalizePost(rawPost) : null, 
+    [rawPost]);
 
     if (isLoading) {
         return (
@@ -40,8 +45,6 @@ const BlogPost = () => {
     if (error || !post) {
         return <Navigate to="/blog" replace />;
     }
-
-    const readTime = Math.ceil(post.content.split(' ').length / 200);
 
     return (
         <div className="min-h-screen bg-[#F5F5F7] pb-32">
@@ -82,8 +85,8 @@ const BlogPost = () => {
                                 {post.category || 'Guide'}
                             </span>
                             <div className="flex items-center gap-4 text-[10px] font-black uppercase tracking-widest text-slate-400">
-                                <span className="flex items-center gap-1.5"><Calendar size={12} /> {new Date(post.publishedAt || post.createdAt).toLocaleDateString()}</span>
-                                <span className="flex items-center gap-1.5"><Clock size={12} /> {readTime} min read</span>
+                                <span className="flex items-center gap-1.5"><Calendar size={12} /> {new Date(post.publishedAt).toLocaleDateString()}</span>
+                                <span className="flex items-center gap-1.5"><Clock size={12} /> {post.readingTime} min read</span>
                             </div>
                         </div>
 
