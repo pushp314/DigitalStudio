@@ -9,6 +9,9 @@
 set -e # Exit on error
 set -o pipefail # Fail if any part of a pipe fails
 
+# Ensure common binary paths are included for sudo
+export PATH=$PATH:/usr/local/bin:/usr/local/go/bin:/usr/bin:/bin
+
 # --- Configuration ---
 DEST_DIR="/var/www/bizcode/source"
 BACKUP_DIR="/var/www/bizcode/backups"
