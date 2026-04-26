@@ -62,7 +62,7 @@ const TemplateGrid = ({ items, limit }) => {
     };
 
     return (
-        <section className="ds-page px-4 sm:px-6 pb-16">
+        <section className="ds-page px-4 sm:px-6 pb-12">
             <div className="ds-shell">
                 <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
                     {templates.map((template) => {

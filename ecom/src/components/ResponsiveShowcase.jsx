@@ -23,7 +23,7 @@ const ResponsiveShowcase = ({ products = [] }) => {
     }
 
     return (
-        <section className="ds-page px-6 py-16">
+        <section className="ds-page px-6 py-12">
             <div className="ds-shell space-y-8">
                 <div className="space-y-3">
                     <p className="ds-eyebrow">Preview gallery</p>

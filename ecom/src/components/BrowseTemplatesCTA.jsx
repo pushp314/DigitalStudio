@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 
 const BrowseTemplatesCTA = () => {
     return (
-        <section className="ds-page px-6 py-16">
+        <section className="ds-page px-6 py-12">
             <div className="ds-shell">
                 <div className="ds-panel grid gap-8 p-6 md:p-8 lg:grid-cols-[360px,minmax(0,1fr)] lg:items-center">
                     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">

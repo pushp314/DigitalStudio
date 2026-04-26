@@ -42,7 +42,7 @@ const Home = () => {
             />
             <HeroSection />
 
-            <section className="ds-page px-6 pb-12">
+            <section className="ds-page px-6 pb-8">
                 <div className="ds-shell">
                     <div className="grid gap-4 md:grid-cols-5">
                         {CATEGORY_ROUTES.map((category) => (

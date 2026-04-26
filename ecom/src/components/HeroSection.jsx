@@ -19,7 +19,7 @@ const HeroSection = () => {
     const marqueeCompanies = [...trustedCompanies, ...trustedCompanies];
 
     return (
-        <section className="ds-page px-4 pb-12 pt-4 md:px-6 md:pb-24 md:pt-12 overflow-hidden">
+        <section className="ds-page px-4 pb-12 pt-4 md:px-6 md:pb-16 md:pt-12 overflow-hidden">
             <style>
                 {`
                 @keyframes marquee {

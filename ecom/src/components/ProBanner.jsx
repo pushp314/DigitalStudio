@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 
 const ProBanner = () => {
     return (
-        <section className="ds-page px-6 py-16">
+        <section className="ds-page px-6 py-12">
             <div className="ds-shell">
                 <div className="rounded-3xl border border-slate-200 bg-slate-900 p-8 text-white shadow-sm md:p-10">
                     <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr),260px] lg:items-center">

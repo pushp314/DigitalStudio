@@ -20,7 +20,7 @@
 
 @layer components {
   .ds-page {
-    @apply bg-[#F5F5F7] min-h-screen;
+    @apply bg-[#F5F5F7];
   }
 
   .ds-section {

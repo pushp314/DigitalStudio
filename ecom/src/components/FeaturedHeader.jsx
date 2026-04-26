@@ -7,7 +7,7 @@ const FeaturedHeader = () => {
     const avatars = Array.isArray(socialProof.avatarImages) ? socialProof.avatarImages : [];
 
     return (
-        <section className="ds-page px-6 py-10 md:py-12">
+        <section className="ds-page px-6 pt-10 pb-6 md:pt-12 md:pb-8">
             <div className="ds-shell flex flex-col gap-6">
                 <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
                     <div>

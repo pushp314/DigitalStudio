@@ -37,7 +37,7 @@ const FAQSection = () => {
     }
 
     return (
-        <section className="ds-page px-4 sm:px-6 py-12 sm:py-16">
+        <section className="ds-page px-4 sm:px-6 py-10 sm:py-12">
             <div className="ds-shell space-y-8 sm:space-y-12">
                 <div className="space-y-3 sm:space-y-4">
                     <p className="ds-eyebrow">Details</p>
