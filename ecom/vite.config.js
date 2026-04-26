@@ -18,18 +18,11 @@ export default defineConfig({
     },
   },
   build: {
+    chunkSizeWarningLimit: 1000,
     rollupOptions: {
       output: {
-        manualChunks(id) {
-          if (!id.includes('node_modules')) return undefined;
-          if (id.includes('react') || id.includes('react-dom') || id.includes('scheduler')) {
-            return 'react-core';
-          }
-          if (id.includes('framer-motion') || id.includes('gsap') || id.includes('lenis')) {
-            return 'motion-vendor';
-          }
-          return 'vendor';
-        },
+        // Letting Vite handle chunks automatically to avoid dependency ordering issues
+        manualChunks: undefined
       },
     },
   },
