@@ -2,7 +2,7 @@ import React, { createContext, useState, useEffect } from 'react';
 import configService from '../services/configService';
 import { normalizeSiteConfig } from '../utils/normalizers';
 
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 const ConfigContext = createContext();
 
@@ -44,9 +44,19 @@ const DEFAULT_CONFIG = {
         model: '',
         apiKey: '',
     },
+    navbar: {
+        links: [
+            { label: 'Explore Assets', href: '/assets', type: 'dropdown', key: 'explore', isMega: true },
+            { label: 'Resources', href: '#', type: 'dropdown', key: 'resources', isMega: true },
+            { label: 'Services', href: '#', type: 'dropdown', key: 'services' },
+            { label: 'Pricing', href: '/pricing', type: 'link' },
+            { label: 'Sell Project', href: '/sell-your-project', type: 'link' },
+        ]
+    }
 };
 
 export const ConfigProvider = ({ children }) => {
+    const queryClient = useQueryClient();
     const { data: rawConfig, isLoading: loading, refetch: fetchConfig } = useQuery({
         queryKey: ['site-config'],
         queryFn: () => configService.getPublic(),
@@ -58,11 +68,16 @@ export const ConfigProvider = ({ children }) => {
         return normalizeSiteConfig(rawConfig);
     }, [rawConfig]);
 
+    const updateContextConfig = (newData) => {
+        queryClient.setQueryData(['site-config'], newData);
+    };
+
     const value = React.useMemo(
         () => ({
             config,
             loading,
             fetchConfig,
+            updateContextConfig
         }),
         [config, loading, fetchConfig],
     );

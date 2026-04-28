@@ -292,27 +292,27 @@ const AppShell = () => {
               </main>
               
               {/* Universal Help FAB - High-Access Positioning */}
-              <div className="fixed bottom-8 right-8 z-[100] flex flex-col items-end gap-3">
+              <div className="fixed bottom-6 right-6 z-[100] flex flex-col items-end gap-3">
                 {/* Modal Menu */}
-                <div className={`transition-all duration-500 transform origin-bottom-right ${isSupportOpen ? 'opacity-100 scale-100 translate-y-0 pointer-events-auto' : 'opacity-0 scale-95 translate-y-4 pointer-events-none'} bg-white border border-slate-200 rounded-[2rem] p-6 shadow-2xl mb-2 w-72 ring-1 ring-black/5`}>
+                <div className={`transition-all duration-500 transform origin-bottom-right ${isSupportOpen ? 'opacity-100 scale-100 translate-y-0 pointer-events-auto' : 'opacity-0 scale-95 translate-y-4 pointer-events-none'} bg-white border border-slate-200 rounded-3xl p-5 shadow-2xl mb-2 w-64 ring-1 ring-black/5`}>
                    <div className="flex items-center justify-between mb-2">
                       <p className="text-[10px] font-black text-slate-900 uppercase tracking-widest">Support Central</p>
                       <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
                    </div>
-                   <p className="text-[9px] text-slate-500 font-medium mb-5 leading-relaxed">Expert guidance for product choice, technical issues, or custom builds.</p>
+                   <p className="text-[10px] text-slate-500 font-medium mb-4 leading-relaxed">Expert guidance for product choice, technical issues, or custom builds.</p>
                    
-                   <div className="space-y-2">
-                     <Link onClick={() => setIsSupportOpen(false)} to="/support" className="flex items-center justify-between p-3 rounded-xl bg-slate-50 hover:bg-slate-900 hover:text-white group/item transition-all duration-300">
-                        <span className="text-[9px] font-black uppercase tracking-widest">Expert Chat</span>
-                        <ArrowUpRight size={10} className="text-slate-400 group-hover/item:text-white group-hover/item:translate-x-0.5 group-hover/item:-translate-y-0.5 transition-all" />
+                   <div className="space-y-1.5">
+                     <Link onClick={() => setIsSupportOpen(false)} to="/support" className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 hover:bg-slate-900 hover:text-white group/item transition-all duration-300">
+                        <span className="text-[10px] font-black uppercase tracking-widest">Expert Chat</span>
+                        <ArrowUpRight size={12} className="text-slate-400 group-hover/item:text-white transition-all" />
                      </Link>
-                     <Link onClick={() => setIsSupportOpen(false)} to="/support" className="flex items-center justify-between p-3 rounded-xl bg-slate-50 hover:bg-slate-900 hover:text-white group/item transition-all duration-300">
-                        <span className="text-[9px] font-black uppercase tracking-widest">Support Tickets</span>
-                        <ArrowUpRight size={10} className="text-slate-400 group-hover/item:text-white group-hover/item:translate-x-0.5 group-hover/item:-translate-y-0.5 transition-all" />
+                     <Link onClick={() => setIsSupportOpen(false)} to="/support" className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 hover:bg-slate-900 hover:text-white group/item transition-all duration-300">
+                        <span className="text-[10px] font-black uppercase tracking-widest">Tickets</span>
+                        <ArrowUpRight size={12} className="text-slate-400 group-hover/item:text-white transition-all" />
                      </Link>
-                     <Link onClick={() => setIsSupportOpen(false)} to="/hire-developer" className="flex items-center justify-between p-3 rounded-xl bg-indigo-50 hover:bg-indigo-600 hover:text-white group/item transition-all duration-300">
-                        <span className="text-[9px] font-black text-indigo-600 group-hover/item:text-white uppercase tracking-widest">Hire Developer</span>
-                        <ArrowUpRight size={10} className="text-indigo-400 group-hover/item:text-white group-hover/item:translate-x-0.5 group-hover/item:-translate-y-0.5 transition-all" />
+                     <Link onClick={() => setIsSupportOpen(false)} to="/hire-developer" className="flex items-center justify-between p-2.5 rounded-xl bg-slate-900 text-white hover:bg-slate-800 group/item transition-all duration-300">
+                        <span className="text-[10px] font-black uppercase tracking-widest">Hire Dev</span>
+                        <ArrowUpRight size={12} className="text-slate-400 group-hover/item:text-white transition-all" />
                      </Link>
                    </div>
                 </div>
@@ -323,13 +323,14 @@ const AppShell = () => {
                     e.stopPropagation();
                     setIsSupportOpen(!isSupportOpen);
                   }}
-                  className={`w-14 h-14 rounded-full flex items-center justify-center shadow-2xl transition-all duration-500 active:scale-90 relative group overflow-hidden ${
-                    isSupportOpen ? 'bg-slate-900 text-white rotate-180' : 'bg-white text-slate-900 hover:bg-slate-50'
+                  className={`w-12 h-12 rounded-full flex items-center justify-center shadow-xl transition-all duration-500 active:scale-90 relative group overflow-hidden ${
+                    isSupportOpen ? 'bg-slate-900 text-white rotate-180' : 'bg-white text-slate-900 hover:bg-slate-50 border border-slate-200'
                   }`}
                 >
-                  {isSupportOpen ? <X size={20} strokeWidth={2.5} /> : <HelpCircle size={24} strokeWidth={2.5} />}
+                  {isSupportOpen ? <X size={18} strokeWidth={2.5} /> : <HelpCircle size={20} strokeWidth={2.5} />}
                 </button>
               </div>
+
 
               {!hideFooter && <Footer />}
             </div>

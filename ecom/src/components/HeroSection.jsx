@@ -6,7 +6,6 @@ const HeroSection = () => {
     const { config } = useContext(ConfigContext);
     const navigate = useNavigate();
 
-    const trustedCompanies = Array.isArray(config?.socialProof?.trustedCompanies) ? config.socialProof.trustedCompanies : [];
     const heroImages = Array.isArray(config?.heroImages) && config.heroImages.length > 0
         ? config.heroImages
         : [
@@ -15,102 +14,71 @@ const HeroSection = () => {
             'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&q=80&w=1200',
         ];
 
-    // Double the companies for seamless infinite scrolling
-    const marqueeCompanies = [...trustedCompanies, ...trustedCompanies];
-
     return (
-        <section className="ds-page px-4 pb-12 pt-4 md:px-6 md:pb-16 md:pt-12 overflow-hidden">
-            <style>
-                {`
-                @keyframes marquee {
-                    0% { transform: translateX(0); }
-                    100% { transform: translateX(-50%); }
-                }
-                .animate-marquee {
-                    animation: marquee 40s linear infinite;
-                }
-                .animate-marquee:hover {
-                    animation-play-state: paused;
-                }
-                `}
-            </style>
-            
-            <div className="ds-shell grid gap-12 lg:grid-cols-[minmax(0,1fr),560px] lg:items-center">
-                <div className="space-y-8 md:space-y-10 text-center lg:text-left">
-                    <div className="ds-chip animate-in fade-in slide-in-from-left-4 duration-700 mx-auto lg:mx-0">
+        <section className="ds-page px-4 pb-12 pt-8 md:px-6 md:pb-20 md:pt-16 overflow-hidden">
+            <div className="ds-shell grid gap-12 lg:grid-cols-[1fr,560px] lg:items-center">
+                <div className="space-y-8 text-center lg:text-left">
+                    <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] font-bold text-slate-600 shadow-sm animate-in fade-in slide-in-from-left-4 duration-700">
                         <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                        BizCode commerce and services
+                        Trusted by 100+ founders
                     </div>
 
                     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
-                        <h1 className="text-clamp-6xl font-bold tracking-tight text-slate-900 leading-[1.1]">
-                            Buy SaaS Templates, Dashboards & Fullstack Projects.
+                        <h1 className="text-3xl md:text-6xl font-bold tracking-tight text-slate-900 leading-[1.1]">
+                            Launch Your SaaS <br className="hidden md:block" /> in Days, Not Months.
                         </h1>
-                        <p className="max-w-2xl mx-auto lg:mx-0 text-base sm:text-lg leading-relaxed text-slate-500 font-medium pt-2">
-                            Skip months of development with deployment-ready projects, developer assets, expert help, and custom SaaS development in one place.
+                        <p className="max-w-2xl mx-auto lg:mx-0 text-base md:text-lg leading-relaxed text-slate-500 font-medium">
+                            Production-ready apps, dashboards, APIs — deploy instantly or customize to fit your vision perfectly.
                         </p>
                     </div>
 
-                    <div className="flex flex-col sm:flex-row flex-wrap justify-center lg:justify-start gap-4 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200">
-                        <button type="button" onClick={() => navigate('/assets')} className="w-full sm:w-auto px-8 py-4 bg-slate-900 text-white rounded-2xl text-[10px] font-bold uppercase tracking-[0.2em] hover:bg-emerald-600 transition-all shadow-xl shadow-slate-900/10 active:scale-95">
-                            Browse Assets
+                    <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200">
+                        <button 
+                            type="button" 
+                            onClick={() => navigate('/assets')} 
+                            className="w-full sm:w-auto px-8 py-4 bg-slate-900 text-white rounded-xl text-sm font-bold hover:bg-slate-800 transition-all shadow-lg active:scale-95"
+                        >
+                            Browse Products
                         </button>
-                        <button type="button" onClick={() => navigate('/hire-developer')} className="w-full sm:w-auto px-8 py-4 bg-white border border-slate-200 text-slate-900 rounded-2xl text-[10px] font-bold uppercase tracking-[0.2em] hover:bg-slate-50 transition-all active:scale-95">
-                            Hire Developer
-                        </button>
-                        <button type="button" onClick={() => navigate('/support')} className="w-full sm:w-auto px-8 py-4 bg-white border border-slate-200 text-slate-900 rounded-2xl text-[10px] font-bold uppercase tracking-[0.2em] hover:bg-slate-50 transition-all active:scale-95">
-                            Get Expert Help
+                        <button 
+                            type="button" 
+                            onClick={() => navigate('/hire-developer')} 
+                            className="w-full sm:w-auto px-8 py-4 bg-white border border-slate-200 text-slate-900 rounded-xl text-sm font-bold hover:bg-slate-50 transition-all active:scale-95"
+                        >
+                            Request Custom Build
                         </button>
                     </div>
 
-                    {/* Buyer decision paths */}
-                    <div className="grid gap-4 sm:grid-cols-3 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300">
-                        <div className="bg-white p-5 sm:p-6 rounded-[2rem] border border-slate-200 shadow-sm hover:shadow-md transition-shadow text-left">
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Buy Ready</p>
-                            <p className="text-xs font-semibold text-slate-600 leading-relaxed">Apps, dashboards, UI kits, APIs, and software kits you can launch from.</p>
-                        </div>
-                        <div className="bg-white p-5 sm:p-6 rounded-[2rem] border border-slate-200 shadow-sm hover:shadow-md transition-shadow text-left">
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Get Help</p>
-                            <p className="text-xs font-semibold text-slate-600 leading-relaxed">Use paid support, docs, and post-purchase deployment guidance when you need it.</p>
-                        </div>
-                        <div className="bg-white p-5 sm:p-6 rounded-[2rem] border border-slate-200 shadow-sm hover:shadow-md transition-shadow text-left">
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Build Custom</p>
-                            <p className="text-xs font-semibold text-slate-600 leading-relaxed">Request changes, custom features, deployment, or a full build from our team.</p>
-                        </div>
-                    </div>
-
-                    {/* Infinite Scrolling Marquee Logic */}
-                    {trustedCompanies.length > 0 && (
-                        <div className="space-y-4 pt-6 animate-in fade-in duration-1000 delay-500">
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Trusted by teams building with</p>
-                            <div className="relative overflow-hidden w-full h-12 flex items-center">
-                                <div className="absolute inset-y-0 left-0 w-12 sm:w-20 bg-gradient-to-r from-[#fafafa] to-transparent z-10" />
-                                <div className="absolute inset-y-0 right-0 w-12 sm:w-20 bg-gradient-to-l from-[#fafafa] to-transparent z-10" />
-                                <div className="flex whitespace-nowrap animate-marquee">
-                                    {marqueeCompanies.map((company, idx) => (
-                                        <div key={`${company}-${idx}`} className="flex items-center mx-6 sm:mx-10">
-                                            <span className="text-[11px] sm:text-sm font-bold text-slate-400 uppercase tracking-widest group cursor-default hover:text-slate-900 transition-colors">
-                                                {company}
-                                            </span>
-                                        </div>
-                                    ))}
-                                </div>
+                    {/* Merged Path */}
+                    <div className="pt-4 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300">
+                        <div 
+                            onClick={() => navigate('/support')}
+                            className="group flex items-center justify-between p-4 rounded-2xl border border-slate-200 bg-white shadow-sm hover:border-slate-300 hover:shadow-md transition-all cursor-pointer text-left max-w-md mx-auto lg:mx-0"
+                        >
+                            <div>
+                                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-1">Need Custom Development?</p>
+                                <p className="text-xs font-semibold text-slate-600">Get expert help, post-purchase support, or a full custom build.</p>
+                            </div>
+                            <div className="h-8 w-8 rounded-full bg-slate-50 flex items-center justify-center group-hover:bg-slate-900 group-hover:text-white transition-colors">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="9 5l7 7-7 7" />
+                                </svg>
                             </div>
                         </div>
-                    )}
+                    </div>
                 </div>
 
-                {/* Hero Visualization - Dynamically Managed */}
-                <div className="ds-panel p-3 sm:p-4 animate-in fade-in zoom-in-95 duration-1000">
-                    <div className="grid gap-3 sm:gap-4 grid-cols-2">
-                        <div className="overflow-hidden rounded-[1.5rem] sm:rounded-[2.5rem] border border-slate-200 bg-slate-100 row-span-2 shadow-inner group">
-                            <img src={heroImages[0]} alt="SaaS dashboard template preview" fetchPriority="high" decoding="async" className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                {/* Hero Visualization */}
+                <div className="ds-panel p-2 md:p-3 animate-in fade-in zoom-in-95 duration-1000">
+                    <div className="grid gap-2 md:gap-3 grid-cols-2">
+                        <div className="overflow-hidden rounded-2xl md:rounded-3xl border border-slate-100 bg-slate-50 row-span-2 shadow-inner group h-[300px] md:h-[500px]">
+                            <img src={heroImages[0]} alt="SaaS dashboard template" className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" />
                         </div>
-                        <div className="overflow-hidden rounded-[1.5rem] sm:rounded-[2rem] border border-slate-200 bg-slate-100 shadow-inner group">
-                            <img src={heroImages[1] || heroImages[0]} alt="Fullstack project analytics preview" loading="lazy" decoding="async" className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                        <div className="overflow-hidden rounded-2xl md:rounded-3xl border border-slate-100 bg-slate-50 shadow-inner group h-[145px] md:h-[245px]">
+                            <img src={heroImages[1] || heroImages[0]} alt="Fullstack project" className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" />
                         </div>
-                        <div className="overflow-hidden rounded-[1.5rem] sm:rounded-[2rem] border border-slate-200 bg-slate-100 shadow-inner group">
-                            <img src={heroImages[2] || heroImages[0]} alt="Developer asset workspace preview" loading="lazy" decoding="async" className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                        <div className="overflow-hidden rounded-2xl md:rounded-3xl border border-slate-100 bg-slate-50 shadow-inner group h-[145px] md:h-[245px]">
+                            <img src={heroImages[2] || heroImages[0]} alt="Developer asset" className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" />
                         </div>
                     </div>
                 </div>
@@ -120,3 +88,4 @@ const HeroSection = () => {
 };
 
 export default HeroSection;
+

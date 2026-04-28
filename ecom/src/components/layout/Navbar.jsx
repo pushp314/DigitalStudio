@@ -23,7 +23,13 @@ import {
     Package,
     Building2,
     Heart,
-    User
+    User,
+    Activity,
+    Hash,
+    Headphones,
+    BookOpen,
+    Mail,
+    Bell
 } from 'lucide-react';
 import AuthContext from '../../context/AuthContext';
 import CartContext from '../../context/CartContext';
@@ -34,7 +40,7 @@ import ConfirmModal from '../ui/ConfirmModal';
 import { categoryCanonicalPath } from '../../utils/seo';
 
 // --- Reusable Dropdown Component ---
-const NavDropdown = ({ label, items, href }) => {
+const NavDropdown = ({ label, items, href, mega }) => {
     const [isOpen, setIsOpen] = useState(false);
     const timeoutRef = useRef(null);
     const dropdownRef = useRef(null);
@@ -81,7 +87,7 @@ const NavDropdown = ({ label, items, href }) => {
     return (
         <div 
             ref={dropdownRef}
-            className="relative h-full flex items-center"
+            className={`${mega ? 'static' : 'relative'} h-full flex items-center`}
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}
         >
@@ -122,32 +128,61 @@ const NavDropdown = ({ label, items, href }) => {
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 10, scale: 0.98 }}
                         transition={{ duration: 0.15, ease: "easeOut" }}
-                        className="absolute left-0 top-[calc(100%-8px)] z-[110] mt-2 min-w-[240px] overflow-hidden rounded-2xl border border-slate-200 bg-white p-2 shadow-2xl"
+                        className={`absolute z-[110] overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl p-6 ${
+                            mega 
+                            ? 'left-0 right-0 top-[calc(100%-1px)] w-screen px-8 py-10 rounded-none border-x-0' 
+                            : 'left-0 top-[calc(100%-8px)] mt-2 min-w-[240px] p-2'
+                        }`}
                     >
-                        <div className="grid gap-0.5">
-                            {items.map((item, idx) => (
-                                <Link
-                                    key={idx}
-                                    to={item.href}
-                                    className="flex items-center gap-3 rounded-xl px-4 py-3 text-[13px] font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors group"
-                                >
-                                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-50 text-slate-500 group-hover:bg-white group-hover:text-slate-900 transition-colors border border-transparent group-hover:border-slate-100">
-                                        <item.icon size={16} />
-                                    </div>
-                                    <div className="flex flex-col">
-                                        <span className="leading-tight">{item.label}</span>
-                                        {item.desc && (
-                                            <span className="text-[10px] font-medium text-slate-400 uppercase tracking-wider mt-0.5">{item.desc}</span>
+                        <div className={`grid ${mega ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8' : 'gap-0.5'}`}>
+                            {items.map((item, idx) => {
+                                const showHeader = item.section && (idx === 0 || items[idx - 1].section !== item.section);
+                                return (
+                                    <React.Fragment key={idx}>
+                                        {showHeader && (
+                                            <div className={`col-span-full mb-2 first:mt-0 ${mega ? 'mt-6 px-4' : 'mt-3 px-4 py-1'}`}>
+                                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">{item.section}</span>
+                                            </div>
                                         )}
-                                    </div>
-                                </Link>
-                            ))}
+                                        <Link
+                                            to={item.href}
+                                            className={`flex items-center gap-4 rounded-2xl transition-all group ${
+                                                mega ? 'p-4 hover:bg-slate-50' : 'px-4 py-3 text-[13px] font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                                            }`}
+                                        >
+                                            <div className={`flex items-center justify-center rounded-xl bg-slate-50 text-slate-500 group-hover:bg-white group-hover:text-slate-900 transition-colors border border-transparent group-hover:border-slate-100 ${
+                                                mega ? 'h-12 w-12 shrink-0 shadow-sm' : 'h-8 w-8'
+                                            }`}>
+                                                <item.icon size={mega ? 20 : 16} />
+                                            </div>
+                                            <div className="flex flex-col">
+                                                <span className={`leading-tight font-bold text-slate-900 ${mega ? 'text-sm' : 'text-[13px] text-slate-600 group-hover:text-slate-900'}`}>{item.label}</span>
+                                                {item.desc && (
+                                                    <span className={`text-slate-400 font-medium leading-relaxed mt-1 ${mega ? 'text-[11px]' : 'text-[10px] uppercase tracking-wider'}`}>{item.desc}</span>
+                                                )}
+                                            </div>
+                                        </Link>
+                                    </React.Fragment>
+                                );
+                            })}
                         </div>
+                        {mega && (
+                            <div className="mt-8 pt-8 border-t border-slate-100 flex items-center justify-between">
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Platform Resources & Asset Marketplace</p>
+                                <Link to="/assets" className="text-[10px] font-black text-blue-600 uppercase tracking-widest hover:underline flex items-center gap-2">View all catalog <ArrowRight size={12} /></Link>
+                            </div>
+                        )}
                     </motion.div>
                 )}
             </AnimatePresence>
         </div>
     );
+};
+
+const iconMap = {
+    Terminal, Cpu, Activity, MessageSquare, ShieldCheck, Headphones,
+    Zap, Package, Code, ShoppingCart, HelpCircle, Sparkles, Building2,
+    Heart, User, LayoutDashboard, Settings, Mail, Bell, BookOpen, Briefcase, Hash
 };
 
 const Navbar = ({ onSearchClick }) => {
@@ -201,6 +236,7 @@ const Navbar = ({ onSearchClick }) => {
     ]);
     const [expertItems, setExpertItems] = useState([]);
     const [developerItems, setDeveloperItems] = useState([]);
+    const [resourceItems, setResourceItems] = useState([]);
 
     useEffect(() => {
         const fetchNavData = async () => {
@@ -248,6 +284,21 @@ const Navbar = ({ onSearchClick }) => {
         fetchNavData();
     }, []);
 
+
+    useEffect(() => {
+        if (config?.navbar?.resourceItems) {
+            setResourceItems(config.navbar.resourceItems.map(item => ({
+                ...item,
+                icon: iconMap[item.icon] || HelpCircle
+            })));
+        }
+    }, [config]);
+
+    const serviceItems = [
+        ...expertItems.map(item => ({ ...item, section: 'Consultation' })),
+        ...developerItems.map(item => ({ ...item, section: 'Implementation' }))
+    ];
+
     return (
         <>
             {/* Header / Navbar Container */}
@@ -258,33 +309,35 @@ const Navbar = ({ onSearchClick }) => {
                         {/* LEFT: Branding Block */}
                         <div className="flex items-center gap-6">
                             <Link to="/" className="flex items-center shrink-0">
-                                <img src="/logo.png" alt="BizCode" className="h-16 sm:h-20 md:h-28 w-auto mix-blend-multiply" />
+                                <img src="/logo.png" alt="BizCode" className="h-8 sm:h-10 md:h-12 w-auto mix-blend-multiply" />
                             </Link>
 
                             {/* CENTER: Navigation (Desktop) */}
                             <nav className="hidden items-center gap-1 lg:flex">
                                 <div className="h-6 w-px bg-slate-200 mx-2" />
-                                <NavDropdown label="Explore Assets" items={exploreItems} href="/assets" />
-                                <NavLink 
-                                    to="/blog" 
-                                    className={({isActive}) => `px-3 py-2 text-[13px] font-semibold transition-colors ${isActive ? 'text-slate-900' : 'text-slate-500 hover:text-slate-900'}`}
-                                >
-                                    Blog
-                                </NavLink>
-                                <NavLink 
-                                    to="/docs" 
-                                    className={({isActive}) => `px-3 py-2 text-[13px] font-semibold transition-colors ${isActive ? 'text-slate-900' : 'text-slate-500 hover:text-slate-900'}`}
-                                >
-                                    Docs
-                                </NavLink>
-                                <NavDropdown label="Talk to Expert" items={expertItems} href="/support" />
-                                <NavDropdown label="Hire Developer" items={developerItems} href="/hire-developer" />
-                                <NavLink 
-                                    to="/sell-your-project" 
-                                    className={({isActive}) => `px-3 py-2 text-[13px] font-semibold transition-colors ${isActive ? 'text-slate-900' : 'text-slate-500 hover:text-slate-900'}`}
-                                >
-                                    Sell Project
-                                </NavLink>
+                                {config?.navbar?.links?.map((link, idx) => {
+                                    if (link.featureFlag && config?.features?.[link.featureFlag] === false) return null;
+
+                                    if (link.type === 'dropdown') {
+                                        const items = link.key === 'explore' ? exploreItems 
+                                                    : link.key === 'resources' ? resourceItems
+                                                    : link.key === 'services' ? serviceItems
+                                                    : link.key === 'expert' ? expertItems 
+                                                    : link.key === 'developer' ? developerItems 
+                                                    : [];
+                                        return <NavDropdown key={idx} label={link.label} items={items} href={link.href} mega={link.isMega} />;
+                                    }
+
+                                    return (
+                                        <NavLink 
+                                            key={idx}
+                                            to={link.href} 
+                                            className={({isActive}) => `px-3 py-2 text-[13px] font-semibold transition-colors ${isActive ? 'text-slate-900' : 'text-slate-500 hover:text-slate-900'}`}
+                                        >
+                                            {link.label}
+                                        </NavLink>
+                                    );
+                                })}
                             </nav>
                         </div>
 
@@ -298,27 +351,23 @@ const Navbar = ({ onSearchClick }) => {
                                 >
                                     <Search size={18} />
                                 </button>
-                                <NavLink 
-                                    to="/pricing" 
-                                    className={({isActive}) => `px-3 py-2 text-[13px] font-semibold transition-colors ${isActive ? 'text-slate-900' : 'text-slate-400 hover:text-slate-900'}`}
-                                >
-                                    Pricing
-                                </NavLink>
-                                <NavLink 
-                                    to="/wishlist" 
-                                    className={({isActive}) => `relative p-2 transition-colors rounded-lg hover:bg-slate-50 ${isActive ? 'text-rose-600' : 'text-slate-400 hover:text-slate-900'}`}
-                                    title="Wishlist"
-                                >
-                                    <Heart size={18} fill={location.pathname === '/wishlist' ? 'currentColor' : 'none'} />
-                                    {wishlistItems.length > 0 && (
-                                        <span className="absolute right-1 top-1 flex h-3 w-3 items-center justify-center rounded-full bg-rose-500 text-[8px] font-bold text-white">
-                                            {wishlistItems.length}
-                                        </span>
-                                    )}
-                                </NavLink>
                             </div>
 
                             <div className="h-4 w-px bg-slate-200 mx-1 hidden md:block" />
+
+                            {/* Wishlist Icon */}
+                            <Link 
+                                to="/wishlist" 
+                                className={`relative p-2 transition-colors rounded-lg hover:bg-slate-50 ${location.pathname === '/wishlist' ? 'text-slate-900' : 'text-slate-500 hover:text-slate-900'}`}
+                                title="My Wishlist"
+                            >
+                                <Heart size={18} />
+                                {wishlistItems?.length > 0 && (
+                                    <span className="absolute right-0 top-0 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white shadow-sm">
+                                        {wishlistItems.length}
+                                    </span>
+                                )}
+                            </Link>
 
                             {/* Cart Icon */}
                             <Link 
@@ -442,18 +491,23 @@ const Navbar = ({ onSearchClick }) => {
                             className="w-full overflow-hidden border-t border-slate-200 bg-white lg:hidden shadow-lg overflow-y-auto max-h-[calc(100vh-64px)]"
                         >
                             <div className="flex flex-col p-4 gap-1">
-                                <Link to="/assets" className="flex items-center justify-between p-4 rounded-xl hover:bg-slate-50 text-[14px] font-bold text-slate-900">Explore Assets <ArrowRight size={16} /></Link>
-                                <Link to="/blog" className="flex items-center justify-between p-4 rounded-xl hover:bg-slate-50 text-[14px] font-bold text-slate-900">Blog <ArrowRight size={16} /></Link>
-                                <Link to="/docs" className="flex items-center justify-between p-4 rounded-xl hover:bg-slate-50 text-[14px] font-bold text-slate-900">Docs <ArrowRight size={16} /></Link>
-                                <Link to="/support" className="flex items-center justify-between p-4 rounded-xl hover:bg-slate-50 text-[14px] font-bold text-slate-900">
-                                    <div className="flex items-center gap-2">
-                                        Talk to Expert
-                                        {unreadChatCount > 0 && <span className="h-2 w-2 rounded-full bg-blue-500 animate-pulse" />}
-                                    </div>
-                                    <ArrowRight size={16} />
-                                </Link>
-                                <Link to="/hire-developer" className="flex items-center justify-between p-4 rounded-xl hover:bg-slate-50 text-[14px] font-bold text-slate-900 font-bold">Hire Developer <ArrowRight size={16} /></Link>
-                                <Link to="/sell-your-project" className="flex items-center justify-between p-4 rounded-xl hover:bg-slate-50 text-[14px] font-bold text-slate-900">Sell Project <ArrowRight size={16} /></Link>
+                                {config?.navbar?.links?.map((link, idx) => {
+                                    if (link.featureFlag && config?.features?.[link.featureFlag] === false) return null;
+                                    
+                                    return (
+                                        <Link 
+                                            key={idx}
+                                            to={link.href} 
+                                            className="flex items-center justify-between p-4 rounded-xl hover:bg-slate-50 text-[14px] font-bold text-slate-900"
+                                        >
+                                            <div className="flex items-center gap-2">
+                                                {link.label}
+                                                {link.key === 'expert' && unreadChatCount > 0 && <span className="h-2 w-2 rounded-full bg-blue-500 animate-pulse" />}
+                                            </div>
+                                            <ArrowRight size={16} />
+                                        </Link>
+                                    );
+                                })}
                                 <div className="h-px bg-slate-100 my-2 mx-4" />
                                 <Link to="/pricing" className="flex items-center justify-between p-4 rounded-xl hover:bg-slate-50 text-[14px] font-bold text-slate-900">Pricing <ArrowRight size={16} /></Link>
                                 <Link to="/wishlist" className="flex items-center justify-between p-4 rounded-xl hover:bg-slate-50 text-[14px] font-bold text-slate-900">Wishlist <ArrowRight size={16} /></Link>

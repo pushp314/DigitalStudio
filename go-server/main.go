@@ -56,8 +56,8 @@ func main() {
 	services.BackfillLegacyLicenses(config.DB)
 
 	r := gin.New()
-	r.RedirectTrailingSlash = false
-	r.RedirectFixedPath = false
+	r.RedirectTrailingSlash = true
+	r.RedirectFixedPath = true
 
 	// CORS must be the very first middleware to handle preflights properly
 	allowOrigins := allowedOriginsFromEnv()
@@ -80,13 +80,7 @@ func main() {
 		MaxAge:           12 * time.Hour,
 	}))
 
-	// Normalize trailing slashes to prevent 301/CORS issues
-	r.Use(func(c *gin.Context) {
-		if c.Request.Method != "OPTIONS" && c.Request.URL.Path != "/" {
-			c.Request.URL.Path = strings.TrimSuffix(c.Request.URL.Path, "/")
-		}
-		c.Next()
-	})
+	// Gin will handle trailing slashes now with RedirectTrailingSlash = true
 
 	r.Use(gin.Recovery())
 	r.Use(middleware.RequestIDMiddleware())
@@ -165,6 +159,7 @@ func main() {
 	categories := api.Group("/categories")
 	{
 		categories.GET("", handlers.GetCategories)
+		categories.GET("/", handlers.GetCategories)
 		categories.GET("/:slug", handlers.GetCategoryBySlug)
 	}
 
@@ -243,6 +238,7 @@ func main() {
 	siteConfig := api.Group("/config")
 	{
 		siteConfig.GET("", handlers.GetConfig)
+		siteConfig.GET("/", handlers.GetConfig)
 		siteConfig.GET("/admin", middleware.AuthMiddleware(), middleware.AdminMiddleware(), handlers.GetAdminConfig)
 		siteConfig.PUT("", middleware.AuthMiddleware(), middleware.AdminMiddleware(), handlers.UpdateConfig)
 	}

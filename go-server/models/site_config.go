@@ -68,6 +68,28 @@ type MemberPlan struct {
 	IsPrimary   bool     `json:"isPrimary"` // If true, uses the dark theme and handleSubscribe logic
 }
 
+type ResourceItem struct {
+	Label   string `json:"label"`
+	Section string `json:"section"`
+	Href    string `json:"href"`
+	Icon    string `json:"icon"` // Lucide icon name
+	Desc    string `json:"desc"`
+}
+
+type NavbarItem struct {
+	Label       string `json:"label"`
+	Href        string `json:"href"`
+	Type        string `json:"type"` // link, dropdown
+	Key         string `json:"key,omitempty"` // explore, expert, developer
+	FeatureFlag string `json:"featureFlag,omitempty"`
+	IsMega      bool   `json:"isMega,omitempty"`
+}
+
+type NavbarConfig struct {
+	Links         []NavbarItem   `json:"links"`
+	ResourceItems []ResourceItem `json:"resourceItems,omitempty"`
+}
+
 type SiteConfig struct {
 	ID                  uint            `gorm:"primaryKey" json:"id"`
 	HeroTitle           string          `json:"heroTitle"`
@@ -79,6 +101,7 @@ type SiteConfig struct {
 	ShowAnnouncement    bool            `json:"showAnnouncement"`
 	SupportEmail        string          `json:"supportEmail"`
 	Features            map[string]bool `gorm:"serializer:json;type:jsonb" json:"features,omitempty"`
+	Navbar              NavbarConfig    `gorm:"serializer:json;type:jsonb" json:"navbar"`
 	MemberPlans         []MemberPlan    `gorm:"serializer:json;type:jsonb" json:"memberPlans,omitempty"`
 	FAQs                []FAQItem       `gorm:"serializer:json;type:jsonb" json:"faqs,omitempty"`
 	SocialProof         SocialProofConfig `gorm:"serializer:json;type:jsonb" json:"socialProof"`

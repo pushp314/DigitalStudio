@@ -54,6 +54,7 @@ import IdentityManager from '../../components/admin/IdentityManager';
 import EliteAdminManager from '../../components/admin/EliteAdminManager';
 import ReviewManager from '../../components/admin/ReviewManager';
 import BlogManager from '../../components/admin/BlogManager';
+import NavbarManager from '../../components/admin/NavbarManager';
 import { Layers } from 'lucide-react';
 
 const Dashboard = ({ defaultTab }) => {
@@ -71,7 +72,7 @@ const Dashboard = ({ defaultTab }) => {
             'analytics', 'templates', 'architecture', 'orders', 'licenses', 'docs', 
             'marketing', 'testimonials', 'showcase', 'settings', 
             'config', 'maintenance', 'users', 'identity', 
-            'subscriptions', 'messages', 'elite', 'blog'
+            'subscriptions', 'messages', 'elite', 'blog', 'navbar'
         ];
         return routes.find(tab => path.includes(`/admin/${tab}`)) || 'analytics';
     }, [location.pathname, defaultTab]);
@@ -100,6 +101,7 @@ const Dashboard = ({ defaultTab }) => {
         { id: 'config', label: 'Site Config', icon: <Layout size={18} /> },
         { id: 'docs', label: 'Documentation', icon: <BookOpen size={18} /> },
         { id: 'blog', label: 'Blog', icon: <Megaphone size={18} /> },
+        { id: 'navbar', label: 'Header', icon: <Layout size={18} /> },
         { id: 'testimonials', label: 'Reviews', icon: <Star size={18} /> },
         { id: 'messages', label: 'Support', icon: <Mail size={18} /> },
         { id: 'elite', label: 'Expert Help', icon: <MessageSquare size={18} /> },
@@ -326,6 +328,7 @@ const Dashboard = ({ defaultTab }) => {
                             {currentTab === 'messages' && <ContactManager />}
                             {currentTab === 'elite' && <EliteAdminManager />}
                             {currentTab === 'blog' && <BlogManager />}
+                            {currentTab === 'navbar' && <NavbarManager />}
                             {(currentTab === 'settings' || currentTab === 'config' || currentTab === 'maintenance') && (
                                 <SiteConfigForm 
                                     initialSection={

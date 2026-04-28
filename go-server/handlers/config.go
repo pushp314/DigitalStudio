@@ -19,6 +19,7 @@ type UpdateConfigReq struct {
 	ShowAnnouncement   bool                     `json:"showAnnouncement"`
 	SupportEmail       string                   `json:"supportEmail"`
 	Features           map[string]bool          `json:"features"`
+	Navbar             models.NavbarConfig      `json:"navbar"`
 	MemberPlans        []models.MemberPlan      `json:"memberPlans"`
 	FAQs               []models.FAQItem         `json:"faqs"`
 	SocialProof        models.SocialProofConfig `json:"socialProof"`
@@ -49,6 +50,23 @@ func defaultSiteConfig() models.SiteConfig {
 			"subscriptions": true,
 			"licenses":      true,
 			"testimonials":  true,
+		},
+		Navbar: models.NavbarConfig{
+			Links: []models.NavbarItem{
+				{Label: "Explore Assets", Href: "/assets", Type: "dropdown", Key: "explore", IsMega: true},
+				{Label: "Resources", Href: "#", Type: "dropdown", Key: "resources", IsMega: true},
+				{Label: "Services", Href: "#", Type: "dropdown", Key: "services"},
+				{Label: "Pricing", Href: "/pricing", Type: "link"},
+				{Label: "Sell Project", Href: "/sell-your-project", Type: "link"},
+			},
+			ResourceItems: []models.ResourceItem{
+				{Label: "Documentation", Section: "Knowledge Base", Href: "/docs", Icon: "Terminal", Desc: "Technical integration guides"},
+				{Label: "API Reference", Section: "Knowledge Base", Href: "/docs", Icon: "Cpu", Desc: "Complete endpoint definitions"},
+				{Label: "Platform Status", Section: "Support", Href: "/status", Icon: "Activity", Desc: "Real-time system health"},
+				{Label: "Community Forum", Section: "Support", Href: "/support", Icon: "MessageSquare", Desc: "Join the developer discussion"},
+				{Label: "Security & Trust", Section: "Support", Href: "/docs/security", Icon: "ShieldCheck", Desc: "Trust and infrastructure data"},
+				{Label: "Contact Help", Section: "Support", Href: "/contact", Icon: "Headphones", Desc: "Get human help"},
+			},
 		},
 		MemberPlans: []models.MemberPlan{
 			{
@@ -197,6 +215,7 @@ func UpdateConfig(c *gin.Context) {
 	siteConfig.ShowAnnouncement = req.ShowAnnouncement
 	siteConfig.SupportEmail = req.SupportEmail
 	siteConfig.Features = req.Features
+	siteConfig.Navbar = req.Navbar
 	siteConfig.MemberPlans = req.MemberPlans
 	siteConfig.FAQs = req.FAQs
 	siteConfig.SocialProof = req.SocialProof

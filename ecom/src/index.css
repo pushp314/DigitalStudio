@@ -24,15 +24,27 @@
   }
 
   .ds-section {
-    @apply px-4 py-12 sm:px-6 md:py-20;
+    @apply px-4 py-12 sm:px-6 md:py-24;
   }
 
   .ds-shell {
-    @apply mx-auto max-w-7xl w-full;
+    @apply mx-auto max-w-7xl w-full px-4 sm:px-6;
   }
 
   .ds-card {
-    @apply rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden;
+    @apply rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden transition-all duration-300 hover:shadow-md;
+  }
+
+  .ds-button-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-6 py-3.5 text-sm font-bold text-white transition-all hover:bg-slate-800 active:scale-95 disabled:opacity-50 disabled:pointer-events-none shadow-lg shadow-slate-900/10;
+  }
+
+  .ds-button-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-6 py-3.5 text-sm font-bold text-slate-700 transition-all hover:bg-slate-50 hover:border-slate-300 active:scale-95 disabled:opacity-50 disabled:pointer-events-none;
+  }
+
+  .ds-button-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-bold text-slate-600 transition-all hover:bg-slate-100 hover:text-slate-900 active:scale-95;
   }
 
   .ds-card-muted {
@@ -40,44 +52,33 @@
   }
 
   .ds-panel {
-    @apply rounded-2xl sm:rounded-3xl border border-slate-200 bg-white shadow-sm overflow-hidden;
+    @apply rounded-3xl border border-slate-200 bg-white shadow-sm overflow-hidden;
   }
 
   .ds-eyebrow {
-    @apply text-[10px] sm:text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500;
+    @apply text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400;
   }
 
   .ds-heading {
-    @apply text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-slate-900;
+    @apply text-3xl md:text-5xl font-bold tracking-tight text-slate-900;
   }
 
   .ds-subheading {
-    @apply text-sm sm:text-base md:text-lg leading-relaxed text-slate-600;
+    @apply text-base md:text-lg leading-relaxed text-slate-500;
   }
 
   .ds-chip {
-    @apply inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 sm:px-3 sm:py-1.5 text-[10px] sm:text-[11px] font-semibold text-slate-600;
+    @apply inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] font-bold text-slate-600 shadow-sm;
   }
 
   .ds-input {
-    @apply w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 sm:py-3.5 text-sm text-slate-900 outline-none transition-all placeholder:text-slate-400 focus:border-slate-900 focus:bg-white focus:ring-0;
+    @apply w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-sm text-slate-900 outline-none transition-all placeholder:text-slate-400 focus:border-slate-900 focus:bg-white focus:ring-0;
   }
 
   .ds-select {
-    @apply rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 outline-none transition-all focus:border-slate-900;
+    @apply rounded-xl border border-slate-200 bg-white px-4 py-3.5 text-sm font-semibold text-slate-700 outline-none transition-all focus:border-slate-900;
   }
 
-  .ds-button-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition-all hover:bg-slate-800 active:scale-95 disabled:opacity-50 disabled:pointer-events-none;
-  }
-
-  .ds-button-secondary {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition-all hover:bg-slate-50 active:scale-95 disabled:opacity-50 disabled:pointer-events-none;
-  }
-
-  .ds-button-ghost {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-slate-600 transition-all hover:bg-slate-100 hover:text-slate-900 active:scale-95;
-  }
 
   /* Responsive Table Wrapper */
   .table-responsive {

@@ -7,22 +7,23 @@ const FeaturedHeader = () => {
     const avatars = Array.isArray(socialProof.avatarImages) ? socialProof.avatarImages : [];
 
     return (
-        <section className="ds-page px-6 pt-10 pb-6 md:pt-12 md:pb-8">
+        <section className="ds-page px-4 pt-10 pb-6 md:px-6 md:pt-12 md:pb-8">
             <div className="ds-shell flex flex-col gap-6">
                 <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
                     <div>
                         <p className="ds-eyebrow mb-2">Featured apps and kits</p>
-                        <h2 className="text-3xl font-bold tracking-tight text-slate-900 md:text-4xl">
+                        <h2 className="text-2xl font-bold tracking-tight text-slate-900 md:text-4xl">
                             Popular ready-to-use products
                         </h2>
                     </div>
                     {(socialProof.rating || socialProof.summary || socialProof.creatorsLabel) && (
                         <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
-                            {socialProof.rating && <p className="text-sm font-semibold text-slate-900">{socialProof.rating}</p>}
-                            <p className="text-sm text-slate-600">{socialProof.creatorsLabel || socialProof.summary}</p>
+                            {socialProof.rating && <p className="text-sm font-bold text-slate-900">{socialProof.rating}</p>}
+                            <p className="text-xs md:text-sm text-slate-500">{socialProof.creatorsLabel || socialProof.summary}</p>
                         </div>
                     )}
                 </div>
+
 
                 {avatars.length > 0 && (
                     <div className="flex items-center gap-4 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">

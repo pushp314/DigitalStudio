@@ -33,7 +33,9 @@ const api = {
         }
 
         try {
-            const res = await fetch(`${API_URL}${endpoint}`, config);
+            // Remove trailing slashes unless it's just the root
+            const cleanEndpoint = endpoint.length > 1 ? endpoint.replace(/\/+$/, '') : endpoint;
+            const res = await fetch(`${API_URL}${cleanEndpoint}`, config);
             const contentType = res.headers.get('content-type') || '';
             const data = contentType.includes('application/json')
                 ? await res.json()

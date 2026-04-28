@@ -208,6 +208,15 @@ export const normalizeSiteConfig = (config = {}) => ({
     showAnnouncement: Boolean(config.showAnnouncement),
     supportEmail: config.supportEmail ?? '',
     features: config.features ?? {},
+    navbar: {
+        links: toArray(config.navbar?.links).map(link => ({
+            label: toString(link.label),
+            href: toString(link.href),
+            type: toString(link.type, 'link'),
+            key: toString(link.key),
+            featureFlag: toString(link.featureFlag)
+        }))
+    },
     memberPlans: toArray(config.memberPlans),
     faqs: toArray(config.faqs),
     socialProof: {
